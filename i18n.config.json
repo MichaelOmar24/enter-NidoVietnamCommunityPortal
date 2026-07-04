@@ -13,6 +13,54 @@
       "label": "简体中文",
       "detect": ["zh", "zh-CN", "zh-Hans"],
       "dir": "ltr"
+    },
+    {
+      "code": "zh-TW",
+      "label": "繁體中文",
+      "detect": ["zh-TW", "zh-Hant", "zh-HK", "zh-MO"],
+      "dir": "ltr"
+    },
+    {
+      "code": "fr",
+      "label": "Français",
+      "detect": ["fr", "fr-FR", "fr-BE", "fr-CA", "fr-CH"],
+      "dir": "ltr"
+    },
+    {
+      "code": "es",
+      "label": "Español",
+      "detect": ["es", "es-ES", "es-MX", "es-AR"],
+      "dir": "ltr"
+    },
+    {
+      "code": "it",
+      "label": "Italiano",
+      "detect": ["it", "it-IT"],
+      "dir": "ltr"
+    },
+    {
+      "code": "pt",
+      "label": "Português",
+      "detect": ["pt", "pt-PT", "pt-BR"],
+      "dir": "ltr"
+    },
+    {
+      "code": "ja",
+      "label": "日本語",
+      "detect": ["ja", "ja-JP"],
+      "dir": "ltr"
+    },
+    {
+      "code": "ko",
+      "label": "한국어",
+      "detect": ["ko", "ko-KR"],
+      "dir": "ltr"
+    },
+    {
+      "code": "vi",
+      "label": "Tiếng Việt",
+      "detect": ["vi", "vi-VN"],
+      "dir": "ltr"
     }
   ]
 }

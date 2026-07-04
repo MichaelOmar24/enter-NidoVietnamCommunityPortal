@@ -1,0 +1,7 @@
+{
+  "common.appName": "Nom de votre application",
+  "home.hero.title": "Bienvenue dans votre application vierge",
+  "home.hero.subtitle": "Faites de n'importe quelle App la vôtre facilement.",
+  "notFound.title": "Oops ! Page non trouvée",
+  "notFound.actions.backHome": "Retour à l'accueil"
+}
