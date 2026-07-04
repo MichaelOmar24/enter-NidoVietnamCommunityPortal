@@ -24,7 +24,7 @@ export function DirectoryPage() {
     setLoading(true);
     const { data } = await supabase
       .from('companies')
-      .select('*, profile:owner_id(first_name, last_name)')
+      .select('*')
       .eq('is_approved', true)
       .order('company_name');
     setCompanies((data || []) as Company[]);
