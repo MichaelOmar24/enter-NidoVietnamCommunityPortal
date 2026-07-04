@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,6 +27,7 @@ export function AdminMembers() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [editingPassport, setEditingPassport] = useState<Partial<Passport>>({});
+  const [passportImageOpen, setPassportImageOpen] = useState(false);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -69,6 +70,7 @@ export function AdminMembers() {
       place_of_issue: editingPassport.place_of_issue,
       admin_notes: editingPassport.admin_notes,
       verified: editingPassport.verified,
+      is_biometric: editingPassport.is_biometric,
     }).eq('id', selected.passport.id);
     toast({ title: 'Passport updated', description: 'Passport information has been saved.' });
   };
@@ -203,9 +205,68 @@ export function AdminMembers() {
                                 {selected.passport && (
                                   <div className="border-t border-border pt-4">
                                     <h4 className="font-semibold text-sm mb-3">Passport Information (Editable)</h4>
-                                    {selected.passport.passport_image_url && (
-                                      <img src={selected.passport.passport_image_url} alt="Passport" className="w-full h-40 object-cover rounded-lg mb-3" onContextMenu={e => e.preventDefault()} />
-                                    )}
+
+                                    {/* Passport Image + Biometric Banner */}
+                                    <div className="flex gap-3 mb-4">
+                                      {/* Passport Image Card */}
+                                      <div className="flex-1">
+                                        {selected.passport.passport_image_url ? (
+                                          <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
+                                            onClick={() => setPassportImageOpen(true)}>
+                                            <img
+                                              src={selected.passport.passport_image_url}
+                                              alt="Passport"
+                                              className="w-full h-36 object-cover transition-transform group-hover:scale-105"
+                                              onContextMenu={e => e.preventDefault()}
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                              <div className="flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 px-3 py-1.5 rounded-full">
+                                                <ZoomIn className="h-3.5 w-3.5" /> View Full Size
+                                              </div>
+                                            </div>
+                                            <div className="absolute top-2 left-2">
+                                              <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+                                                <FileImage className="h-2.5 w-2.5 mr-1" /> Passport Photo
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="w-full h-36 rounded-lg border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center text-muted-foreground">
+                                            <FileImage className="h-8 w-8 mb-1 opacity-40" />
+                                            <span className="text-xs">No passport image uploaded</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Biometric Status Card */}
+                                      <div className="w-36 flex flex-col gap-2">
+                                        <div className={`flex-1 rounded-lg border flex flex-col items-center justify-center p-3 text-center ${
+                                          selected.passport.is_biometric
+                                            ? 'border-primary/30 bg-primary/5'
+                                            : 'border-muted bg-muted/20'
+                                        }`}>
+                                          <Fingerprint className={`h-7 w-7 mb-1.5 ${selected.passport.is_biometric ? 'text-primary' : 'text-muted-foreground/40'}`} />
+                                          <span className="text-[11px] font-semibold leading-tight">
+                                            {selected.passport.is_biometric ? 'Biometric' : 'Non-Biometric'}
+                                          </span>
+                                          <span className="text-[10px] text-muted-foreground mt-0.5">passport</span>
+                                        </div>
+                                        <div className={`rounded-lg border flex flex-col items-center justify-center p-2.5 text-center ${
+                                          selected.passport.verified
+                                            ? 'border-emerald-500/30 bg-emerald-500/5'
+                                            : 'border-amber-500/30 bg-amber-500/5'
+                                        }`}>
+                                          {selected.passport.verified
+                                            ? <ShieldCheck className="h-5 w-5 mb-1 text-emerald-500" />
+                                            : <ShieldX className="h-5 w-5 mb-1 text-amber-500" />}
+                                          <span className={`text-[11px] font-semibold ${selected.passport.verified ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                            {selected.passport.verified ? 'Verified' : 'Unverified'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Expiry Banner */}
                                     {passportDaysToExpiry(selected.passport) !== null && (
                                       <div className={`mb-3 p-2 rounded text-xs font-medium flex items-center gap-1 ${
                                         passportDaysToExpiry(selected.passport)! < 0 ? 'bg-destructive/10 text-destructive' :
@@ -218,6 +279,7 @@ export function AdminMembers() {
                                          'Valid'}
                                       </div>
                                     )}
+
                                     <div className="grid grid-cols-2 gap-3">
                                       {[
                                         { label: 'Passport Number', key: 'passport_number', type: 'text' },
@@ -236,6 +298,21 @@ export function AdminMembers() {
                                         </div>
                                       ))}
                                     </div>
+
+                                    {/* Biometric toggle */}
+                                    <div className="mt-3 flex items-center gap-2">
+                                      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={editingPassport.is_biometric || false}
+                                          onChange={e => setEditingPassport(p => ({ ...p, is_biometric: e.target.checked }))}
+                                          className="rounded"
+                                        />
+                                        <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Biometric Passport
+                                      </label>
+                                    </div>
+
                                     <div className="mt-2 space-y-1">
                                       <Label className="text-xs">Admin Notes</Label>
                                       <Textarea
@@ -261,6 +338,41 @@ export function AdminMembers() {
                                     </div>
                                   </div>
                                 )}
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+
+                        {/* Passport Image Lightbox */}
+                        <Dialog open={passportImageOpen} onOpenChange={setPassportImageOpen}>
+                          <DialogContent className="max-w-3xl p-2 bg-black/95 border-border/20">
+                            <DialogHeader className="px-4 pt-3 pb-1">
+                              <DialogTitle className="text-white text-sm flex items-center gap-2">
+                                <FileImage className="h-4 w-4" />
+                                Passport Image — {selected?.first_name} {selected?.last_name}
+                              </DialogTitle>
+                            </DialogHeader>
+                            {selected?.passport?.passport_image_url && (
+                              <div className="flex flex-col items-center gap-3 p-2">
+                                <img
+                                  src={selected.passport.passport_image_url}
+                                  alt="Passport full view"
+                                  className="w-full max-h-[70vh] object-contain rounded"
+                                  onContextMenu={e => e.preventDefault()}
+                                />
+                                <div className="flex items-center gap-3">
+                                  <Badge className={`gap-1 ${selected.passport.is_biometric ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                    <Fingerprint className="h-3 w-3" />
+                                    {selected.passport.is_biometric ? 'Biometric' : 'Non-Biometric'}
+                                  </Badge>
+                                  <Badge className={`gap-1 ${selected.passport.verified ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                    {selected.passport.verified ? <ShieldCheck className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
+                                    {selected.passport.verified ? 'Verified' : 'Unverified'}
+                                  </Badge>
+                                  {selected.passport.passport_number && (
+                                    <span className="text-xs text-white/60">#{selected.passport.passport_number}</span>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </DialogContent>
