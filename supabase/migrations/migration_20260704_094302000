@@ -1,0 +1,25 @@
+-- Use CREATE OR REPLACE to update function in place (avoids dependency issues)
+CREATE OR REPLACE FUNCTION public.is_current_user_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+  SELECT COALESCE(
+    (SELECT is_admin FROM public.profiles WHERE id = auth.uid() LIMIT 1),
+    false
+  );
+$$;
+
+-- Grant execute to all necessary roles
+GRANT EXECUTE ON FUNCTION public.is_current_user_admin() TO authenticated, anon, service_role;
+
+-- Recreate the admin policy on profiles using the fixed function
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+CREATE POLICY "Admins can view all profiles" ON profiles
+FOR ALL USING (public.is_current_user_admin());
+
+-- Force PostgREST schema cache reload
+NOTIFY pgrst, 'reload schema';
