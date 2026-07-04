@@ -3360,7 +3360,386 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          content: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          event_date: string | null
+          id: string
+          is_published: boolean | null
+          location: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          is_published?: boolean | null
+          location?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          is_published?: boolean | null
+          location?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          address_in_vietnam: string | null
+          business_type: string | null
+          company_name: string
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          industry: string | null
+          is_approved: boolean | null
+          logo_url: string | null
+          owner_id: string | null
+          phone: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address_in_vietnam?: string | null
+          business_type?: string | null
+          company_name: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          industry?: string | null
+          is_approved?: boolean | null
+          logo_url?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_in_vietnam?: string | null
+          business_type?: string | null
+          company_name?: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          industry?: string | null
+          is_approved?: boolean | null
+          logo_url?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_owner_id_fkey"
+            columns: ["owner_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          document_type: string | null
+          document_url: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          document_type?: string | null
+          document_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          document_type?: string | null
+          document_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+        }
+        Relationships: []
+      }
+      gallery_albums: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          event_date: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      gallery_photos: {
+        Row: {
+          album_id: string | null
+          caption: string | null
+          created_at: string | null
+          id: string
+          image_url: string
+        }
+        Insert: {
+          album_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          image_url: string
+        }
+        Update: {
+          album_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_photos_album_id_fkey"
+            columns: ["album_id"]
+            referencedRelation: "gallery_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          payment_status: string | null
+          plan_type: string | null
+          stripe_session_id: string | null
+          user_id: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_status?: string | null
+          plan_type?: string | null
+          stripe_session_id?: string | null
+          user_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_status?: string | null
+          plan_type?: string | null
+          stripe_session_id?: string | null
+          user_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          is_biometric: boolean | null
+          issue_date: string | null
+          passport_image_url: string | null
+          passport_number: string | null
+          place_of_issue: string | null
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_biometric?: boolean | null
+          issue_date?: string | null
+          passport_image_url?: string | null
+          passport_number?: string | null
+          place_of_issue?: string | null
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_biometric?: boolean | null
+          issue_date?: string | null
+          passport_image_url?: string | null
+          passport_number?: string | null
+          place_of_issue?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passports_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string | null
+          email: string
+          first_name: string
+          gender: string | null
+          id: string
+          is_admin: boolean | null
+          last_name: string
+          marital_status: string | null
+          membership_status: string | null
+          membership_type: string | null
+          nigerian_state_of_origin: string | null
+          occupation_type: string | null
+          phone: string | null
+          profile_picture_url: string | null
+          updated_at: string | null
+          vietnam_address: string | null
+          vietnam_city: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          email: string
+          first_name: string
+          gender?: string | null
+          id: string
+          is_admin?: boolean | null
+          last_name: string
+          marital_status?: string | null
+          membership_status?: string | null
+          membership_type?: string | null
+          nigerian_state_of_origin?: string | null
+          occupation_type?: string | null
+          phone?: string | null
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          vietnam_address?: string | null
+          vietnam_city?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string
+          first_name?: string
+          gender?: string | null
+          id?: string
+          is_admin?: boolean | null
+          last_name?: string
+          marital_status?: string | null
+          membership_status?: string | null
+          membership_type?: string | null
+          nigerian_state_of_origin?: string | null
+          occupation_type?: string | null
+          phone?: string | null
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          vietnam_address?: string | null
+          vietnam_city?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
