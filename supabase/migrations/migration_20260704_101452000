@@ -1,0 +1,31 @@
+-- Create passport-images storage bucket as public
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'passport-images',
+  'passport-images',
+  true,
+  10485760,  -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Allow authenticated users to upload passport images
+DROP POLICY IF EXISTS "Authenticated users can upload passport images" ON storage.objects;
+CREATE POLICY "Authenticated users can upload passport images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'passport-images');
+
+-- Allow authenticated users to update (replace) their own passport images
+DROP POLICY IF EXISTS "Authenticated users can update passport images" ON storage.objects;
+CREATE POLICY "Authenticated users can update passport images"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'passport-images');
+
+-- Allow public read access so images can be displayed
+DROP POLICY IF EXISTS "Public read access for passport images" ON storage.objects;
+CREATE POLICY "Public read access for passport images"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'passport-images');
