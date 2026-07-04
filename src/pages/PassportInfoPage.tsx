@@ -2,8 +2,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Shield, MapPin, Phone, Mail, Globe, ChevronRight, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';import { Shield, Phone, Mail, Globe, ChevronRight, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 const STEPS = [
   {
@@ -183,26 +182,7 @@ export function PassportInfoPage() {
             </div>
           </div>
 
-          {/* Passport Sample */}
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-foreground mb-4">Nigerian International Passport Sample</h2>
-            <Card className="shadow-card overflow-hidden">
-              <CardContent className="p-0 relative">
-                <img
-                  src="https://cdn.enter.pro/resources/uid_100149613/f753e4c9-0c4f-4d.jpeg"
-                  alt="Nigerian Passport Sample"
-                  className="w-full max-h-80 object-contain bg-muted/30 p-4"
-                  onContextMenu={e => e.preventDefault()}
-                />
-                <div className="absolute top-3 right-3">
-                  <Badge className="bg-card text-muted-foreground border">Sample Only</Badge>
-                </div>
-              </CardContent>
-            </Card>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Illustration of a standard Nigerian international passport for reference purposes only.
-            </p>
-          </div>
+
         </div>
       </div>
       <Footer />
