@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Star, Shield, Users, ArrowRight, Mail, Phone } from 'lucide-react';
+import { trackEvent } from '@enter-pro/analytics-sdk';
 
 const PLANS = [
   {
@@ -53,6 +54,7 @@ const PLANS = [
 
 export function MembershipPage() {
   const handlePayment = () => {
+    trackEvent('membership_upgrade_clicked', { eventType: 'conversion', properties: { plan: 'premium' } });
     alert('Payment integration coming soon! Please contact info@nidovietnam.com for premium membership.');
   };
 

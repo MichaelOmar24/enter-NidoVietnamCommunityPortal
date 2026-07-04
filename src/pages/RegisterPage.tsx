@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { NIGERIAN_STATES, VIETNAM_CITIES, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, OccupationType, MaritalStatus } from '@/lib/types';
 import { AlertCircle, CheckCircle, Upload, User, Briefcase, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { trackEvent } from '@enter-pro/analytics-sdk';
 
 interface FormData {
   // Step 1
@@ -147,6 +148,14 @@ export function RegisterPage() {
 
     setSuccess(true);
     setLoading(false);
+
+    trackEvent('member_registered', {
+      eventType: 'conversion',
+      properties: {
+        city: form.vietnam_city || 'unknown',
+        occupation: form.occupation_type || 'other',
+      },
+    });
 
     toast({
       title: 'Registration Successful!',

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@enter-pro/analytics-sdk';
 
 const SUPABASE_URL = "https://spb-t4nj0o17iwx78npt.supabase.opentrust.net";
 const SUPABASE_ANON_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNwYi10NG5qMG8xN2l3eDc4bnB0IiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODIwOTk1MTYsImV4cCI6MjA5NzY3NTUxNn0.eefYISjeEzM_KbKB0si7Muv_4hf92gfPLH3jKP-HTbM";
@@ -69,6 +70,8 @@ export function AIChatWidget() {
     setInput('');
     setIsLoading(true);
     setError(null);
+
+    trackEvent('ai_message_sent', { eventType: 'custom', properties: { message_length: content.trim().length } });
 
     const chatHistory = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
 
@@ -168,7 +171,11 @@ export function AIChatWidget() {
           </div>
         )}
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            const opening = !open;
+            setOpen(opening);
+            if (opening) trackEvent('ai_chat_opened', { eventType: 'custom' });
+          }}
           className={cn(
             "relative w-14 h-14 rounded-full shadow-green flex items-center justify-center transition-smooth",
             "gradient-primary text-primary-foreground hover:scale-110"

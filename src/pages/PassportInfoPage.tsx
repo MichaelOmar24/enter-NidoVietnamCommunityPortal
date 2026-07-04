@@ -2,7 +2,9 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';import { Shield, Phone, Mail, Globe, ChevronRight, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+import { trackEvent } from '@enter-pro/analytics-sdk';import { Shield, Phone, Mail, Globe, ChevronRight, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 const STEPS = [
   {
@@ -48,6 +50,10 @@ const DOCUMENTS = [
 ];
 
 export function PassportInfoPage() {
+  useEffect(() => {
+    trackEvent('passport_info_viewed', { eventType: 'custom' });
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />

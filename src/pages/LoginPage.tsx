@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
+import { trackEvent } from '@enter-pro/analytics-sdk';
 import { AlertCircle, Eye, EyeOff, LogIn } from 'lucide-react';
 
 export function LoginPage() {
@@ -27,6 +28,7 @@ export function LoginPage() {
     if (err) {
       setError(err.message || 'Invalid email or password');
     } else {
+      trackEvent('member_login', { eventType: 'custom' });
       navigate('/dashboard');
     }
     setLoading(false);

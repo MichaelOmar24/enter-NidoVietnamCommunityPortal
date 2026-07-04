@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Company } from '@/lib/types';
 import { Building2, Globe, Phone, Mail, MapPin, Search, ExternalLink, MessageCircle } from 'lucide-react';
+import { trackEvent } from '@enter-pro/analytics-sdk';
 
 const INDUSTRIES = ['All', 'Beauty & Fashion', 'Financial Services', 'Food & Restaurant', 'Healthcare', 'Technology', 'Trade & Commerce', 'Transportation', 'Education', 'Consulting', 'Real Estate', 'Other'];
 
@@ -61,7 +62,12 @@ export function DirectoryPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  if (e.target.value.length > 2) {
+                    trackEvent('directory_search', { eventType: 'custom', properties: { query: e.target.value } });
+                  }
+                }}
                 placeholder="Search businesses..."
                 className="pl-9 h-11"
               />
@@ -148,19 +154,26 @@ export function DirectoryPage() {
                       {company.phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <a href={`tel:${company.phone}`} className="hover:text-primary font-medium transition-smooth">{company.phone}</a>
+                          <a href={`tel:${company.phone}`} className="hover:text-primary font-medium transition-smooth"
+                            onClick={() => trackEvent('business_contact_clicked', { eventType: 'conversion', properties: { company: company.company_name, type: 'phone' } })}>
+                            {company.phone}
+                          </a>
                         </div>
                       )}
                       {company.email && (
                         <div className="flex items-center gap-2">
                           <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <a href={`mailto:${company.email}`} className="hover:text-primary truncate transition-smooth">{company.email}</a>
+                          <a href={`mailto:${company.email}`} className="hover:text-primary truncate transition-smooth"
+                            onClick={() => trackEvent('business_contact_clicked', { eventType: 'conversion', properties: { company: company.company_name, type: 'email' } })}>
+                            {company.email}
+                          </a>
                         </div>
                       )}
                       {company.website && (
                         <div className="flex items-center gap-2">
                           <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <a href={company.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary flex items-center gap-1 truncate transition-smooth">
+                          <a href={company.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary flex items-center gap-1 truncate transition-smooth"
+                            onClick={() => trackEvent('business_contact_clicked', { eventType: 'conversion', properties: { company: company.company_name, type: 'website' } })}>
                             {company.website.replace(/^https?:\/\//, '')}
                             <ExternalLink className="h-3 w-3 shrink-0" />
                           </a>
