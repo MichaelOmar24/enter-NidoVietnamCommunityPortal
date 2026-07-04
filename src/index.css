@@ -215,3 +215,112 @@ html, body, #root {
 .animate-count-up {
   animation: countUp 0.5s ease-out forwards;
 }
+
+/* Float animation for hero elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Shimmer / gradient animation */
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 4s ease infinite;
+}
+
+/* Glass morphism utilities */
+.glass {
+  background: hsl(var(--card) / 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-hero {
+  background: hsl(0, 0%, 0%, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--primary-foreground) / 0.15);
+}
+
+/* Text gradient utilities */
+.text-gradient-primary {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero dot pattern overlay */
+.hero-pattern {
+  background-image: radial-gradient(hsl(0, 0%, 100%, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Section accent line */
+.section-accent {
+  width: 3rem;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 9999px;
+  margin-bottom: 0.75rem;
+}
+
+/* Stat card with gradient top border */
+.stat-card-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* Card lift on hover */
+.card-lift {
+  transition: var(--transition-smooth);
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+}
+
+/* Icon circle */
+.icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+/* Gradient border card */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

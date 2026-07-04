@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Users, Building2, Globe, ChevronRight, BookOpen, Image,
   Calendar, AlertCircle, Facebook, MessageCircle, Phone, Mail,
-  ExternalLink, CheckCircle, Shield, Star
+  ExternalLink, CheckCircle, Shield, Star, ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -62,7 +62,6 @@ export function HomePage() {
       const { data } = await supabase.functions.invoke('embassy-news');
       if (data?.notices) setEmbassyNotices(data.notices);
     } catch (_) {
-      // Fallback static notices
       setEmbassyNotices([
         { title: 'Passport Renewal Update', date: 'June 2025', excerpt: 'Nigerian citizens in Vietnam are advised to renew their passports before expiry. Contact the embassy for guidance.' },
         { title: 'Emergency Contact Information', date: 'May 2025', excerpt: 'For emergency consular services, contact the embassy on +84-24-37263610.' },
@@ -72,10 +71,10 @@ export function HomePage() {
   };
 
   const statItems = [
-    { icon: Users, label: 'Registered Members', value: stats.totalMembers, color: 'text-primary' },
-    { icon: CheckCircle, label: 'Active Members', value: stats.activeMembers, color: 'text-gold' },
-    { icon: Building2, label: 'Nigerian Businesses', value: stats.companies, color: 'text-accent' },
-    { icon: Calendar, label: 'Community Events', value: stats.activities, color: 'text-primary' },
+    { icon: Users, label: 'Registered Members', value: stats.totalMembers, colorIcon: 'text-primary', gradient: 'from-primary/10 to-primary/5' },
+    { icon: CheckCircle, label: 'Active Members', value: stats.activeMembers, colorIcon: 'text-gold', gradient: 'from-gold/10 to-gold/5' },
+    { icon: Building2, label: 'Nigerian Businesses', value: stats.companies, colorIcon: 'text-accent', gradient: 'from-accent/10 to-accent/5' },
+    { icon: Calendar, label: 'Community Events', value: stats.activities, colorIcon: 'text-primary', gradient: 'from-primary/10 to-primary/5' },
   ];
 
   return (
@@ -83,60 +82,65 @@ export function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="gradient-hero pt-32 pb-20 px-4 relative overflow-hidden">
-        {/* Decorative elements */}
+      <section className="gradient-hero pt-32 pb-24 px-4 relative overflow-hidden">
+        {/* Dot pattern overlay */}
+        <div className="absolute inset-0 hero-pattern pointer-events-none" />
+        {/* Glow orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-gold/10 blur-3xl" />
+          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gold/10 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-accent/5 blur-3xl" />
         </div>
-        
+
         <div className="container mx-auto relative">
-          <div className="flex flex-col lg:flex-row items-center gap-12">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="flex-1 text-center lg:text-left">
-              <div className="flex items-center gap-2 justify-center lg:justify-start mb-4">
-                <img src="https://cdn.enter.pro/resources/uid_100149613/db051db4-b309-4c.jpeg" alt="Coat of Arms" className="h-10 w-10 rounded-full object-cover" />
-                <Badge className="gradient-gold text-gold-foreground border-0 font-semibold">Official Community Platform</Badge>
+              <div className="flex items-center gap-2 justify-center lg:justify-start mb-6">
+                <img src="https://cdn.enter.pro/resources/uid_100149613/db051db4-b309-4c.jpeg" alt="Coat of Arms" className="h-9 w-9 rounded-full object-cover ring-2 ring-gold/60" />
+                <Badge className="gradient-gold text-gold-foreground border-0 font-semibold text-xs px-3 py-1">Official Community Platform</Badge>
               </div>
               <h1 className="text-4xl md:text-5xl xl:text-6xl font-bold text-primary-foreground leading-tight mb-6">
                 Nigerians in<br />
-                <span className="text-gold">Diaspora</span><br />
+                <span className="text-gradient-gold">Diaspora</span><br />
                 Organization Vietnam
               </h1>
-              <p className="text-primary-foreground/80 text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+              <p className="text-primary-foreground/75 text-lg max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
                 Connecting Nigerians across Vietnam — building community, fostering opportunities, and preserving identity far from home.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 {user ? (
-                  <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold" onClick={() => navigate('/dashboard')}>
-                    My Dashboard <ChevronRight className="h-5 w-5 ml-1" />
+                  <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold gap-2 h-12 px-6" onClick={() => navigate('/dashboard')}>
+                    My Dashboard <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold" onClick={() => navigate('/register')}>
-                    Join NIDO Vietnam <ChevronRight className="h-5 w-5 ml-1" />
+                  <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold gap-2 h-12 px-6" onClick={() => navigate('/register')}>
+                    Join NIDO Vietnam <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
-                <Button size="lg" variant="outline" className="border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate('/directory')}>
-                  <Building2 className="h-5 w-5 mr-2" /> Business Directory
+                <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 h-12 px-6 glass-hero" onClick={() => navigate('/directory')}>
+                  <Building2 className="h-4 w-4 mr-2" /> Business Directory
                 </Button>
               </div>
               {/* Social quick links */}
-              <div className="flex items-center gap-4 mt-8 justify-center lg:justify-start">
-                <span className="text-primary-foreground/60 text-sm">Connect:</span>
+              <div className="flex items-center gap-5 mt-10 justify-center lg:justify-start">
+                <span className="text-primary-foreground/50 text-sm">Connect:</span>
                 <a href="https://www.facebook.com/groups/357099351095953" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-primary-foreground/80 hover:text-gold transition-smooth text-sm">
+                  className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-gold transition-smooth text-sm font-medium">
                   <Facebook className="h-4 w-4" /> Facebook
                 </a>
                 <a href="https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-primary-foreground/80 hover:text-gold transition-smooth text-sm">
+                  className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-gold transition-smooth text-sm font-medium">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
                 </a>
               </div>
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 relative">
+              {/* Decorative ring */}
+              <div className="absolute inset-0 rounded-full bg-gold/10 blur-2xl scale-150" />
               <img
                 src="https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png"
                 alt="NIDO Vietnam"
-                className="h-48 md:h-64 w-auto drop-shadow-2xl animate-fade-in-up"
+                className="relative h-52 md:h-72 w-auto drop-shadow-2xl animate-float"
               />
             </div>
           </div>
@@ -144,14 +148,16 @@ export function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-card border-b border-border">
+      <section className="py-14 bg-card border-b border-border">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {statItems.map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="text-center p-4">
-                <Icon className={`h-8 w-8 mx-auto mb-2 ${color}`} />
-                <div className="text-3xl font-bold text-foreground">{value.toLocaleString()}</div>
-                <p className="text-sm text-muted-foreground mt-1">{label}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            {statItems.map(({ icon: Icon, label, value, colorIcon, gradient }) => (
+              <div key={label} className={`relative overflow-hidden text-center p-6 rounded-2xl bg-gradient-to-br ${gradient} border border-border/60 shadow-card stat-card-top card-lift`}>
+                <div className={`w-12 h-12 rounded-xl bg-card flex items-center justify-center mx-auto mb-3 shadow-sm`}>
+                  <Icon className={`h-6 w-6 ${colorIcon}`} />
+                </div>
+                <div className="text-3xl font-bold text-foreground tracking-tight">{value.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1.5 font-semibold uppercase tracking-wider">{label}</p>
               </div>
             ))}
           </div>
@@ -159,15 +165,16 @@ export function HomePage() {
       </section>
 
       {/* Embassy Notices */}
-      <section className="py-16 px-4 bg-background">
+      <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Embassy Notices</h2>
-              <p className="text-muted-foreground mt-1">Latest updates from the Nigerian Embassy in Vietnam</p>
+              <div className="section-accent" />
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Embassy Notices</h2>
+              <p className="text-muted-foreground mt-2">Latest updates from the Nigerian Embassy in Vietnam</p>
             </div>
             <a href="https://nigeriaembassy.org.vn" target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 gap-2">
+              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 gap-2 hidden sm:flex">
                 <ExternalLink className="h-4 w-4" /> Embassy Website
               </Button>
             </a>
@@ -175,15 +182,16 @@ export function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {embassyNotices.map((notice, i) => (
-              <Card key={i} className="shadow-card hover:shadow-green transition-smooth border-border">
+              <Card key={i} className="shadow-card card-lift hover:shadow-green transition-smooth border-border overflow-hidden">
+                <div className="h-1 gradient-primary" />
                 <CardContent className="p-6">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-green">
                       <AlertCircle className="h-4 w-4 text-primary-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm">{notice.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{notice.date}</p>
+                      <h3 className="font-semibold text-foreground text-sm leading-snug">{notice.title}</h3>
+                      <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{notice.date}</span>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{notice.excerpt}</p>
@@ -193,24 +201,21 @@ export function HomePage() {
           </div>
 
           {/* Embassy Contact Banner */}
-          <div className="mt-8 p-6 rounded-2xl gradient-primary text-primary-foreground">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="mt-8 p-7 rounded-2xl gradient-primary text-primary-foreground relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary-foreground/5 blur-2xl -translate-y-1/2 translate-x-1/2" />
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
-                <h3 className="font-bold text-lg">Nigerian Embassy — Hanoi, Vietnam</h3>
-                <p className="text-primary-foreground/80 text-sm mt-1">For official matters and emergency consular services</p>
+                <h3 className="font-bold text-xl">Nigerian Embassy — Hanoi, Vietnam</h3>
+                <p className="text-primary-foreground/75 text-sm mt-1">For official matters and emergency consular services</p>
               </div>
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
+              <div className="flex flex-wrap gap-5 text-sm">
+                <div className="flex items-center gap-2 glass-hero rounded-full px-4 py-2">
+                  <Phone className="h-4 w-4 text-gold" />
                   <span>+84-24-37263610 / 37263611</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
+                <div className="flex items-center gap-2 glass-hero rounded-full px-4 py-2">
+                  <MessageCircle className="h-4 w-4 text-gold" />
                   <span>WhatsApp: +84775568278</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  <span>Fax: +84-24-37263615</span>
                 </div>
               </div>
             </div>
@@ -221,21 +226,21 @@ export function HomePage() {
       {/* Biometric Passport Notice */}
       <section className="py-12 px-4 bg-muted/30">
         <div className="container mx-auto">
-          <Card className="border-gold shadow-gold overflow-hidden">
+          <Card className="border-gold/40 shadow-gold overflow-hidden card-lift">
             <div className="flex flex-col md:flex-row">
-              <div className="gradient-gold p-6 md:w-48 flex items-center justify-center">
-                <Shield className="h-16 w-16 text-gold-foreground" />
+              <div className="gradient-gold p-8 md:w-52 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(white 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
+                <Shield className="h-16 w-16 text-gold-foreground relative" />
               </div>
-              <CardContent className="p-6 flex-1">
-                <Badge className="bg-gold text-gold-foreground border-0 mb-3">Important Notice</Badge>
+              <CardContent className="p-7 flex-1">
+                <Badge className="bg-gold text-gold-foreground border-0 mb-3 font-semibold">Important Notice</Badge>
                 <h3 className="text-xl font-bold text-foreground mb-2">Contactless Biometric Passport Enrollment</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                <p className="text-muted-foreground text-sm leading-relaxed mb-5">
                   Nigerians in Vietnam who wish to enroll in the contactless biometric passport program must
-                  <strong className="text-foreground"> select Malaysia as their enrollment location</strong> and make payment to Nigerian
-                  Immigration. Follow the embassy's official instructions carefully.
+                  <strong className="text-foreground"> select Malaysia as their enrollment location</strong> and make payment to Nigerian Immigration. Follow the embassy's official instructions carefully.
                 </p>
                 <Link to="/passport-info">
-                  <Button className="gradient-primary text-primary-foreground gap-2">
+                  <Button className="gradient-primary text-primary-foreground gap-2 shadow-green">
                     View Full Instructions <ChevronRight className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -246,16 +251,17 @@ export function HomePage() {
       </section>
 
       {/* Upcoming Activities */}
-      <section className="py-16 px-4 bg-background">
+      <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Community Activities</h2>
-              <p className="text-muted-foreground mt-1">Upcoming events and community programs</p>
+              <div className="section-accent" />
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Community Activities</h2>
+              <p className="text-muted-foreground mt-2">Upcoming events and community programs</p>
             </div>
             <Link to="/activities">
-              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10">
-                View All <ChevronRight className="h-4 w-4 ml-1" />
+              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 gap-1.5">
+                View All <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -263,75 +269,79 @@ export function HomePage() {
           {recentActivities.length > 0 ? (
             <div className="grid md:grid-cols-3 gap-6">
               {recentActivities.map((activity) => (
-                <Card key={activity.id} className="shadow-card hover:shadow-green transition-smooth overflow-hidden">
-                  {activity.cover_image_url && (
-                    <img src={activity.cover_image_url} alt={activity.title} className="w-full h-40 object-cover" />
+                <Card key={activity.id} className="shadow-card card-lift hover:shadow-green transition-smooth overflow-hidden border-border">
+                  {activity.cover_image_url ? (
+                    <img src={activity.cover_image_url} alt={activity.title} className="w-full h-44 object-cover" />
+                  ) : (
+                    <div className="w-full h-44 gradient-primary flex items-center justify-center">
+                      <Calendar className="h-12 w-12 text-primary-foreground/40" />
+                    </div>
                   )}
                   <CardContent className="p-5">
-                    <Badge className="gradient-primary text-primary-foreground border-0 text-xs mb-2">Event</Badge>
-                    <h3 className="font-semibold text-foreground">{activity.title}</h3>
+                    <Badge className="gradient-primary text-primary-foreground border-0 text-xs mb-3">Event</Badge>
+                    <h3 className="font-semibold text-foreground leading-snug">{activity.title}</h3>
                     {activity.event_date && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        <Calendar className="h-3 w-3 inline mr-1" />
+                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
                         {new Date(activity.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                     )}
                     {activity.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{activity.description}</p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">{activity.description}</p>
                     )}
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-              <p>No upcoming activities. Check back soon!</p>
+            <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-2xl">
+              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No upcoming activities. Check back soon!</p>
             </div>
           )}
         </div>
       </section>
 
       {/* Gallery Preview */}
-      <section className="py-16 px-4 bg-muted/30">
+      <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Gallery</h2>
-              <p className="text-muted-foreground mt-1">Moments from our community events</p>
+              <div className="section-accent" />
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Gallery</h2>
+              <p className="text-muted-foreground mt-2">Moments from our community events</p>
             </div>
             <Link to="/gallery">
-              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10">
-                Full Gallery <ChevronRight className="h-4 w-4 ml-1" />
+              <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 gap-1.5">
+                Full Gallery <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {/* Inauguration photos */}
-            <div className="relative overflow-hidden rounded-xl shadow-card hover:shadow-green transition-smooth group col-span-2 md:col-span-1">
+            <div className="relative overflow-hidden rounded-2xl shadow-card card-lift group col-span-2 md:col-span-1">
               <img
                 src="https://cdn.enter.pro/resources/uid_100149613/8c7a13b1-1326-42.JPG"
                 alt="NIDO Vietnam Inauguration"
-                className="w-full h-48 object-cover group-hover:scale-105 transition-smooth"
+                className="w-full h-52 object-cover group-hover:scale-105 transition-smooth"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-smooth flex items-end p-3">
-                <p className="text-white text-sm font-medium">Inauguration Ceremony 2016</p>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-smooth flex items-end p-4">
+                <p className="text-white text-sm font-semibold">Inauguration Ceremony 2016</p>
               </div>
             </div>
             {galleryPhotos.slice(0, 5).map((photo) => (
-              <div key={photo.id} className="relative overflow-hidden rounded-xl shadow-card hover:shadow-green transition-smooth group">
-                <img src={photo.image_url} alt={photo.caption} className="w-full h-48 object-cover group-hover:scale-105 transition-smooth" />
+              <div key={photo.id} className="relative overflow-hidden rounded-2xl shadow-card card-lift group">
+                <img src={photo.image_url} alt={photo.caption} className="w-full h-52 object-cover group-hover:scale-105 transition-smooth" />
                 {photo.caption && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-smooth flex items-end p-3">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-smooth flex items-end p-4">
                     <p className="text-white text-sm">{photo.caption}</p>
                   </div>
                 )}
               </div>
             ))}
             {galleryPhotos.length === 0 && Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="rounded-xl bg-muted h-48 flex items-center justify-center">
-                <Image className="h-8 w-8 text-muted-foreground/40" />
+              <div key={i} className="rounded-2xl bg-muted h-52 flex items-center justify-center border border-dashed border-border">
+                <Image className="h-8 w-8 text-muted-foreground/30" />
               </div>
             ))}
           </div>
@@ -339,27 +349,30 @@ export function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 gradient-hero relative overflow-hidden">
+      <section className="py-24 px-4 gradient-hero relative overflow-hidden">
+        <div className="absolute inset-0 hero-pattern pointer-events-none" />
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-gold/10 blur-3xl" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gold/10 blur-3xl" />
         </div>
         <div className="container mx-auto text-center relative">
-          <Star className="h-12 w-12 text-gold mx-auto mb-4" />
+          <div className="w-16 h-16 rounded-2xl gradient-gold flex items-center justify-center mx-auto mb-6 shadow-gold animate-pulse-glow">
+            <Star className="h-8 w-8 text-gold-foreground" />
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Become a NIDO Vietnam Member
           </h2>
-          <p className="text-primary-foreground/80 max-w-2xl mx-auto mb-8 text-lg">
+          <p className="text-primary-foreground/75 max-w-2xl mx-auto mb-10 text-lg leading-relaxed">
             Join hundreds of Nigerians across Vietnam. Access community resources, embassy updates, business networking, and more.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold" onClick={() => navigate('/register')}>
-              Register Now — It's Free <ChevronRight className="h-5 w-5 ml-1" />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Button size="lg" className="gradient-gold text-gold-foreground font-bold shadow-gold gap-2 h-12 px-8" onClick={() => navigate('/register')}>
+              Register Now — It's Free <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate('/contact')}>
-              <Phone className="h-5 w-5 mr-2" /> Contact Us
+            <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 h-12 px-8 glass-hero" onClick={() => navigate('/contact')}>
+              <Phone className="h-4 w-4 mr-2" /> Contact Us
             </Button>
           </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-6 text-primary-foreground/70 text-sm">
+          <div className="flex flex-wrap justify-center gap-8 text-primary-foreground/60 text-sm">
             <div className="flex items-center gap-2"><Globe className="h-4 w-4" /><span>Hanoi & Ho Chi Minh City</span></div>
             <div className="flex items-center gap-2"><Shield className="h-4 w-4" /><span>Officially Registered Organization</span></div>
             <div className="flex items-center gap-2"><Users className="h-4 w-4" /><span>Growing Community</span></div>
@@ -367,8 +380,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Quick Links for Resources */}
-      <section className="py-12 px-4 bg-card border-t border-border">
+      {/* Quick Links */}
+      <section className="py-14 px-4 bg-card border-t border-border">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -377,10 +390,12 @@ export function HomePage() {
               { icon: Image, label: 'Photo Gallery', href: '/gallery', desc: 'Community event photos' },
               { icon: Phone, label: 'Contact NIDO', href: '/contact', desc: 'Get in touch with us' },
             ].map(({ icon: Icon, label, href, desc }) => (
-              <Link key={href} to={href} className="group p-4 rounded-xl border border-border hover:border-primary hover:shadow-card transition-smooth text-center">
-                <Icon className="h-8 w-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-smooth" />
+              <Link key={href} to={href} className="group p-5 rounded-2xl border border-border hover:border-primary hover:shadow-green transition-smooth text-center bg-background card-lift">
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-3 shadow-green group-hover:scale-110 transition-smooth">
+                  <Icon className="h-5 w-5 text-primary-foreground" />
+                </div>
                 <h3 className="font-semibold text-foreground text-sm">{label}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
               </Link>
             ))}
           </div>

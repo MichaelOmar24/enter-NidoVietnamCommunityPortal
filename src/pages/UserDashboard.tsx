@@ -90,14 +90,20 @@ export function UserDashboard() {
         <div className="container mx-auto max-w-4xl">
 
           {/* Welcome Banner */}
-          <div className="gradient-hero rounded-2xl p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">
-                Welcome back, {profile?.first_name}!
-              </h1>
-              <p className="text-primary-foreground/70 text-sm mt-1">Your NIDO Vietnam member dashboard</p>
+          <div className="gradient-hero rounded-2xl p-7 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+            <div className="absolute inset-0 hero-pattern pointer-events-none opacity-50" />
+            <div className="flex items-center gap-4 relative">
+              <div className="w-14 h-14 rounded-2xl gradient-gold flex items-center justify-center text-gold-foreground font-bold text-xl shadow-gold shrink-0 select-none">
+                {(profile?.first_name?.[0] || '?')}{(profile?.last_name?.[0] || '')}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-primary-foreground">
+                  Welcome back, {profile?.first_name}!
+                </h1>
+                <p className="text-primary-foreground/65 text-sm mt-0.5">Your NIDO Vietnam member dashboard</p>
+              </div>
             </div>
-            <Badge className={`${membershipBadgeClass} text-sm px-3 py-1`}>
+            <Badge className={`${membershipBadgeClass} text-sm px-4 py-1.5 relative`}>
               {profile?.membership_status === 'active' ? 'Active Member' :
                profile?.membership_status === 'pending' ? 'Pending Activation' : 'Expired'}
             </Badge>
@@ -126,16 +132,18 @@ export function UserDashboard() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
-              { icon: Calendar, label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '-', color: 'text-primary' },
-              { icon: Shield, label: 'Membership', value: profile?.membership_type === 'premium' ? 'Premium' : 'Regular', color: 'text-gold' },
-              { icon: Users, label: 'Community', value: `${totalMembers} Members`, color: 'text-accent' },
-              { icon: FileText, label: 'Passport', value: passportStatus === 'valid' ? 'Valid' : passportStatus === 'expiring' ? 'Expiring' : passportStatus === 'expired' ? 'Expired' : 'Not Added', color: passportStatus === 'valid' ? 'text-primary' : passportStatus === 'expiring' ? 'text-gold' : passportStatus === 'expired' ? 'text-destructive' : 'text-muted-foreground' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <Card key={label} className="shadow-card">
-                <CardContent className="p-4 text-center">
-                  <Icon className={`h-6 w-6 mx-auto mb-1 ${color}`} />
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="font-semibold text-foreground text-sm mt-0.5 capitalize">{value}</p>
+              { icon: Calendar, label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '-', color: 'text-primary', bg: 'bg-primary/10' },
+              { icon: Shield, label: 'Membership', value: profile?.membership_type === 'premium' ? 'Premium' : 'Regular', color: 'text-gold', bg: 'bg-gold/10' },
+              { icon: Users, label: 'Community', value: `${totalMembers} Members`, color: 'text-accent', bg: 'bg-accent/10' },
+              { icon: FileText, label: 'Passport', value: passportStatus === 'valid' ? 'Valid' : passportStatus === 'expiring' ? 'Expiring' : passportStatus === 'expired' ? 'Expired' : 'Not Added', color: passportStatus === 'valid' ? 'text-primary' : passportStatus === 'expiring' ? 'text-gold' : passportStatus === 'expired' ? 'text-destructive' : 'text-muted-foreground', bg: passportStatus === 'valid' ? 'bg-primary/10' : passportStatus === 'expiring' ? 'bg-gold/10' : passportStatus === 'expired' ? 'bg-destructive/10' : 'bg-muted' },
+            ].map(({ icon: Icon, label, value, color, bg }) => (
+              <Card key={label} className="shadow-card overflow-hidden">
+                <CardContent className="p-5 text-center">
+                  <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mx-auto mb-2`}>
+                    <Icon className={`h-5 w-5 ${color}`} />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+                  <p className="font-semibold text-foreground text-sm mt-1 capitalize">{value}</p>
                 </CardContent>
               </Card>
             ))}

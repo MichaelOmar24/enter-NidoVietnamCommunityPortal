@@ -8,25 +8,25 @@ export function Footer() {
       {/* Nigerian flag stripe */}
       <div className="nigeria-flag-stripe h-1" />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="container mx-auto px-4 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="lg:col-span-1">
             <img
               src="https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png"
               alt="NIDO Vietnam"
-              className="h-12 mb-4"
+              className="h-12 mb-5"
             />
-            <p className="text-sm text-sidebar-foreground/70 leading-relaxed">
-              Nigerians in Diaspora Organization Vietnam — uniting Nigerians living and working in Vietnam.
+            <p className="text-sm text-sidebar-foreground/65 leading-relaxed">
+              Nigerians in Diaspora Organization Vietnam — uniting Nigerians living and working in Vietnam since 2016.
             </p>
             {/* Social Links */}
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-5">
               <a
                 href="https://www.facebook.com/groups/357099351095953"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-sidebar-accent hover:bg-primary transition-smooth"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="Facebook Group"
               >
                 <Facebook className="h-4 w-4" />
@@ -35,7 +35,7 @@ export function Footer() {
                 href="https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-sidebar-accent hover:bg-primary transition-smooth"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="WhatsApp Community"
               >
                 <MessageCircle className="h-4 w-4" />
@@ -44,7 +44,7 @@ export function Footer() {
                 href="https://chat.whatsapp.com/HFaStQ14rmkAuaswLKhaUl"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-sidebar-accent hover:bg-primary transition-smooth"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="WhatsApp Group 2"
               >
                 <MessageCircle className="h-4 w-4" />
@@ -54,8 +54,8 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-sidebar-foreground mb-4">Quick Links</h3>
-            <ul className="space-y-2 text-sm text-sidebar-foreground/70">
+            <h3 className="font-semibold text-sidebar-foreground mb-5">Quick Links</h3>
+            <ul className="space-y-2.5 text-sm text-sidebar-foreground/65">
               {[
                 { label: 'About NIDO', href: '/' },
                 { label: 'Member Directory', href: '/directory' },
@@ -65,7 +65,8 @@ export function Footer() {
                 { label: 'Passport Information', href: '/passport-info' },
               ].map(l => (
                 <li key={l.href}>
-                  <Link to={l.href} className="hover:text-primary transition-smooth">
+                  <Link to={l.href} className="hover:text-primary transition-smooth flex items-center gap-1.5 group">
+                    <span className="w-1 h-1 rounded-full bg-sidebar-foreground/30 group-hover:bg-primary transition-smooth" />
                     {l.label}
                   </Link>
                 </li>

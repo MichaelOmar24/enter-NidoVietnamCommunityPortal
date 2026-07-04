@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,16 @@ const navLinks = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,10 +41,15 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-card">
+    <nav className={cn(
+      "fixed top-0 left-0 right-0 z-50 transition-smooth",
+      scrolled
+        ? "bg-card/98 backdrop-blur-md border-b border-border shadow-card"
+        : "bg-card/90 backdrop-blur-sm border-b border-border/40"
+    )}>
       {/* Top banner */}
-      <div className="gradient-primary py-1 px-4 text-center text-primary-foreground text-xs font-medium">
-        <span>NIDO Vietnam — Nigerians in Diaspora Organization Vietnam &nbsp;|&nbsp; Hotline: +84326189705 &nbsp;|&nbsp; info@nidovietnam.com</span>
+      <div className="gradient-primary py-1.5 px-4 text-center text-primary-foreground text-xs font-medium tracking-wide">
+        <span>NIDO Vietnam — Nigerians in Diaspora Organization Vietnam &nbsp;·&nbsp; Hotline: +84326189705 &nbsp;·&nbsp; info@nidovietnam.com</span>
       </div>
 
       <div className="container mx-auto px-4">
@@ -52,19 +64,22 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  "px-3 py-2 rounded-md text-sm font-medium transition-smooth",
+                  "relative px-3.5 py-2 rounded-lg text-sm font-medium transition-smooth",
                   location.pathname === link.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:text-primary hover:bg-primary/10"
+                    ? "text-primary bg-primary/10"
+                    : "text-foreground/65 hover:text-primary hover:bg-primary/8"
                 )}
               >
                 {link.label}
+                {location.pathname === link.href && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 gradient-primary rounded-full" />
+                )}
               </Link>
             ))}
           </div>
