@@ -1,0 +1,16 @@
+-- Recreate the admin check function with row_security explicitly disabled
+-- This definitively breaks the infinite recursion loop
+CREATE OR REPLACE FUNCTION public.is_current_user_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND is_admin = true
+  );
+END;
+$$;
