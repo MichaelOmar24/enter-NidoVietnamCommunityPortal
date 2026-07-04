@@ -1,0 +1,34 @@
+-- Create admin user in auth
+INSERT INTO auth.users (
+  id,
+  instance_id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at,
+  role,
+  aud
+) VALUES (
+  gen_random_uuid(),
+  '00000000-0000-0000-0000-000000000000',
+  'admin@nidovietnam.com',
+  crypt('Admin123!', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now(),
+  'authenticated',
+  'authenticated'
+)
+ON CONFLICT DO NOTHING;
+
+-- Create admin profile
+INSERT INTO profiles (id, email, first_name, last_name, is_admin, membership_status, membership_type)
+SELECT id, email, 'Admin', 'NIDO', true, 'active', 'regular'
+FROM auth.users
+WHERE email = 'admin@nidovietnam.com'
+ON CONFLICT (id) DO UPDATE SET is_admin = true;
