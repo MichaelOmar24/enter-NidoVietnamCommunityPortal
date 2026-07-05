@@ -21,6 +21,7 @@ export interface Profile {
   membership_type: MembershipType;
   membership_status: MembershipStatus;
   is_admin: boolean;
+  is_super_admin: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -1,0 +1,5 @@
+-- Add is_super_admin column to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_super_admin boolean DEFAULT false;
+
+-- Set omike95@gmail.com as super admin if they exist
+UPDATE profiles SET is_super_admin = true WHERE email = 'omike95@gmail.com';

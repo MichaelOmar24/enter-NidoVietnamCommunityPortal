@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, OccupationType, MaritalStatus, Gender } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2 } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,6 +20,7 @@ interface MemberWithPassport extends Profile {
 }
 
 export function AdminMembers() {
+  const { isSuperAdmin } = useAuth();
   const [members, setMembers] = useState<MemberWithPassport[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -79,6 +81,16 @@ export function AdminMembers() {
     toast({ title: 'Status updated', description: `Member status changed to ${status}` });
     loadMembers();
     if (selected?.id === id) setSelected(s => s ? { ...s, membership_status: status as 'active' | 'pending' | 'expired' } : null);
+  };
+
+  const toggleAdminRole = async (memberId: string, grantAdmin: boolean) => {
+    await supabase.from('profiles').update({ is_admin: grantAdmin }).eq('id', memberId);
+    toast({
+      title: grantAdmin ? 'Admin role granted' : 'Admin role revoked',
+      description: grantAdmin ? 'This member can now access the admin panel.' : 'Admin access has been removed.',
+    });
+    loadMembers();
+    if (selected?.id === memberId) setSelected(s => s ? { ...s, is_admin: grantAdmin } : null);
   };
 
   const savePassportEdit = async () => {
@@ -553,7 +565,10 @@ export function AdminMembers() {
                   <tr key={member.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-foreground">{member.first_name} {member.last_name}</p>
+                        <p className="font-medium text-foreground flex items-center gap-1.5">
+                          {member.first_name} {member.last_name}
+                          {member.is_admin && <Shield className="h-3 w-3 text-primary" title="Admin" />}
+                        </p>
                         <p className="text-xs text-muted-foreground">{member.email}</p>
                       </div>
                     </td>
@@ -613,6 +628,47 @@ export function AdminMembers() {
                                     <X className="h-3.5 w-3.5" /> Expire
                                   </Button>
                                 </div>
+
+                                {/* Role Assignment — Super Admin Only */}
+                                {isSuperAdmin && (
+                                  <div className="border border-border rounded-lg p-3 bg-muted/20">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                      <Shield className="h-3.5 w-3.5" /> Admin Role Assignment
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex-1">
+                                        {selected.is_admin ? (
+                                          <div className="flex items-center gap-2">
+                                            <Badge className="bg-primary/20 text-primary gap-1 text-xs">
+                                              <Shield className="h-3 w-3" /> Admin
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">Has admin access</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">Standard member — no admin access</span>
+                                        )}
+                                      </div>
+                                      {selected.is_admin ? (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="gap-1.5 text-destructive border-destructive hover:bg-destructive/10 text-xs"
+                                          onClick={() => toggleAdminRole(selected.id, false)}
+                                        >
+                                          <ShieldOff className="h-3.5 w-3.5" /> Revoke Admin
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          className="gap-1.5 gradient-primary text-primary-foreground text-xs"
+                                          onClick={() => toggleAdminRole(selected.id, true)}
+                                        >
+                                          <Shield className="h-3.5 w-3.5" /> Grant Admin
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* Passport editing */}
                                 {selected.passport && (

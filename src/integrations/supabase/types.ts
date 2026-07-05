@@ -3686,6 +3686,7 @@ export type Database = {
           gender: string | null
           id: string
           is_admin: boolean | null
+          is_super_admin: boolean | null
           last_name: string
           marital_status: string | null
           membership_status: string | null
@@ -3706,6 +3707,7 @@ export type Database = {
           gender?: string | null
           id: string
           is_admin?: boolean | null
+          is_super_admin?: boolean | null
           last_name: string
           marital_status?: string | null
           membership_status?: string | null
@@ -3726,6 +3728,7 @@ export type Database = {
           gender?: string | null
           id?: string
           is_admin?: boolean | null
+          is_super_admin?: boolean | null
           last_name?: string
           marital_status?: string | null
           membership_status?: string | null

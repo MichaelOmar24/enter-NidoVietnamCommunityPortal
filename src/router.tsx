@@ -1,5 +1,6 @@
 import NotFound from "./pages/NotFound";
 import { LoginPage } from "./pages/LoginPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { UserDashboard } from "./pages/UserDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -24,6 +25,7 @@ export const routers = [
   { path: "/", name: "home", element: <HomePage /> },
   { path: "/about", name: "about", element: <AboutPage /> },
   { path: "/login", name: "login", element: <LoginPage /> },
+  { path: "/reset-password", name: "reset-password", element: <ResetPasswordPage /> },
   { path: "/register", name: "register", element: <RegisterPage /> },
   {
     path: "/dashboard",

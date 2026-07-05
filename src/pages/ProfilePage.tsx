@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Passport, NIGERIAN_STATES, VIETNAM_CITIES, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, OccupationType, MaritalStatus } from '@/lib/types';
-import { User, Save, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Save, Upload, CheckCircle, AlertCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function ProfilePage() {
@@ -21,6 +21,13 @@ export function ProfilePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  // Change password state
+  const [pwForm, setPwForm] = useState({ newPassword: '', confirmPassword: '' });
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', date_of_birth: '',
@@ -128,6 +135,27 @@ export function ProfilePage() {
     await fetchPassport(profile.id);
     toast({ title: 'Passport saved', description: 'Your passport information has been updated.' });
     setSaving(false);
+  };
+
+  const changePassword = async () => {
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+    if (pwForm.newPassword.length < 8) {
+      setPwMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
+      return;
+    }
+    setPwSaving(true);
+    setPwMessage(null);
+    const { error } = await supabase.auth.updateUser({ password: pwForm.newPassword });
+    if (error) {
+      setPwMessage({ type: 'error', text: error.message });
+    } else {
+      setPwMessage({ type: 'success', text: 'Password updated successfully!' });
+      setPwForm({ newPassword: '', confirmPassword: '' });
+    }
+    setPwSaving(false);
   };
 
   return (
@@ -289,6 +317,58 @@ export function ProfilePage() {
               </div>
               <Button onClick={savePassport} disabled={saving} className="gradient-primary text-primary-foreground gap-2">
                 <Save className="h-4 w-4" /> {saving ? 'Saving...' : 'Save Passport Info'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Change Password */}
+          <Card className="shadow-card mt-6">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-primary" /> Change Password
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pwMessage && (
+                <Alert variant={pwMessage.type === 'error' ? 'destructive' : 'default'}>
+                  {pwMessage.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  <AlertDescription>{pwMessage.text}</AlertDescription>
+                </Alert>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>New Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showNewPw ? 'text' : 'password'}
+                      value={pwForm.newPassword}
+                      onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
+                      placeholder="Min. 8 characters"
+                      className="pr-10"
+                    />
+                    <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPw ? 'text' : 'password'}
+                      value={pwForm.confirmPassword}
+                      onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                      placeholder="Re-enter new password"
+                      className="pr-10"
+                    />
+                    <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={changePassword} disabled={pwSaving || !pwForm.newPassword} className="gradient-primary text-primary-foreground gap-2">
+                <KeyRound className="h-4 w-4" /> {pwSaving ? 'Updating...' : 'Update Password'}
               </Button>
             </CardContent>
           </Card>
