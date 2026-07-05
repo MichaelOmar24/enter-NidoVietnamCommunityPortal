@@ -22,6 +22,7 @@ export interface Profile {
   membership_status: MembershipStatus;
   is_admin: boolean;
   is_super_admin: boolean;
+  is_embassy_staff: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isEmbassyStaff: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, profileData: Partial<Profile>) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -115,9 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAdmin = profile?.is_admin === true;
   const isSuperAdmin = profile?.is_super_admin === true;
+  const isEmbassyStaff = profile?.is_embassy_staff === true;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, isSuperAdmin, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, isSuperAdmin, isEmbassyStaff, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

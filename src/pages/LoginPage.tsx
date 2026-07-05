@@ -34,7 +34,20 @@ export function LoginPage() {
       setError(err.message || 'Invalid email or password');
     } else {
       trackEvent('member_login', { eventType: 'custom' });
-      navigate('/dashboard');
+      // Fetch profile to determine where to redirect
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('is_admin, is_super_admin, is_embassy_staff').eq('id', user.id).maybeSingle();
+        if (profile?.is_admin || profile?.is_super_admin) {
+          navigate('/admin');
+        } else if (profile?.is_embassy_staff) {
+          navigate('/embassy');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
     }
     setLoading(false);
   };

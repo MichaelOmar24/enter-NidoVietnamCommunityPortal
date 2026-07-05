@@ -216,6 +216,75 @@ html, body, #root {
   animation: countUp 0.5s ease-out forwards;
 }
 
+/* Embassy Intelligence Portal */
+:root {
+  --embassy-bg: #0d1117;
+  --embassy-card: #161b22;
+  --embassy-border: rgba(255,255,255,0.08);
+  --embassy-foreground: #e6edf3;
+  --embassy-muted: #8b949e;
+  --embassy-header: rgba(13,17,23,0.85);
+}
+
+.embassy-bg {
+  background-color: var(--embassy-bg);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(0,135,81,0.07) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(255,215,0,0.05) 0%, transparent 40%);
+  min-height: 100vh;
+}
+
+.embassy-sidebar {
+  background: linear-gradient(180deg, #0d1117 0%, #0a0f14 100%);
+  border-right: 1px solid var(--embassy-border);
+}
+
+.embassy-bg .text-embassy-foreground { color: var(--embassy-foreground); }
+.embassy-bg .text-embassy-muted { color: var(--embassy-muted); }
+.embassy-bg .bg-embassy-card { background-color: var(--embassy-card); }
+.embassy-bg .border-embassy-border { border-color: var(--embassy-border); }
+.embassy-bg .bg-embassy-header { background-color: var(--embassy-header); }
+
+.embassy-kpi-card {
+  background: var(--embassy-card);
+  border: 1px solid var(--embassy-border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+.embassy-kpi-card:hover {
+  border-color: rgba(0,135,81,0.35);
+  box-shadow: 0 0 20px rgba(0,135,81,0.12);
+}
+
+.embassy-chart-card {
+  background: var(--embassy-card);
+  border: 1px solid var(--embassy-border);
+  border-radius: 12px;
+}
+
+.embassy-table-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.embassy-query-btn {
+  background: rgba(0,135,81,0.1);
+  border: 1px solid rgba(0,135,81,0.25);
+  color: #4ade80;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.embassy-query-btn:hover {
+  background: rgba(0,135,81,0.2);
+  border-color: rgba(0,135,81,0.5);
+}
+.embassy-query-btn.active {
+  background: rgba(0,135,81,0.25);
+  border-color: #008751;
+  box-shadow: 0 0 12px rgba(0,135,81,0.3);
+}
+
 /* Float animation for hero elements */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

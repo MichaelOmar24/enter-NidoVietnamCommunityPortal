@@ -93,6 +93,16 @@ export function AdminMembers() {
     if (selected?.id === memberId) setSelected(s => s ? { ...s, is_admin: grantAdmin } : null);
   };
 
+  const toggleEmbassyRole = async (memberId: string, grant: boolean) => {
+    await supabase.from('profiles').update({ is_embassy_staff: grant }).eq('id', memberId);
+    toast({
+      title: grant ? 'Embassy Staff role granted' : 'Embassy Staff role revoked',
+      description: grant ? 'This member can now access the Embassy Intelligence Portal.' : 'Embassy access has been removed.',
+    });
+    loadMembers();
+    if (selected?.id === memberId) setSelected(s => s ? { ...s, is_embassy_staff: grant } : null);
+  };
+
   const savePassportEdit = async () => {
     if (!selected?.passport?.id) return;
     await supabase.from('passports').update({
@@ -631,10 +641,12 @@ export function AdminMembers() {
 
                                 {/* Role Assignment — Super Admin Only */}
                                 {isSuperAdmin && (
-                                  <div className="border border-border rounded-lg p-3 bg-muted/20">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                                      <Shield className="h-3.5 w-3.5" /> Admin Role Assignment
+                                  <div className="border border-border rounded-lg p-3 bg-muted/20 space-y-3">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                                      <Shield className="h-3.5 w-3.5" /> Role Assignment
                                     </p>
+
+                                    {/* Admin Role */}
                                     <div className="flex items-center gap-3">
                                       <div className="flex-1">
                                         {selected.is_admin ? (
@@ -642,28 +654,52 @@ export function AdminMembers() {
                                             <Badge className="bg-primary/20 text-primary gap-1 text-xs">
                                               <Shield className="h-3 w-3" /> Admin
                                             </Badge>
-                                            <span className="text-xs text-muted-foreground">Has admin access</span>
+                                            <span className="text-xs text-muted-foreground">Has admin panel access</span>
                                           </div>
                                         ) : (
-                                          <span className="text-xs text-muted-foreground">Standard member — no admin access</span>
+                                          <span className="text-xs text-muted-foreground">No admin access</span>
                                         )}
                                       </div>
                                       {selected.is_admin ? (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
+                                        <Button size="sm" variant="outline"
                                           className="gap-1.5 text-destructive border-destructive hover:bg-destructive/10 text-xs"
-                                          onClick={() => toggleAdminRole(selected.id, false)}
-                                        >
+                                          onClick={() => toggleAdminRole(selected.id, false)}>
                                           <ShieldOff className="h-3.5 w-3.5" /> Revoke Admin
                                         </Button>
                                       ) : (
-                                        <Button
-                                          size="sm"
+                                        <Button size="sm"
                                           className="gap-1.5 gradient-primary text-primary-foreground text-xs"
-                                          onClick={() => toggleAdminRole(selected.id, true)}
-                                        >
+                                          onClick={() => toggleAdminRole(selected.id, true)}>
                                           <Shield className="h-3.5 w-3.5" /> Grant Admin
+                                        </Button>
+                                      )}
+                                    </div>
+
+                                    {/* Embassy Staff Role */}
+                                    <div className="flex items-center gap-3 border-t border-border pt-3">
+                                      <div className="flex-1">
+                                        {(selected as Profile & { is_embassy_staff?: boolean }).is_embassy_staff ? (
+                                          <div className="flex items-center gap-2">
+                                            <Badge className="bg-yellow-500/20 text-yellow-600 gap-1 text-xs border border-yellow-500/30">
+                                              <ShieldCheck className="h-3 w-3" /> Embassy Staff
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">Can access Intelligence Portal</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">No embassy portal access</span>
+                                        )}
+                                      </div>
+                                      {(selected as Profile & { is_embassy_staff?: boolean }).is_embassy_staff ? (
+                                        <Button size="sm" variant="outline"
+                                          className="gap-1.5 text-destructive border-destructive hover:bg-destructive/10 text-xs"
+                                          onClick={() => toggleEmbassyRole(selected.id, false)}>
+                                          <ShieldOff className="h-3.5 w-3.5" /> Revoke Embassy
+                                        </Button>
+                                      ) : (
+                                        <Button size="sm"
+                                          className="gap-1.5 bg-yellow-500/20 text-yellow-700 border border-yellow-500/40 hover:bg-yellow-500/30 text-xs"
+                                          onClick={() => toggleEmbassyRole(selected.id, true)}>
+                                          <ShieldCheck className="h-3.5 w-3.5" /> Grant Embassy Access
                                         </Button>
                                       )}
                                     </div>

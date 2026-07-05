@@ -1,0 +1,29 @@
+-- Add embassy staff role to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_embassy_staff boolean DEFAULT false;
+
+-- RLS: embassy staff can read all profiles (read-only)
+CREATE POLICY "Embassy staff can view all profiles" ON profiles
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles p2 
+      WHERE p2.id = auth.uid() AND p2.is_embassy_staff = true
+    )
+  );
+
+-- Embassy staff can read all passports
+CREATE POLICY "Embassy staff can view all passports" ON passports
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles p2 
+      WHERE p2.id = auth.uid() AND p2.is_embassy_staff = true
+    )
+  );
+
+-- Embassy staff can read all companies  
+CREATE POLICY "Embassy staff can view all companies" ON companies
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles p2 
+      WHERE p2.id = auth.uid() AND p2.is_embassy_staff = true
+    )
+  );

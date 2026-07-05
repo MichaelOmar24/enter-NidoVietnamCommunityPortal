@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Image, FileText, LogOut,
-  ChevronLeft, ChevronRight, Activity, Shield
+  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -26,7 +26,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -79,6 +79,20 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                 {!collapsed && <span>{label}</span>}
               </Link>
             ))}
+            {/* Embassy Portal Link for Super Admins */}
+            {isSuperAdmin && (
+              <Link
+                to="/embassy"
+                title={collapsed ? 'Embassy Portal' : undefined}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-smooth mt-2',
+                  'text-yellow-400/80 hover:bg-yellow-500/10 hover:text-yellow-400'
+                )}
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Embassy Portal</span>}
+              </Link>
+            )}
           </nav>
 
           {/* Bottom actions */}

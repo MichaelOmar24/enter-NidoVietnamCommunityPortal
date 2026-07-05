@@ -17,6 +17,11 @@ import { AdminCompanies } from "./pages/admin/AdminCompanies";
 import { AdminGallery } from "./pages/admin/AdminGallery";
 import { AdminDocuments } from "./pages/admin/AdminDocuments";
 import { AdminActivities } from "./pages/admin/AdminActivities";
+import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
+import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
+import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
+import { EmbassyQuery } from "./pages/embassy/EmbassyQuery";
+import { EmbassyActivity } from "./pages/embassy/EmbassyActivity";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { AboutPage } from "./pages/AboutPage";
@@ -81,6 +86,31 @@ export const routers = [
     path: "/admin/activities",
     name: "admin-activities",
     element: <ProtectedRoute adminOnly><AdminActivities /></ProtectedRoute>
+  },
+  {
+    path: "/embassy",
+    name: "embassy",
+    element: <ProtectedRoute embassyOnly><EmbassyOverview /></ProtectedRoute>
+  },
+  {
+    path: "/embassy/members",
+    name: "embassy-members",
+    element: <ProtectedRoute embassyOnly><EmbassyMembers /></ProtectedRoute>
+  },
+  {
+    path: "/embassy/passports",
+    name: "embassy-passports",
+    element: <ProtectedRoute embassyOnly><EmbassyPassports /></ProtectedRoute>
+  },
+  {
+    path: "/embassy/query",
+    name: "embassy-query",
+    element: <ProtectedRoute embassyOnly><EmbassyQuery /></ProtectedRoute>
+  },
+  {
+    path: "/embassy/activity",
+    name: "embassy-activity",
+    element: <ProtectedRoute embassyOnly><EmbassyActivity /></ProtectedRoute>
   },
   /* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
   { path: "*", name: "404", element: <NotFound /> },
