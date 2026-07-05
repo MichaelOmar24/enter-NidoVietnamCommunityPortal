@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, OccupationType, MaritalStatus, Gender } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,6 +46,8 @@ export function AdminMembers() {
   });
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [passportPreview, setPassportPreview] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberWithPassport | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -175,6 +177,22 @@ export function AdminMembers() {
     navigator.clipboard.writeText(`Email: ${credentials.email}\nPassword: ${credentials.password}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const deleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { user_id: deleteTarget.id },
+    });
+    setDeleting(false);
+    if (error || data?.error) {
+      toast({ title: 'Delete failed', description: error?.message || data?.error, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Account deleted', description: `${deleteTarget.first_name} ${deleteTarget.last_name}'s account has been permanently removed.` });
+    setDeleteTarget(null);
+    loadMembers();
   };
 
   return (
@@ -463,6 +481,38 @@ export function AdminMembers() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Permanently Delete Account
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-1">
+              <p className="font-semibold text-foreground">{deleteTarget?.first_name} {deleteTarget?.last_name}</p>
+              <p className="text-sm text-muted-foreground">{deleteTarget?.email}</p>
+              <Badge className="bg-destructive/20 text-destructive mt-1">Expired</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This will <strong className="text-foreground">permanently delete</strong> the account, profile, passport records, and all associated data. <strong className="text-destructive">This action cannot be undone.</strong>
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={deleteUser}
+                disabled={deleting}
+                className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting ? 'Deleting...' : 'Delete Permanently'}
+              </Button>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-sm font-semibold flex items-center justify-between">
@@ -738,6 +788,18 @@ export function AdminMembers() {
                           </DialogContent>
                         </Dialog>
                       </div>
+                      {/* Delete button — only for expired accounts */}
+                      {member.membership_status === 'expired' && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          title="Delete account permanently"
+                          onClick={() => setDeleteTarget(member)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
