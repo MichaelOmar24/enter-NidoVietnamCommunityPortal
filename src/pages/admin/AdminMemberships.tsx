@@ -73,10 +73,11 @@ export function AdminMemberships() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('memberships')
-      .select('*, profiles(first_name, last_name, email, phone)')
+      .select('*, profiles!memberships_user_id_fkey(first_name, last_name, email, phone)')
       .order('created_at', { ascending: false });
+    if (error) console.error('Memberships load error:', error);
     const rows = (data || []) as MembershipRecord[];
     setRecords(rows);
 
