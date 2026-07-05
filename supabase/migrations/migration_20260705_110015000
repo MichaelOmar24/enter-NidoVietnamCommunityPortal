@@ -1,0 +1,23 @@
+-- Create a SECURITY DEFINER function so the embassy staff check
+-- doesn't trigger recursive RLS on the profiles table
+CREATE OR REPLACE FUNCTION is_current_user_embassy_staff()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (SELECT is_embassy_staff FROM public.profiles WHERE id = auth.uid() LIMIT 1),
+    false
+  );
+$$;
+
+-- Drop the recursion-causing policy
+DROP POLICY IF EXISTS "Embassy staff can view all profiles" ON profiles;
+
+-- Recreate it using the safe SECURITY DEFINER function
+CREATE POLICY "Embassy staff can view all profiles"
+  ON profiles
+  FOR SELECT
+  USING (is_current_user_embassy_staff());
