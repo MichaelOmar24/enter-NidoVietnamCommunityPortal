@@ -3491,6 +3491,52 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          admin_reply: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          replied_at: string | null
+          replied_by: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          admin_reply?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_messages_replied_by_fkey"
+            columns: ["replied_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deceased_members: {
         Row: {
           cause_of_death: string

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Phone, Mail, MessageCircle, MapPin, Globe, ExternalLink, CheckCircle, Facebook } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Globe, ExternalLink, CheckCircle, Facebook } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
@@ -17,9 +18,13 @@ export function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate send
-    await new Promise(r => setTimeout(r, 1000));
-    setSent(true);
+    const { error } = await supabase.from('contact_messages').insert({
+      name: form.name,
+      email: form.email,
+      subject: form.subject,
+      message: form.message,
+    });
+    if (!error) setSent(true);
     setLoading(false);
   };
 

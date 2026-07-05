@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Image, FileText, LogOut,
-  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard, Banknote
+  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard, Banknote, Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Navbar } from './Navbar';
-import { Footer } from './Footer';
+import { supabase } from '@/integrations/supabase/client';
 
 const adminLinks = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
@@ -21,6 +21,7 @@ const adminLinks = [
   { icon: Activity, label: 'Activities', href: '/admin/activities' },
   { icon: HeartHandshake, label: 'Welfare', href: '/admin/welfare' },
   { icon: Heart, label: 'Memorial', href: '/admin/deceased' },
+  { icon: Inbox, label: 'Messages', href: '/admin/messages' },
 ];
 
 interface AdminLayoutProps {
@@ -30,9 +31,19 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { profile, signOut, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    // Load unread message count
+    supabase
+      .from('contact_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'unread')
+      .then(({ count }) => setUnreadCount(count || 0));
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -80,7 +91,17 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{label}</span>}
+                {!collapsed && (
+                  <span className="flex-1">{label}</span>
+                )}
+                {!collapsed && label === 'Messages' && unreadCount > 0 && (
+                  <span className="ml-auto text-[10px] bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center font-bold shrink-0">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+                {collapsed && label === 'Messages' && unreadCount > 0 && (
+                  <span className="absolute left-8 top-1 w-2 h-2 bg-primary rounded-full" />
+                )}
               </Link>
             ))}
             {/* Embassy Portal Link for Super Admins */}
