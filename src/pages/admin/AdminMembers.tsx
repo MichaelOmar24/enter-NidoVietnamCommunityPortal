@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, OccupationType, MaritalStatus, Gender } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -39,6 +39,13 @@ export function AdminMembers() {
   });
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [passportForm, setPassportForm] = useState({
+    passport_number: '', place_of_issue: '',
+    issue_date: '', expiry_date: '',
+    is_biometric: false, verified: false, admin_notes: '',
+  });
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [passportPreview, setPassportPreview] = useState<string | null>(null);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -110,17 +117,55 @@ export function AdminMembers() {
         nigerian_state_of_origin: createForm.nigerian_state_of_origin || undefined,
       },
     });
-    setCreating(false);
+
     if (error || data?.error) {
+      setCreating(false);
       toast({ title: 'Failed to create account', description: error?.message || data?.error, variant: 'destructive' });
       return;
     }
+
+    const userId = data.user_id;
+
+    // Handle passport creation if any passport data was provided
+    const hasPassportData = passportForm.passport_number || passportForm.issue_date ||
+      passportForm.expiry_date || passportForm.place_of_issue || passportFile;
+
+    if (hasPassportData && userId) {
+      let passportImageUrl: string | null = null;
+
+      // Upload passport image if provided
+      if (passportFile) {
+        const fd = new FormData();
+        fd.append('file', passportFile);
+        fd.append('userId', userId);
+        const { data: imgData, error: imgErr } = await supabase.functions.invoke('upload-passport-image', { body: fd });
+        if (!imgErr && imgData?.url) passportImageUrl = imgData.url;
+      }
+
+      // Insert passport record
+      await supabase.from('passports').insert({
+        user_id: userId,
+        passport_number: passportForm.passport_number || null,
+        place_of_issue: passportForm.place_of_issue || null,
+        issue_date: passportForm.issue_date || null,
+        expiry_date: passportForm.expiry_date || null,
+        is_biometric: passportForm.is_biometric,
+        verified: passportForm.verified,
+        admin_notes: passportForm.admin_notes || null,
+        passport_image_url: passportImageUrl,
+      });
+    }
+
+    setCreating(false);
     setCreateOpen(false);
     setCreateForm({
       email: '', first_name: '', last_name: '', phone: '',
       date_of_birth: '', gender: '', occupation_type: '',
       marital_status: '', vietnam_city: '', nigerian_state_of_origin: '',
     });
+    setPassportForm({ passport_number: '', place_of_issue: '', issue_date: '', expiry_date: '', is_biometric: false, verified: false, admin_notes: '' });
+    setPassportFile(null);
+    setPassportPreview(null);
     setCredentials({ email: createForm.email, password: data.password });
     loadMembers();
   };
@@ -261,6 +306,115 @@ export function AdminMembers() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Passport Section */}
+            <div className="border-t border-border pt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Fingerprint className="h-4 w-4 text-primary" />
+                <h4 className="font-semibold text-foreground text-sm">Passport Information <span className="text-muted-foreground font-normal">(Optional)</span></h4>
+              </div>
+
+              {/* Passport Image Upload */}
+              <div className="space-y-1.5">
+                <Label>Passport Data Page Photo</Label>
+                {passportPreview ? (
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-muted/30">
+                    <img src={passportPreview} alt="Passport" className="w-full h-44 object-cover" />
+                    <div className="absolute top-2 left-2">
+                      <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+                        <FileImage className="h-2.5 w-2.5 mr-1" /> Passport Photo
+                      </Badge>
+                    </div>
+                    <button
+                      onClick={() => { setPassportFile(null); setPassportPreview(null); }}
+                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-border rounded-lg p-5 text-center cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => document.getElementById('create-passport-upload')?.click()}
+                  >
+                    <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1.5" />
+                    <p className="text-sm text-muted-foreground">Click to upload passport data page</p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">JPG, PNG — up to 10MB</p>
+                  </div>
+                )}
+                <input
+                  id="create-passport-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    setPassportFile(file);
+                    if (file) setPassportPreview(URL.createObjectURL(file));
+                    else setPassportPreview(null);
+                  }}
+                />
+              </div>
+
+              {/* Passport Number & Place of Issue */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Passport Number</Label>
+                  <Input value={passportForm.passport_number} onChange={e => setPassportForm(f => ({ ...f, passport_number: e.target.value }))} placeholder="e.g. A12684777" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Place of Issue</Label>
+                  <Input value={passportForm.place_of_issue} onChange={e => setPassportForm(f => ({ ...f, place_of_issue: e.target.value }))} placeholder="e.g. KL Malaysia" />
+                </div>
+              </div>
+
+              {/* Issue & Expiry Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Issue Date</Label>
+                  <Input type="date" value={passportForm.issue_date} onChange={e => setPassportForm(f => ({ ...f, issue_date: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Expiry Date</Label>
+                  <Input type="date" value={passportForm.expiry_date} onChange={e => setPassportForm(f => ({ ...f, expiry_date: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* Biometric & Verified */}
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={passportForm.is_biometric}
+                    onChange={e => setPassportForm(f => ({ ...f, is_biometric: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
+                  Biometric Passport
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={passportForm.verified}
+                    onChange={e => setPassportForm(f => ({ ...f, verified: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                  Mark as Verified
+                </label>
+              </div>
+
+              {/* Admin Notes */}
+              <div className="space-y-1.5">
+                <Label>Admin Notes</Label>
+                <Textarea
+                  value={passportForm.admin_notes}
+                  onChange={e => setPassportForm(f => ({ ...f, admin_notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Internal notes about this passport..."
+                />
               </div>
             </div>
 
