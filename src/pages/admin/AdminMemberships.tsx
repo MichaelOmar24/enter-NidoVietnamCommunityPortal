@@ -141,13 +141,13 @@ export function AdminMemberships() {
     setUploadError('');
     const ext = file.name.split('.').pop();
     const path = `qr-codes/payment-qr-${Date.now()}.${ext}`;
-    const { error, data: uploadData } = await supabase.storage.from('gallery').upload(path, file, { upsert: true });
+    const { error, data: uploadData } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
     if (error || !uploadData) {
       setUploadError(`Upload failed: ${error?.message || 'Unknown error'}`);
       setUploadingQR(false);
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(path);
+    const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
     const updated = { ...settings, qr_code_url: publicUrl };
     setSettings(updated);
     // Auto-save immediately so QR persists

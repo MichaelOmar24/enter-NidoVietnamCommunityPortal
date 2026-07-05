@@ -1,0 +1,33 @@
+-- Create a public uploads bucket for QR codes and other admin uploads
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'uploads',
+  'uploads',
+  true,
+  5242880,
+  ARRAY['image/jpeg','image/png','image/gif','image/webp','image/svg+xml']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow authenticated users to upload
+CREATE POLICY "Authenticated users can upload"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'uploads');
+
+-- Allow public read
+CREATE POLICY "Public can view uploads"
+  ON storage.objects FOR SELECT
+  TO public
+  USING (bucket_id = 'uploads');
+
+-- Allow admins to update/delete
+CREATE POLICY "Authenticated users can update uploads"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'uploads');
+
+CREATE POLICY "Authenticated users can delete uploads"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'uploads');
