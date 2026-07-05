@@ -3494,41 +3494,53 @@ export type Database = {
       deceased_members: {
         Row: {
           cause_of_death: string
+          community_raised_amount: number | null
+          community_raised_currency: string | null
           created_at: string | null
           created_by: string | null
           date_of_death: string
           description: string
+          destination_country: string | null
           full_name: string
           id: string
           is_nido_member: boolean | null
           member_id: string | null
           place_of_death: string | null
+          remains_disposition: string | null
           updated_at: string | null
         }
         Insert: {
           cause_of_death?: string
+          community_raised_amount?: number | null
+          community_raised_currency?: string | null
           created_at?: string | null
           created_by?: string | null
           date_of_death: string
           description: string
+          destination_country?: string | null
           full_name: string
           id?: string
           is_nido_member?: boolean | null
           member_id?: string | null
           place_of_death?: string | null
+          remains_disposition?: string | null
           updated_at?: string | null
         }
         Update: {
           cause_of_death?: string
+          community_raised_amount?: number | null
+          community_raised_currency?: string | null
           created_at?: string | null
           created_by?: string | null
           date_of_death?: string
           description?: string
+          destination_country?: string | null
           full_name?: string
           id?: string
           is_nido_member?: boolean | null
           member_id?: string | null
           place_of_death?: string | null
+          remains_disposition?: string | null
           updated_at?: string | null
         }
         Relationships: [

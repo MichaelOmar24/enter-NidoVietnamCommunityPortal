@@ -1,0 +1,20 @@
+-- Add remains disposition and community support fields to deceased_members
+ALTER TABLE deceased_members
+  ADD COLUMN IF NOT EXISTS remains_disposition text,
+  ADD COLUMN IF NOT EXISTS destination_country text,
+  ADD COLUMN IF NOT EXISTS community_raised_amount numeric(12,2),
+  ADD COLUMN IF NOT EXISTS community_raised_currency text DEFAULT 'VND';
+
+ALTER TABLE deceased_members
+  DROP CONSTRAINT IF EXISTS deceased_members_remains_disposition_check;
+
+ALTER TABLE deceased_members
+  ADD CONSTRAINT deceased_members_remains_disposition_check
+  CHECK (remains_disposition IS NULL OR remains_disposition IN (
+    'transferred_to_nigeria',
+    'buried_in_vietnam',
+    'cremated_buried_vietnam',
+    'cremated_sent_nigeria',
+    'cremated_sent_other',
+    'other'
+  ));
