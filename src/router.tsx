@@ -21,6 +21,7 @@ import { AdminActivities } from "./pages/admin/AdminActivities";
 import { AdminWelfare } from "./pages/admin/AdminWelfare";
 import { AdminDeceased } from "./pages/admin/AdminDeceased";
 import { AdminMemberships } from "./pages/admin/AdminMemberships";
+import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { AdminMessages } from "./pages/admin/AdminMessages";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
