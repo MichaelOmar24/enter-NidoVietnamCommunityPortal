@@ -3491,6 +3491,61 @@ export type Database = {
           },
         ]
       }
+      deceased_members: {
+        Row: {
+          cause_of_death: string
+          created_at: string | null
+          created_by: string | null
+          date_of_death: string
+          description: string
+          full_name: string
+          id: string
+          is_nido_member: boolean | null
+          member_id: string | null
+          place_of_death: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cause_of_death?: string
+          created_at?: string | null
+          created_by?: string | null
+          date_of_death: string
+          description: string
+          full_name: string
+          id?: string
+          is_nido_member?: boolean | null
+          member_id?: string | null
+          place_of_death?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cause_of_death?: string
+          created_at?: string | null
+          created_by?: string | null
+          date_of_death?: string
+          description?: string
+          full_name?: string
+          id?: string
+          is_nido_member?: boolean | null
+          member_id?: string | null
+          place_of_death?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deceased_members_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deceased_members_member_id_fkey"
+            columns: ["member_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
@@ -3745,6 +3800,64 @@ export type Database = {
           vietnam_city?: string | null
         }
         Relationships: []
+      }
+      welfare_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          description: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          support_type: string
+          title: string
+          updated_at: string | null
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          support_type: string
+          title: string
+          updated_at?: string | null
+          urgency?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          support_type?: string
+          title?: string
+          updated_at?: string | null
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_requests_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

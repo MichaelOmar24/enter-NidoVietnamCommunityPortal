@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileSearch, Activity, LogOut,
-  ChevronLeft, ChevronRight, ShieldCheck, BarChart3, ScrollText
+  ChevronLeft, ChevronRight, ShieldCheck, BarChart3, ScrollText,
+  HeartHandshake, ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ const embassyLinks = [
   { icon: BarChart3, label: 'Passport Analytics', href: '/embassy/passports' },
   { icon: FileSearch, label: 'Query Explorer', href: '/embassy/query' },
   { icon: ScrollText, label: 'Activity Feed', href: '/embassy/activity' },
+  { icon: HeartHandshake, label: 'Welfare & Memorial', href: '/embassy/welfare' },
 ];
 
 interface EmbassyLayoutProps {
@@ -23,7 +25,7 @@ interface EmbassyLayoutProps {
 
 export function EmbassyLayout({ children, title, subtitle }: EmbassyLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -92,6 +94,20 @@ export function EmbassyLayout({ children, title, subtitle }: EmbassyLayoutProps)
 
         {/* Bottom */}
         <div className="p-2 border-t border-embassy-border space-y-0.5">
+          {/* Back to Admin for admins */}
+          {(isAdmin || isSuperAdmin) && (
+            <button
+              onClick={() => navigate('/admin')}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full text-gold/80 hover:bg-gold/10 hover:text-gold transition-all',
+                collapsed && 'justify-center'
+              )}
+              title={collapsed ? 'Back to Admin' : undefined}
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Back to Admin</span>}
+            </button>
+          )}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={cn(

@@ -1,0 +1,55 @@
+-- ========== WELFARE REQUESTS ==========
+CREATE TABLE IF NOT EXISTS welfare_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  support_type text NOT NULL CHECK (support_type IN ('medical', 'housing', 'accident', 'employer_resolution', 'immigration')),
+  title text NOT NULL,
+  description text NOT NULL,
+  urgency text NOT NULL DEFAULT 'normal' CHECK (urgency IN ('low', 'normal', 'high', 'critical')),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'approved', 'rejected')),
+  admin_notes text,
+  reviewed_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  reviewed_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE welfare_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members can view own welfare requests"
+  ON welfare_requests FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Members can create welfare requests"
+  ON welfare_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can manage welfare requests"
+  ON welfare_requests FOR ALL USING (is_current_user_admin());
+
+CREATE POLICY "Embassy staff can view welfare requests"
+  ON welfare_requests FOR SELECT USING (is_current_user_embassy_staff());
+
+-- Enable realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE welfare_requests;
+
+-- ========== DECEASED MEMBERS ==========
+CREATE TABLE IF NOT EXISTS deceased_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  full_name text NOT NULL,
+  date_of_death date NOT NULL,
+  place_of_death text,
+  cause_of_death text NOT NULL DEFAULT 'unknown' CHECK (cause_of_death IN ('illness', 'accident', 'natural_causes', 'unknown', 'other')),
+  description text NOT NULL,
+  is_nido_member boolean DEFAULT true,
+  created_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE deceased_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage deceased records"
+  ON deceased_members FOR ALL USING (is_current_user_admin());
+
+CREATE POLICY "Embassy staff can view deceased records"
+  ON deceased_members FOR SELECT USING (is_current_user_embassy_staff());

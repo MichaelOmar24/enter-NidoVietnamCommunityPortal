@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, HeartHandshake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -104,6 +104,10 @@ export function Navbar() {
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="h-4 w-4 mr-2" />
                     My Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/welfare')}>
+                    <HeartHandshake className="h-4 w-4 mr-2" />
+                    Welfare Support
                   </DropdownMenuItem>
                   {isAdmin && (
                     <>
