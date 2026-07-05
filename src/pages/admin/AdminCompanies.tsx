@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Company } from '@/lib/types';
-import { Plus, Check, X, Edit, Trash2, Building2 } from 'lucide-react';
+import { Plus, Check, X, Edit, Trash2, Building2, Upload, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const EMPTY: Partial<Company> = { company_name: '', description: '', business_type: '', industry: '', address_in_vietnam: '', website: '', phone: '', email: '', logo_url: '', is_approved: false };
@@ -20,6 +20,9 @@ export function AdminCompanies() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<Partial<Company>>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { load(); }, []);
@@ -33,18 +36,52 @@ export function AdminCompanies() {
 
   const set = (k: keyof Company, v: string | boolean | null) => setForm(f => ({ ...f, [k]: v }));
 
+  const handleLogoChange = (file: File | null) => {
+    setLogoFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => setLogoPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setLogoPreview(null);
+    }
+  };
+
   const save = async () => {
     if (!form.company_name) return;
+    setUploading(true);
+
+    let logo_url = form.logo_url;
+
+    if (logoFile) {
+      const fd = new FormData();
+      fd.append('file', logoFile);
+      fd.append('companyId', editingId || `new_${Date.now()}`);
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke('upload-company-logo', { body: fd });
+      if (!fnErr && fnData?.url) {
+        logo_url = fnData.url;
+      } else {
+        toast({ title: 'Logo upload failed', description: fnErr?.message || 'Could not upload logo', variant: 'destructive' });
+        setUploading(false);
+        return;
+      }
+    }
+
+    const payload = { ...form, logo_url };
+
     if (editingId) {
-      await supabase.from('companies').update(form).eq('id', editingId);
+      await supabase.from('companies').update(payload).eq('id', editingId);
       toast({ title: 'Company updated' });
     } else {
-      await supabase.from('companies').insert({ ...form } as Omit<Company, 'id' | 'created_at' | 'updated_at'>);
+      await supabase.from('companies').insert({ ...payload } as Omit<Company, 'id' | 'created_at' | 'updated_at'>);
       toast({ title: 'Company added' });
     }
     setDialogOpen(false);
     setForm(EMPTY);
     setEditingId(null);
+    setLogoFile(null);
+    setLogoPreview(null);
+    setUploading(false);
     load();
   };
 
@@ -63,13 +100,25 @@ export function AdminCompanies() {
   const edit = (c: Company) => {
     setForm(c);
     setEditingId(c.id);
+    setLogoFile(null);
+    setLogoPreview(null);
     setDialogOpen(true);
   };
+
+  const openAdd = () => {
+    setForm(EMPTY);
+    setEditingId(null);
+    setLogoFile(null);
+    setLogoPreview(null);
+    setDialogOpen(true);
+  };
+
+  const currentLogo = logoPreview || form.logo_url;
 
   return (
     <AdminLayout title="Business Directory">
       <div className="flex justify-end mb-6">
-        <Button onClick={() => { setForm(EMPTY); setEditingId(null); setDialogOpen(true); }} className="gradient-primary text-primary-foreground gap-2">
+        <Button onClick={openAdd} className="gradient-primary text-primary-foreground gap-2">
           <Plus className="h-4 w-4" /> Add Company
         </Button>
       </div>
@@ -89,9 +138,18 @@ export function AdminCompanies() {
             <Card key={c.id} className="shadow-card">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <h3 className="font-bold text-foreground">{c.company_name}</h3>
-                    {c.industry && <p className="text-xs text-muted-foreground">{c.industry} · {c.business_type}</p>}
+                  <div className="flex items-center gap-3">
+                    {c.logo_url ? (
+                      <img src={c.logo_url} alt={c.company_name} className="w-10 h-10 rounded-lg object-cover border border-border" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-bold text-foreground">{c.company_name}</h3>
+                      {c.industry && <p className="text-xs text-muted-foreground">{c.industry} · {c.business_type}</p>}
+                    </div>
                   </div>
                   <Badge className={c.is_approved ? 'bg-primary/20 text-primary' : 'bg-gold/20 text-gold'}>
                     {c.is_approved ? 'Approved' : 'Pending'}
@@ -129,13 +187,52 @@ export function AdminCompanies() {
               { label: 'Website', key: 'website' },
               { label: 'Phone', key: 'phone' },
               { label: 'Email', key: 'email' },
-              { label: 'Logo URL', key: 'logo_url' },
             ].map(({ label, key }) => (
               <div key={key} className="space-y-1">
                 <Label className="text-sm">{label}</Label>
                 <Input value={(form as Record<string, string>)[key] || ''} onChange={e => set(key as keyof Company, e.target.value)} className="h-9 text-sm" />
               </div>
             ))}
+
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <Label className="text-sm">Company Logo</Label>
+              {currentLogo && (
+                <div className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg border border-border">
+                  <img src={currentLogo} alt="Logo preview" className="w-14 h-14 object-cover rounded-lg border border-border" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {logoFile ? logoFile.name : 'Current logo'}
+                    </p>
+                    <button onClick={() => { handleLogoChange(null); set('logo_url', ''); }} className="text-xs text-destructive hover:underline mt-0.5">Remove</button>
+                  </div>
+                </div>
+              )}
+              <div
+                className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors"
+                onClick={() => document.getElementById('company-logo-upload')?.click()}
+              >
+                {logoFile ? (
+                  <p className="text-sm text-primary flex items-center justify-center gap-2">
+                    <ImageIcon className="h-4 w-4" /> {logoFile.name}
+                  </p>
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <Upload className="h-5 w-5" />
+                    <p className="text-xs">{currentLogo ? 'Click to replace logo' : 'Click to upload logo'}</p>
+                    <p className="text-[10px]">JPG, PNG, WebP up to 5MB</p>
+                  </div>
+                )}
+              </div>
+              <input
+                id="company-logo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => handleLogoChange(e.target.files?.[0] || null)}
+              />
+            </div>
+
             <div className="space-y-1">
               <Label className="text-sm">Description</Label>
               <Textarea value={form.description || ''} onChange={e => set('description', e.target.value)} rows={3} className="text-sm" />
@@ -145,7 +242,9 @@ export function AdminCompanies() {
               <Label htmlFor="approved" className="text-sm cursor-pointer">Approved (visible in directory)</Label>
             </div>
             <div className="flex gap-3">
-              <Button onClick={save} className="flex-1 gradient-primary text-primary-foreground">Save</Button>
+              <Button onClick={save} disabled={uploading} className="flex-1 gradient-primary text-primary-foreground">
+                {uploading ? 'Saving...' : 'Save'}
+              </Button>
               <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">Cancel</Button>
             </div>
           </div>
