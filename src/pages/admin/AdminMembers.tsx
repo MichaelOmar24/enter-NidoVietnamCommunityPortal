@@ -158,6 +158,9 @@ export function AdminMembers() {
       });
     }
 
+    // Send full profile + passport notification email to admin
+    await supabase.functions.invoke('notify-admin', { body: { user_id: userId } });
+
     setCreating(false);
     setCreateOpen(false);
     setCreateForm({
