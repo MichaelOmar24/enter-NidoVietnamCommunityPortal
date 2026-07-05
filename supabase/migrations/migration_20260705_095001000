@@ -1,0 +1,31 @@
+-- Fix the incorrect auth.identities record for admin@nidovietnam.com
+-- Delete the wrong one
+DELETE FROM auth.identities 
+WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+
+-- Insert correct identity record matching GoTrue's format
+INSERT INTO auth.identities (
+  id,
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  created_at,
+  updated_at,
+  last_sign_in_at
+)
+VALUES (
+  gen_random_uuid(),
+  'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a',
+  jsonb_build_object(
+    'sub', 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a',
+    'email', 'admin@nidovietnam.com',
+    'email_verified', true,
+    'phone_verified', false
+  ),
+  'email',
+  'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a',
+  now(),
+  now(),
+  now()
+);

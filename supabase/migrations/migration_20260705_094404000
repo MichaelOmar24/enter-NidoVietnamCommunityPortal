@@ -1,0 +1,24 @@
+-- Insert missing identity record for admin@nidovietnam.com
+INSERT INTO auth.identities (
+  id,
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  created_at,
+  updated_at,
+  last_sign_in_at
+)
+VALUES (
+  'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a',
+  'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a',
+  '{"sub": "e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a", "email": "admin@nidovietnam.com", "email_verified": true, "phone_verified": false}',
+  'email',
+  'admin@nidovietnam.com',
+  now(),
+  now(),
+  now()
+)
+ON CONFLICT (id) DO UPDATE SET
+  identity_data = EXCLUDED.identity_data,
+  updated_at = now();

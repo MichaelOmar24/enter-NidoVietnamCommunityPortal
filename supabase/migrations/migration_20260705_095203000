@@ -1,0 +1,18 @@
+-- Step 1: Drop FK so we can manage records independently
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+
+-- Step 2: Delete the profile (we'll recreate it via the edge function)
+DELETE FROM public.profiles WHERE id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+
+-- Step 3: Clean up all auth records for this user
+DELETE FROM auth.identities WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+DELETE FROM auth.sessions WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+DELETE FROM auth.refresh_tokens WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+DELETE FROM auth.mfa_factors WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+DELETE FROM auth.one_time_tokens WHERE user_id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+DELETE FROM auth.users WHERE id = 'e2c2067d-0b0b-40f5-aea7-c1aa6bdb0b1a';
+
+-- Step 4: Re-add the FK with CASCADE
+ALTER TABLE public.profiles 
+  ADD CONSTRAINT profiles_id_fkey 
+  FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;

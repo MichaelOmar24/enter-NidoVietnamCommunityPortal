@@ -8,51 +8,46 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const { email, password } = await req.json();
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
-    // Try to get user by email
-    const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
-    if (listErr) throw listErr;
+    const { email, password, first_name, last_name } = await req.json();
 
-    const existingUser = users.find(u => u.email === email);
+    // Create user via GoTrue admin API — this sets up auth.users AND auth.identities correctly
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { first_name, last_name },
+    });
 
-    if (existingUser) {
-      // Update their password
-      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-        password,
-        email_confirm: true,
-      });
-      if (updateErr) throw updateErr;
-      return new Response(JSON.stringify({ success: true, action: 'updated', user_id: existingUser.id }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } else {
-      // Create user in auth with the profile's UUID
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+    if (error) throw error;
 
-      const createOpts: Record<string, unknown> = {
+    const userId = data.user.id;
+
+    // Create the profile record
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: userId,
         email,
-        password,
-        email_confirm: true,
-      };
-      if (profileData?.id) createOpts.id = profileData.id;
-
-      const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser(createOpts);
-      if (createErr) throw createErr;
-      return new Response(JSON.stringify({ success: true, action: 'created', user_id: newUser.user?.id }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        first_name: first_name || 'Admin',
+        last_name: last_name || 'NIDO',
+        membership_type: 'regular',
+        membership_status: 'active',
+        is_admin: true,
+        is_super_admin: true,
       });
-    }
+
+    if (profileError) throw profileError;
+
+    return new Response(JSON.stringify({ success: true, user_id: userId }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 400,
