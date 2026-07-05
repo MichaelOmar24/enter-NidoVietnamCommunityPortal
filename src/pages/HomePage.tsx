@@ -7,8 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Users, Building2, Globe, ChevronRight, BookOpen, Image,
-  Calendar, AlertCircle, Facebook, MessageCircle, Phone, Mail,
-  ExternalLink, CheckCircle, Shield, Star, ArrowRight
+  Calendar, AlertCircle, Facebook, MessageCircle, Phone,
+  ExternalLink, CheckCircle, Shield, Star, ArrowRight, Rss, Bell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -23,7 +23,9 @@ interface Stats {
 
 export function HomePage() {
   const [stats, setStats] = useState<Stats>({ totalMembers: 0, activeMembers: 0, companies: 0, activities: 0 });
-  const [embassyNotices, setEmbassyNotices] = useState<{ title: string; date: string; excerpt: string }[]>([]);
+  const [embassyNews, setEmbassyNews] = useState<{ title: string; date: string; excerpt: string; url: string; category: string }[]>([]);
+  const [noticeBoard, setNoticeBoard] = useState<{ type: string; title: string; excerpt: string; url: string }[]>([]);
+  const [embassySource, setEmbassySource] = useState<'loading' | 'live' | 'fallback'>('loading');
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
   const { user } = useAuth();
@@ -60,13 +62,15 @@ export function HomePage() {
   const fetchEmbassyNews = async () => {
     try {
       const { data } = await supabase.functions.invoke('embassy-news');
-      if (data?.notices) setEmbassyNotices(data.notices);
+      if (data?.newsItems?.length > 0) {
+        setEmbassyNews(data.newsItems.slice(0, 5));
+        setEmbassySource('live');
+      } else {
+        setEmbassySource('fallback');
+      }
+      if (data?.noticeBoard) setNoticeBoard(data.noticeBoard);
     } catch (_) {
-      setEmbassyNotices([
-        { title: 'Passport Renewal Update', date: 'June 2025', excerpt: 'Nigerian citizens in Vietnam are advised to renew their passports before expiry. Contact the embassy for guidance.' },
-        { title: 'Emergency Contact Information', date: 'May 2025', excerpt: 'For emergency consular services, contact the embassy on +84-24-37263610.' },
-        { title: 'Community Meeting Notice', date: 'April 2025', excerpt: 'NIDO Vietnam quarterly meeting announced. All registered members are encouraged to attend.' },
-      ]);
+      setEmbassySource('fallback');
     }
   };
 
@@ -167,37 +171,108 @@ export function HomePage() {
       {/* Embassy Notices */}
       <section className="py-20 px-4 bg-background">
         <div className="container mx-auto">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex items-end justify-between mb-8">
             <div>
               <div className="section-accent" />
               <h2 className="text-2xl md:text-3xl font-bold text-foreground">Embassy Notices</h2>
-              <p className="text-muted-foreground mt-2">Latest updates from the Nigerian Embassy in Vietnam</p>
+              <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-sm">
+                {embassySource === 'live'
+                  ? <><Rss className="h-3.5 w-3.5 text-primary" /> Live from nigeriaembassy.org.vn</>
+                  : 'Latest updates from the Nigerian Embassy in Vietnam'}
+              </p>
             </div>
-            <a href="https://nigeriaembassy.org.vn" target="_blank" rel="noopener noreferrer">
+            <a href="https://nigeriaembassy.org.vn/news-and-events/" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="text-primary border-primary hover:bg-primary/10 gap-2 hidden sm:flex">
                 <ExternalLink className="h-4 w-4" /> Embassy Website
               </Button>
             </a>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {embassyNotices.map((notice, i) => (
-              <Card key={i} className="shadow-card card-lift hover:shadow-green transition-smooth border-border overflow-hidden">
-                <div className="h-1 gradient-primary" />
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-green">
-                      <AlertCircle className="h-4 w-4 text-primary-foreground" />
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* News feed — left (wider) */}
+            <div className="lg:col-span-3 rounded-2xl border border-border bg-card overflow-hidden shadow-card">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border bg-muted/30">
+                <Rss className="h-4 w-4 text-primary" />
+                <p className="font-semibold text-foreground text-sm">Latest News &amp; Events</p>
+                {embassySource === 'live' && (
+                  <span className="ml-auto text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">LIVE</span>
+                )}
+              </div>
+              {embassySource === 'loading' ? (
+                <div className="divide-y divide-border">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="px-5 py-4 animate-pulse">
+                      <div className="h-3.5 bg-muted rounded w-3/4 mb-2" />
+                      <div className="h-2.5 bg-muted rounded w-1/3" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground text-sm leading-snug">{notice.title}</h3>
-                      <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{notice.date}</span>
+                  ))}
+                </div>
+              ) : embassyNews.length === 0 ? (
+                <div className="px-5 py-10 text-center text-muted-foreground text-sm">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  Could not load live news. Visit the embassy website directly.
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {embassyNews.map((item, i) => (
+                    <a
+                      key={i}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3.5 px-5 py-4 hover:bg-muted/40 transition-smooth group"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0 group-hover:scale-125 transition-smooth" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-smooth leading-snug line-clamp-2">{item.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] text-muted-foreground">{item.date}</span>
+                          {item.category && (
+                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">{item.category}</span>
+                          )}
+                        </div>
+                      </div>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-smooth shrink-0 mt-0.5" />
+                    </a>
+                  ))}
+                </div>
+              )}
+              <div className="px-5 py-3 border-t border-border bg-muted/20">
+                <a href="https://nigeriaembassy.org.vn/news-and-events/" target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1">
+                  View all embassy news <ChevronRight className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* Notice Board — right */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Bell className="h-4 w-4 text-primary" />
+                <p className="font-semibold text-foreground text-sm">Notice Board</p>
+              </div>
+              {noticeBoard.length === 0 ? (
+                [1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted/30 animate-pulse" />)
+              ) : (
+                noticeBoard.map((notice, i) => (
+                  <a
+                    key={i}
+                    href={notice.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-card transition-smooth group"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-foreground uppercase tracking-wide group-hover:text-primary transition-smooth">{notice.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-3">{notice.excerpt}</p>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{notice.excerpt}</p>
-                </CardContent>
-              </Card>
-            ))}
+                  </a>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Embassy Contact Banner */}
