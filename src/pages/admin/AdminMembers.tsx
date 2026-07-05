@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,6 +28,11 @@ export function AdminMembers() {
   const [total, setTotal] = useState(0);
   const [editingPassport, setEditingPassport] = useState<Partial<Passport>>({});
   const [passportImageOpen, setPassportImageOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: '', first_name: '', last_name: '', phone: '' });
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -82,6 +87,33 @@ export function AdminMembers() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const createUser = async () => {
+    if (!createForm.email || !createForm.first_name || !createForm.last_name) {
+      toast({ title: 'Missing fields', description: 'Email, first name and last name are required.', variant: 'destructive' });
+      return;
+    }
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: createForm,
+    });
+    setCreating(false);
+    if (error || data?.error) {
+      toast({ title: 'Failed to create account', description: error?.message || data?.error, variant: 'destructive' });
+      return;
+    }
+    setCreateOpen(false);
+    setCreateForm({ email: '', first_name: '', last_name: '', phone: '' });
+    setCredentials({ email: createForm.email, password: data.password });
+    loadMembers();
+  };
+
+  const copyCredentials = () => {
+    if (!credentials) return;
+    navigator.clipboard.writeText(`Email: ${credentials.email}\nPassword: ${credentials.password}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <AdminLayout title="Member Management">
       {/* Filters */}
@@ -101,7 +133,85 @@ export function AdminMembers() {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
+        <Button className="gradient-primary text-primary-foreground gap-2 shrink-0" onClick={() => setCreateOpen(true)}>
+          <UserPlus className="h-4 w-4" /> Create Account
+        </Button>
       </div>
+
+      {/* Create Account Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" /> Create Member Account
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <p className="text-sm text-muted-foreground">
+              A secure password will be generated automatically. The credentials will be displayed for you to share with the member.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>First Name *</Label>
+                <Input value={createForm.first_name} onChange={e => setCreateForm(f => ({ ...f, first_name: e.target.value }))} placeholder="e.g. Chidi" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Last Name *</Label>
+                <Input value={createForm.last_name} onChange={e => setCreateForm(f => ({ ...f, last_name: e.target.value }))} placeholder="e.g. Okeke" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email Address *</Label>
+              <Input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="member@example.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Phone Number</Label>
+              <Input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} placeholder="+84..." />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button onClick={createUser} disabled={creating} className="flex-1 gradient-primary text-primary-foreground">
+                {creating ? 'Creating...' : 'Create Account'}
+              </Button>
+              <Button variant="outline" onClick={() => setCreateOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Modal */}
+      <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <Check className="h-5 w-5" /> Account Created Successfully
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <p className="text-sm text-muted-foreground">
+              The account has been created. Share these credentials with the member. They will also receive a password setup email.
+            </p>
+            <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Email / Username</p>
+                <p className="font-medium text-foreground text-sm">{credentials?.email}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Temporary Password</p>
+                <p className="font-mono text-lg font-bold text-primary tracking-wider">{credentials?.password}</p>
+              </div>
+            </div>
+            <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+              Advise the member to change their password after first login.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={copyCredentials} variant="outline" className="flex-1 gap-2">
+                {copied ? <><CheckCheck className="h-4 w-4 text-primary" /> Copied!</> : <><Copy className="h-4 w-4" /> Copy Credentials</>}
+              </Button>
+              <Button onClick={() => setCredentials(null)} className="flex-1 gradient-primary text-primary-foreground">Done</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card className="shadow-card">
         <CardHeader>
