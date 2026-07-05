@@ -99,15 +99,14 @@ export function ProfilePage() {
     let passport_image_url = passport?.passport_image_url;
 
     if (passportFile) {
-      const ext = passportFile.name.split('.').pop();
-      const fileName = `${profile.id}_passport.${ext}`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('passport-images')
-        .upload(fileName, passportFile, { upsert: true });
-      
-      if (!uploadErr && uploadData) {
-        const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
-        passport_image_url = urlData.publicUrl;
+      const fd = new FormData();
+      fd.append('file', passportFile);
+      fd.append('userId', profile.id);
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke('upload-passport-image', { body: fd });
+      if (!fnErr && fnData?.url) {
+        passport_image_url = fnData.url;
+      } else {
+        toast({ title: 'Upload failed', description: fnErr?.message || 'Could not upload image', variant: 'destructive' });
       }
     }
 
