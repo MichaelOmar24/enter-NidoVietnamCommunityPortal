@@ -36,12 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // onAuthStateChange fires INITIAL_SESSION on setup — no need for a separate getSession() call.
+    // Running both simultaneously causes "Lock was stolen by another request" errors.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         if (currentSession?.user) {
-          // Defer profile fetch; fetchProfile will call setLoading(false) when done
+          // Defer so Supabase client can fully commit the session before we query
           setTimeout(() => fetchProfile(currentSession.user.id), 0);
         } else {
           setProfile(null);
@@ -49,16 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        fetchProfile(s.user.id); // fetchProfile sets loading=false when done
-      } else {
-        setLoading(false);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);
