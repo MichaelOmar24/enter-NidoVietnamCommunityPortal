@@ -19,7 +19,7 @@ const navLinks = [
   { label: 'Gallery', href: '/gallery' },
   { label: 'Activities', href: '/activities' },
   { label: 'Passport Info', href: '/passport-info' },
-  { label: 'Constitution', href: '/constitution' },
+  { label: 'Documents', href: '/constitution' },
   { label: 'Contact', href: '/contact' },
 ];
 

@@ -78,6 +78,7 @@ export function AdminDocuments() {
     constitution: 'bg-primary/20 text-primary',
     circular: 'bg-gold/20 text-gold',
     announcement: 'bg-accent/20 text-accent',
+    certificate: 'bg-purple-500/20 text-purple-600',
   };
 
   return (
@@ -174,10 +175,11 @@ export function AdminDocuments() {
 
             <div className="space-y-1.5">
               <Label>Document Type</Label>
-              <Select value={form.document_type} onValueChange={v => setForm(f => ({ ...f, document_type: v as 'constitution' | 'circular' | 'announcement' }))}>
+              <Select value={form.document_type} onValueChange={v => setForm(f => ({ ...f, document_type: v as 'constitution' | 'circular' | 'announcement' | 'certificate' }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="constitution">Constitution</SelectItem>
+                  <SelectItem value="certificate">Certificate</SelectItem>
                   <SelectItem value="circular">Circular</SelectItem>
                   <SelectItem value="announcement">Announcement</SelectItem>
                 </SelectContent>

@@ -1,0 +1,7 @@
+-- Drop the existing type constraint and add 'certificate' to allowed values
+ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check;
+ALTER TABLE documents ADD CONSTRAINT documents_document_type_check
+  CHECK (document_type IN ('constitution', 'circular', 'announcement', 'certificate'));
+
+-- Now fix the Certificate document type
+UPDATE documents SET document_type = 'certificate' WHERE title = 'Certificate';
