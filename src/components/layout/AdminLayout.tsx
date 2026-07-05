@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Image, FileText, LogOut,
-  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard
+  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard, Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ const adminLinks = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
   { icon: Users, label: 'Members', href: '/admin/members' },
   { icon: CreditCard, label: 'Memberships', href: '/admin/memberships' },
+  { icon: Banknote, label: 'Treasury', href: '/admin/treasury' },
   { icon: Building2, label: 'Companies', href: '/admin/companies' },
   { icon: Image, label: 'Gallery', href: '/admin/gallery' },
   { icon: FileText, label: 'Documents', href: '/admin/documents' },

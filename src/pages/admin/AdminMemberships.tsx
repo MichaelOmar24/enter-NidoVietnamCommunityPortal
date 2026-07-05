@@ -115,6 +115,20 @@ export function AdminMemberships() {
         membership_type: selected.plan_type,
         membership_status: 'active',
       }).eq('id', selected.user_id);
+
+      // Auto-create income transaction in community fund
+      const memberName = `${selected.profiles?.first_name || ''} ${selected.profiles?.last_name || ''}`.trim();
+      await supabase.from('fund_transactions').insert({
+        transaction_type: 'income',
+        category: 'membership_payment',
+        amount: Number(selected.amount),
+        currency: selected.currency || 'VND',
+        description: `${selected.plan_type.charAt(0).toUpperCase() + selected.plan_type.slice(1)} membership — ${memberName}`,
+        reference_id: selected.id,
+        reference_type: 'membership',
+        created_by: profile.id,
+        notes: `Ref: ${selected.payment_reference || '—'}`,
+      });
     }
 
     setActing(false);

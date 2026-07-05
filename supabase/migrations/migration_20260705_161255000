@@ -1,0 +1,35 @@
+-- Community Fund Transactions ledger
+CREATE TABLE IF NOT EXISTS fund_transactions (
+  id UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('income','expense')),
+  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN (
+    'membership_payment','welfare_support','national_day_event',
+    'community_event','administrative','other'
+  )),
+  amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+  currency TEXT NOT NULL DEFAULT 'VND',
+  description TEXT NOT NULL,
+  reference_id UUID,
+  reference_type TEXT CHECK (reference_type IN ('membership','welfare_request','manual')),
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  notes TEXT
+);
+
+ALTER TABLE fund_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage fund transactions"
+  ON fund_transactions FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid()
+      AND (profiles.is_admin = true OR profiles.is_super_admin = true))
+  );
+
+CREATE POLICY "Embassy staff can view fund transactions"
+  ON fund_transactions FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid()
+      AND profiles.is_embassy_staff = true)
+  );
+
+ALTER PUBLICATION supabase_realtime ADD TABLE fund_transactions;

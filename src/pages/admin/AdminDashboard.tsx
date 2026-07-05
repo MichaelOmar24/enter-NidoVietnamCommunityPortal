@@ -4,19 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard } from 'lucide-react';
+import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard, TrendingDown } from 'lucide-react';
 import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 
 const COLORS = ['#008751', '#FFD700', '#DA251D', '#006B40', '#FF8C00', '#4169E1'];
-
 const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
 export function AdminDashboard() {
   const [stats, setStats] = useState({
     total: 0, active: 0, pending: 0, companies: 0,
     expiringPassports: 0, expiredPassports: 0,
-    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0
+    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0,
+    fundIncome: 0, fundExpense: 0, fundBalance: 0,
   });
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [maritalData, setMaritalData] = useState<{ name: string; value: number }[]>([]);
@@ -36,6 +36,7 @@ export function AdminDashboard() {
       { data: passports },
       { data: recent },
       { data: memberships },
+      { data: fundTxns },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
@@ -45,6 +46,7 @@ export function AdminDashboard() {
       supabase.from('passports').select('expiry_date'),
       supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, membership_type, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
+      supabase.from('fund_transactions').select('transaction_type, amount'),
     ]);
 
     // Count expiring passports
@@ -81,7 +83,11 @@ export function AdminDashboard() {
       { plan: 'Gold', count: revMap.gold.count, revenue: revMap.gold.revenue },
     ]);
 
-    setStats({ total: total || 0, active: active || 0, pending: pending || 0, companies: companies || 0, expiringPassports: expiring, expiredPassports: expired, premiumMembers, goldMembers, pendingPayments, totalRevenue });
+    setStats({ total: total || 0, active: active || 0, pending: pending || 0, companies: companies || 0, expiringPassports: expiring, expiredPassports: expired, premiumMembers, goldMembers, pendingPayments, totalRevenue,
+      fundIncome: (fundTxns || []).filter((t: { transaction_type: string }) => t.transaction_type === 'income').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
+      fundExpense: (fundTxns || []).filter((t: { transaction_type: string }) => t.transaction_type === 'expense').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
+      fundBalance: (fundTxns || []).reduce((s: number, t: { transaction_type: string; amount: number }) => s + (t.transaction_type === 'income' ? Number(t.amount) : -Number(t.amount)), 0),
+    });
 
     // Occupation breakdown
     const occMap: Record<string, number> = {};
@@ -140,6 +146,39 @@ export function AdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Fund Balance Card */}
+      <Card className="shadow-card mb-6 border-primary/20">
+        <CardContent className="p-5">
+          <div className="flex flex-wrap gap-6 items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+                <Banknote className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Community Fund Balance</p>
+                <p className={`text-2xl font-bold ${stats.fundBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{VND(stats.fundBalance)}</p>
+              </div>
+            </div>
+            <div className="flex gap-8 flex-wrap">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Income</p>
+                  <p className="font-semibold text-primary text-sm">{VND(stats.fundIncome)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-destructive" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Expenses</p>
+                  <p className="font-semibold text-destructive text-sm">{VND(stats.fundExpense)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Revenue Card */}
       <Card className="shadow-card mb-6">

@@ -21,6 +21,7 @@ import { AdminActivities } from "./pages/admin/AdminActivities";
 import { AdminWelfare } from "./pages/admin/AdminWelfare";
 import { AdminDeceased } from "./pages/admin/AdminDeceased";
 import { AdminMemberships } from "./pages/admin/AdminMemberships";
+import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
 import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
@@ -111,6 +112,11 @@ export const routers = [
     path: "/admin/memberships",
     name: "admin-memberships",
     element: <ProtectedRoute adminOnly><AdminMemberships /></ProtectedRoute>
+  },
+  {
+    path: "/admin/treasury",
+    name: "admin-treasury",
+    element: <ProtectedRoute adminOnly><AdminTreasury /></ProtectedRoute>
   },
   {
     path: "/embassy",
