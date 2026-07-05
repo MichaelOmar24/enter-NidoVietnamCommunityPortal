@@ -60,7 +60,7 @@ export function AdminWelfare() {
   const load = async () => {
     setLoading(true);
     let q = supabase.from('welfare_requests')
-      .select('*, profiles(first_name, last_name, email, vietnam_city)')
+      .select('*, profiles!welfare_requests_user_id_fkey(first_name, last_name, email, vietnam_city)')
       .order('created_at', { ascending: false });
     if (filter !== 'all') q = q.eq('status', filter);
     if (typeFilter !== 'all') q = q.eq('support_type', typeFilter);

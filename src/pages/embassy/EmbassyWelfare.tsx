@@ -37,7 +37,7 @@ export function EmbassyWelfare() {
 
   const load = async () => {
     const [{ data: w }, { data: d }] = await Promise.all([
-      supabase.from('welfare_requests').select('*, profiles(first_name, last_name, vietnam_city)').order('created_at', { ascending: false }),
+      supabase.from('welfare_requests').select('*, profiles!welfare_requests_user_id_fkey(first_name, last_name, vietnam_city)').order('created_at', { ascending: false }),
       supabase.from('deceased_members').select('*').order('date_of_death', { ascending: false }),
     ]);
     setWelfare((w || []) as WelfareReq[]);
