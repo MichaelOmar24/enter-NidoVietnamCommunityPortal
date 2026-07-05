@@ -256,11 +256,11 @@ function CertificateCard({ doc }: { doc: Doc }) {
             <Button size="sm" variant="ghost" onClick={() => setShowViewer(false)}>Close</Button>
           </div>
           {isImage ? (
-            <div className="flex-1 flex items-center justify-center bg-black/60 p-6" onContextMenu={e => e.preventDefault()}>
+            <div className="flex-1 overflow-y-auto flex justify-center bg-black/60 p-4" onContextMenu={e => e.preventDefault()}>
               <img
                 src={doc.document_url}
                 alt={doc.title}
-                className="max-h-full max-w-full object-contain select-none pointer-events-none"
+                className="w-full max-w-2xl h-auto select-none pointer-events-none"
                 crossOrigin="anonymous"
                 draggable={false}
               />
