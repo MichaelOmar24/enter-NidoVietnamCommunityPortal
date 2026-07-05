@@ -18,9 +18,11 @@ import { AdminDocuments } from "./pages/admin/AdminDocuments";
 import { AdminActivities } from "./pages/admin/AdminActivities";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
+import { AboutPage } from "./pages/AboutPage";
 
 export const routers = [
   { path: "/", name: "home", element: <HomePage /> },
+  { path: "/about", name: "about", element: <AboutPage /> },
   { path: "/login", name: "login", element: <LoginPage /> },
   { path: "/register", name: "register", element: <RegisterPage /> },
   {

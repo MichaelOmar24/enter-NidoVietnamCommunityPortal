@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 const navLinks = [
   { label: 'Home', href: '/' },
+  { label: 'About NIDO', href: '/about' },
   { label: 'Directory', href: '/directory' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'Activities', href: '/activities' },
