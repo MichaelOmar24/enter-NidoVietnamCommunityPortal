@@ -57,7 +57,7 @@ export function Footer() {
             <h3 className="font-semibold text-sidebar-foreground mb-5">Quick Links</h3>
             <ul className="space-y-2.5 text-sm text-sidebar-foreground/65">
               {[
-                { label: 'About NIDO', href: '/' },
+                { label: 'About NIDO', href: '/about' },
                 { label: 'Member Directory', href: '/directory' },
                 { label: 'Photo Gallery', href: '/gallery' },
                 { label: 'Events & Activities', href: '/activities' },
