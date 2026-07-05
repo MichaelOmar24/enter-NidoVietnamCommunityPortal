@@ -1,0 +1,33 @@
+-- Backfill income transactions for all approved/completed memberships
+-- that don't already have a corresponding fund_transaction entry
+INSERT INTO fund_transactions (
+  transaction_type,
+  category,
+  amount,
+  currency,
+  description,
+  reference_id,
+  reference_type,
+  created_at,
+  notes
+)
+SELECT
+  'income',
+  'membership_payment',
+  m.amount,
+  COALESCE(m.currency, 'VND'),
+  INITCAP(m.plan_type) || ' membership — ' || p.first_name || ' ' || p.last_name,
+  m.id,
+  'membership',
+  COALESCE(m.approved_at, m.created_at),
+  'Ref: ' || COALESCE(m.payment_reference, '—')
+FROM memberships m
+JOIN profiles p ON p.id = m.user_id
+WHERE m.payment_status IN ('approved', 'completed')
+  AND m.amount IS NOT NULL
+  AND m.id NOT IN (
+    SELECT reference_id FROM fund_transactions
+    WHERE reference_type = 'membership'
+      AND transaction_type = 'income'
+      AND reference_id IS NOT NULL
+  );
