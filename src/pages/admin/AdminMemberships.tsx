@@ -68,6 +68,7 @@ export function AdminMemberships() {
   const [settings, setSettings] = useState<PaymentSettings>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [uploadingQR, setUploadingQR] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [stats, setStats] = useState({ pending: 0, premium: 0, gold: 0, totalRevenue: 0 });
 
   const load = useCallback(async () => {
@@ -121,12 +122,14 @@ export function AdminMemberships() {
     load();
   };
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (overrideSettings?: PaymentSettings) => {
     setSavingSettings(true);
-    if (settings.id) {
-      await supabase.from('payment_settings').update({ ...settings, updated_at: new Date().toISOString(), updated_by: profile?.id }).eq('id', settings.id);
+    const toSave = overrideSettings || settings;
+    if (toSave.id) {
+      await supabase.from('payment_settings').update({ ...toSave, updated_at: new Date().toISOString(), updated_by: profile?.id }).eq('id', toSave.id);
     } else {
-      await supabase.from('payment_settings').insert({ ...settings, updated_by: profile?.id });
+      const { data } = await supabase.from('payment_settings').insert({ ...toSave, updated_by: profile?.id }).select().maybeSingle();
+      if (data) setSettings(data as PaymentSettings);
     }
     setSavingSettings(false);
   };
@@ -135,13 +138,20 @@ export function AdminMemberships() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingQR(true);
+    setUploadError('');
     const ext = file.name.split('.').pop();
-    const path = `qr-codes/payment-qr.${ext}`;
-    const { error } = await supabase.storage.from('gallery').upload(path, file, { upsert: true });
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(path);
-      setSettings(s => ({ ...s, qr_code_url: publicUrl }));
+    const path = `qr-codes/payment-qr-${Date.now()}.${ext}`;
+    const { error, data: uploadData } = await supabase.storage.from('gallery').upload(path, file, { upsert: true });
+    if (error || !uploadData) {
+      setUploadError(`Upload failed: ${error?.message || 'Unknown error'}`);
+      setUploadingQR(false);
+      return;
     }
+    const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(path);
+    const updated = { ...settings, qr_code_url: publicUrl };
+    setSettings(updated);
+    // Auto-save immediately so QR persists
+    await handleSaveSettings(updated);
     setUploadingQR(false);
   };
 
@@ -260,20 +270,45 @@ export function AdminMemberships() {
             <CardContent className="space-y-4 max-w-lg">
               {/* QR Upload */}
               <div>
-                <Label className="text-sm mb-1.5 block">Bank QR Code</Label>
-                {settings.qr_code_url && (
-                  <img src={settings.qr_code_url} alt="QR" className="w-32 h-32 object-contain rounded-lg border border-border mb-2 bg-white p-1" crossOrigin="anonymous" />
-                )}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/40 hover:bg-primary/5 transition-smooth text-sm text-foreground">
-                    <Upload className="h-4 w-4 text-primary" />
-                    {uploadingQR ? 'Uploading...' : 'Upload QR Code Image'}
+                <Label className="text-sm mb-2 block">Bank QR Code</Label>
+                {settings.qr_code_url ? (
+                  <div className="mb-3">
+                    <p className="text-xs text-primary mb-1.5 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> QR code saved
+                    </p>
+                    <img
+                      src={settings.qr_code_url}
+                      alt="Bank QR Code"
+                      className="w-40 h-40 object-contain rounded-xl border border-border bg-white p-2"
+                      crossOrigin="anonymous"
+                      onError={() => setUploadError('QR image failed to load — URL may be broken')}
+                    />
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleQRUpload} />
-                </label>
-                {settings.qr_code_url && (
-                  <Input className="mt-2 text-xs" placeholder="Or paste QR image URL" value={settings.qr_code_url} onChange={e => setSettings(s => ({ ...s, qr_code_url: e.target.value }))} />
+                ) : (
+                  <p className="text-xs text-muted-foreground mb-2">No QR code uploaded yet</p>
                 )}
+
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/40 hover:bg-primary/5 transition-smooth text-sm text-foreground ${uploadingQR ? 'opacity-60' : ''}`}>
+                    <Upload className="h-4 w-4 text-primary" />
+                    {uploadingQR ? 'Uploading & Saving...' : settings.qr_code_url ? 'Replace QR Code Image' : 'Upload QR Code Image'}
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleQRUpload} disabled={uploadingQR} />
+                </label>
+
+                {uploadError && (
+                  <p className="text-xs text-destructive mt-1">{uploadError}</p>
+                )}
+
+                <div className="mt-2">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Or paste QR image URL directly</Label>
+                  <Input
+                    className="text-xs"
+                    placeholder="https://..."
+                    value={settings.qr_code_url || ''}
+                    onChange={e => setSettings(s => ({ ...s, qr_code_url: e.target.value }))}
+                  />
+                </div>
               </div>
 
               {[
