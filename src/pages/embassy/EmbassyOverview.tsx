@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   Users, ShieldCheck, Clock, XCircle, Briefcase,
-  Building2, Image, FileText, Activity, TrendingUp, TrendingDown, Minus
+  Building2, Image, FileText, Activity, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote
 } from 'lucide-react';
 import { differenceInDays, parseISO, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { OCCUPATION_LABELS } from '@/lib/types';
@@ -29,6 +29,10 @@ interface KpiData {
   approvedCompanies: number;
   totalActivities: number;
   totalDocuments: number;
+  premiumMembers: number;
+  goldMembers: number;
+  pendingPayments: number;
+  totalRevenue: number;
 }
 
 export function EmbassyOverview() {
@@ -36,10 +40,12 @@ export function EmbassyOverview() {
     totalMembers: 0, activeMembers: 0, pendingMembers: 0, expiredMembers: 0,
     totalPassports: 0, verifiedPassports: 0, biometricPassports: 0,
     expiringPassports: 0, expiredPassports: 0,
-    totalCompanies: 0, approvedCompanies: 0, totalActivities: 0, totalDocuments: 0
+    totalCompanies: 0, approvedCompanies: 0, totalActivities: 0, totalDocuments: 0,
+    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0
   });
   const [growthData, setGrowthData] = useState<{ month: string; members: number; cumulative: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [tierData, setTierData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [cityData, setCityData] = useState<{ city: string; count: number }[]>([]);
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
@@ -54,6 +60,7 @@ export function EmbassyOverview() {
       { data: passports }, { count: totalComp }, { count: approvedComp },
       { count: totalAct }, { count: totalDoc },
       { data: allProfiles },
+      { data: allMemberships },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
@@ -67,7 +74,8 @@ export function EmbassyOverview() {
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_approved', true),
       supabase.from('activities').select('*', { count: 'exact', head: true }),
       supabase.from('documents').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender'),
+      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type'),
+      supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
     ]);
 
     const now = new Date();
@@ -80,13 +88,28 @@ export function EmbassyOverview() {
       }
     });
 
+    const approvedMems = (allMemberships || []).filter((m: { payment_status: string }) => ['approved','completed'].includes(m.payment_status));
+    const premiumMembers = approvedMems.filter((m: { plan_type: string }) => m.plan_type === 'premium').length;
+    const goldMembers = approvedMems.filter((m: { plan_type: string }) => m.plan_type === 'gold').length;
+    const pendingPayments = (allMemberships || []).filter((m: { payment_status: string }) => m.payment_status === 'pending').length;
+    const totalRevenue = approvedMems.filter((m: { currency: string }) => m.currency === 'VND').reduce((sum: number, m: { amount: number }) => sum + Number(m.amount || 0), 0);
+
     setKpi({
       totalMembers: total || 0, activeMembers: active || 0, pendingMembers: pending || 0, expiredMembers: expired || 0,
       totalPassports: totalPass || 0, verifiedPassports: verifiedPass || 0, biometricPassports: biometricPass || 0,
       expiringPassports: expiring, expiredPassports: expiredPass,
       totalCompanies: totalComp || 0, approvedCompanies: approvedComp || 0,
       totalActivities: totalAct || 0, totalDocuments: totalDoc || 0,
+      premiumMembers, goldMembers, pendingPayments, totalRevenue,
     });
+
+    // Tier distribution
+    const freeCount = (allProfiles || []).filter((p: { membership_type: string | null }) => !p.membership_type || p.membership_type === 'free' || p.membership_type === 'regular').length;
+    setTierData([
+      { name: 'Free', value: freeCount, color: '#6b7280' },
+      { name: 'Premium', value: premiumMembers, color: '#00b359' },
+      { name: 'Gold', value: goldMembers, color: '#f59e0b' },
+    ]);
 
     // Growth data — last 8 months
     const months = Array.from({ length: 8 }, (_, i) => {
@@ -140,13 +163,13 @@ export function EmbassyOverview() {
     { label: 'Active Members', value: kpi.activeMembers, icon: ShieldCheck, color: '#00b359', trend: 'up' },
     { label: 'Pending Approval', value: kpi.pendingMembers, icon: Clock, color: '#FFD700', trend: null },
     { label: 'Expired Members', value: kpi.expiredMembers, icon: XCircle, color: '#DA251D', trend: 'down' },
+    { label: 'Premium Members', value: kpi.premiumMembers, icon: Shield, color: '#00b359', trend: 'up' },
+    { label: 'Gold Stakeholders', value: kpi.goldMembers, icon: Crown, color: '#f59e0b', trend: 'up' },
+    { label: 'Pending Payments', value: kpi.pendingPayments, icon: Banknote, color: '#FFD700', trend: null },
     { label: 'Total Passports', value: kpi.totalPassports, icon: Briefcase, color: '#3b82f6', trend: null },
     { label: 'Verified Passports', value: kpi.verifiedPassports, icon: ShieldCheck, color: '#00b359', trend: 'up' },
-    { label: 'Biometric Passports', value: kpi.biometricPassports, icon: ShieldCheck, color: '#8b5cf6', trend: null },
     { label: 'Expiring (≤1yr)', value: kpi.expiringPassports, icon: Clock, color: '#f97316', trend: null },
-    { label: 'Expired Passports', value: kpi.expiredPassports, icon: XCircle, color: '#DA251D', trend: 'down' },
     { label: 'Companies', value: kpi.totalCompanies, icon: Building2, color: '#06b6d4', trend: null },
-    { label: 'Activities', value: kpi.totalActivities, icon: Activity, color: '#00b359', trend: null },
     { label: 'Documents', value: kpi.totalDocuments, icon: FileText, color: '#8b5cf6', trend: null },
   ];
 
@@ -187,11 +210,54 @@ export function EmbassyOverview() {
         ))}
       </div>
 
+      {/* Revenue + Tier Row */}
+      <div className="grid lg:grid-cols-3 gap-4 mb-4">
+        {/* Revenue Card */}
+        <div className="embassy-kpi-card p-5 flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-3">
+            <Banknote className="h-4 w-4 text-green-400" />
+            <p className="text-sm font-semibold text-white">Membership Revenue</p>
+          </div>
+          <p className="text-3xl font-bold text-white">{(kpi.totalRevenue / 1_000_000).toFixed(1)}M ₫</p>
+          <p className="text-xs text-gray-500 mt-1">Total VND collected (approved payments)</p>
+          <div className="flex gap-4 mt-3">
+            <div><p className="text-xs text-gray-500">Premium</p><p className="text-sm font-semibold text-white">{kpi.premiumMembers}</p></div>
+            <div><p className="text-xs text-gray-500">Gold</p><p className="text-sm font-semibold text-amber-400">{kpi.goldMembers}</p></div>
+            <div><p className="text-xs text-gray-500">Pending</p><p className="text-sm font-semibold text-yellow-400">{kpi.pendingPayments}</p></div>
+          </div>
+        </div>
+        {/* Tier Donut */}
+        <div className="embassy-chart-card p-4 lg:col-span-2">
+          <p className="text-sm font-semibold text-white mb-1">Membership Tier Distribution</p>
+          <p className="text-xs text-gray-500 mb-3">Free vs Premium vs Gold breakdown</p>
+          <div className="flex items-center gap-4">
+            <ResponsiveContainer width="60%" height={150}>
+              <PieChart>
+                <Pie data={tierData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                  {tierData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2">
+              {tierData.map(d => (
+                <div key={d.name} className="flex items-center justify-between gap-6 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-gray-400">{d.name}</span>
+                  </div>
+                  <span className="text-white font-semibold">{d.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Row 1 */}
       <div className="grid lg:grid-cols-3 gap-4 mb-4">
         {/* Growth Area Chart */}
-        <div className="embassy-chart-card p-4 lg:col-span-2">
-          <p className="text-sm font-semibold text-white mb-1">Member Registration Growth</p>
+        <div className="embassy-chart-card p-4 lg:col-span-2">          <p className="text-sm font-semibold text-white mb-1">Member Registration Growth</p>
           <p className="text-xs text-gray-500 mb-4">New registrations and cumulative total — last 8 months</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={growthData}>

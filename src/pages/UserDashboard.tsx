@@ -11,30 +11,50 @@ import { supabase } from '@/integrations/supabase/client';
 import { Passport } from '@/lib/types';
 import {
   User, FileText, Shield, Calendar, AlertTriangle, CheckCircle,
-  CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon
+  CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon,
+  Crown, Clock, ArrowRight
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
+
+interface MembershipRecord {
+  id: string;
+  plan_type: string;
+  amount: number;
+  currency: string;
+  payment_status: string;
+  payment_reference: string;
+  valid_from: string;
+  valid_until: string;
+  created_at: string;
+}
+
+const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
+
+const TIER_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
+  free: { label: 'Free Member', icon: Users, color: 'text-muted-foreground', bg: 'bg-muted' },
+  regular: { label: 'Free Member', icon: Users, color: 'text-muted-foreground', bg: 'bg-muted' },
+  premium: { label: 'Premium Member', icon: Shield, color: 'text-primary', bg: 'bg-primary/10' },
+  gold: { label: 'Gold Stakeholder', icon: Crown, color: 'text-amber-600', bg: 'bg-amber-500/10' },
+};
 
 export function UserDashboard() {
   const { profile } = useAuth();
   const [passport, setPassport] = useState<Passport | null>(null);
   const [totalMembers, setTotalMembers] = useState(0);
+  const [paymentHistory, setPaymentHistory] = useState<MembershipRecord[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (profile) {
       fetchPassport();
+      fetchPaymentHistory();
     }
     fetchMemberCount();
   }, [profile]);
 
   const fetchPassport = async () => {
     if (!profile) return;
-    const { data } = await supabase
-      .from('passports')
-      .select('*')
-      .eq('user_id', profile.id)
-      .maybeSingle();
+    const { data } = await supabase.from('passports').select('*').eq('user_id', profile.id).maybeSingle();
     setPassport(data as Passport | null);
   };
 
@@ -43,14 +63,15 @@ export function UserDashboard() {
     setTotalMembers(count || 0);
   };
 
-  const daysToExpiry = passport?.expiry_date
-    ? differenceInDays(parseISO(passport.expiry_date), new Date())
-    : null;
+  const fetchPaymentHistory = async () => {
+    if (!profile) return;
+    const { data } = await supabase.from('memberships').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
+    setPaymentHistory((data || []) as MembershipRecord[]);
+  };
 
+  const daysToExpiry = passport?.expiry_date ? differenceInDays(parseISO(passport.expiry_date), new Date()) : null;
   const passportStatus = daysToExpiry !== null
-    ? daysToExpiry < 0 ? 'expired'
-    : daysToExpiry <= 365 ? 'expiring'
-    : 'valid'
+    ? daysToExpiry < 0 ? 'expired' : daysToExpiry <= 365 ? 'expiring' : 'valid'
     : 'unknown';
 
   const membershipBadgeClass = {
@@ -58,6 +79,10 @@ export function UserDashboard() {
     pending: 'bg-gold text-gold-foreground',
     expired: 'bg-destructive text-destructive-foreground',
   }[profile?.membership_status || 'pending'];
+
+  const tier = TIER_CONFIG[profile?.membership_type || 'free'] || TIER_CONFIG.free;
+  const TierIcon = tier.icon;
+  const pendingPayment = paymentHistory.find(p => p.payment_status === 'pending');
 
   const quickActions = [
     { label: 'View NIDO Constitution', href: '/constitution', icon: FileText },
@@ -72,7 +97,6 @@ export function UserDashboard() {
     { label: 'Phone', value: profile?.phone || 'Not set' },
     { label: 'City in Vietnam', value: profile?.vietnam_city || 'Not set' },
     { label: 'Occupation', value: profile?.occupation_type?.replace(/_/g, ' ') || 'Not set' },
-    { label: 'Marital Status', value: profile?.marital_status || 'Not set' },
     { label: 'State of Origin', value: profile?.nigerian_state_of_origin || 'Not set' },
   ];
 
@@ -97,9 +121,7 @@ export function UserDashboard() {
                 {(profile?.first_name?.[0] || '?')}{(profile?.last_name?.[0] || '')}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">
-                  Welcome back, {profile?.first_name}!
-                </h1>
+                <h1 className="text-2xl font-bold text-primary-foreground">Welcome back, {profile?.first_name}!</h1>
                 <p className="text-primary-foreground/65 text-sm mt-0.5">Your NIDO Vietnam member dashboard</p>
               </div>
             </div>
@@ -110,22 +132,27 @@ export function UserDashboard() {
           </div>
 
           {/* Alerts */}
-          {passportStatus === 'expired' && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Passport Expired!</AlertTitle>
+          {pendingPayment && (
+            <Alert className="mb-4 border-gold bg-gold/10">
+              <Clock className="h-4 w-4 text-gold" />
+              <AlertTitle className="text-gold">Payment Pending Review</AlertTitle>
               <AlertDescription>
-                Your passport has expired. Contact the Nigerian Embassy immediately: +84-24-37263610
+                Your <strong className="capitalize">{pendingPayment.plan_type}</strong> membership payment is pending admin approval. You'll be notified once approved.
               </AlertDescription>
             </Alert>
           )}
+          {passportStatus === 'expired' && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Passport Expired!</AlertTitle>
+              <AlertDescription>Contact the Nigerian Embassy: +84-24-37263610</AlertDescription>
+            </Alert>
+          )}
           {passportStatus === 'expiring' && (
-            <Alert className="mb-6 border-gold bg-gold/10">
+            <Alert className="mb-4 border-gold bg-gold/10">
               <Bell className="h-4 w-4 text-gold" />
               <AlertTitle className="text-gold">Passport Expiring Soon</AlertTitle>
-              <AlertDescription>
-                Your passport expires in <strong>{daysToExpiry} days</strong>. Please initiate renewal via the Nigerian Embassy.
-              </AlertDescription>
+              <AlertDescription>Your passport expires in <strong>{daysToExpiry} days</strong>.</AlertDescription>
             </Alert>
           )}
 
@@ -133,7 +160,7 @@ export function UserDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
               { icon: Calendar, label: 'Member Since', value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '-', color: 'text-primary', bg: 'bg-primary/10' },
-              { icon: Shield, label: 'Membership', value: profile?.membership_type === 'premium' ? 'Premium' : 'Regular', color: 'text-gold', bg: 'bg-gold/10' },
+              { icon: TierIcon, label: 'Membership Tier', value: tier.label, color: tier.color, bg: tier.bg },
               { icon: Users, label: 'Community', value: `${totalMembers} Members`, color: 'text-accent', bg: 'bg-accent/10' },
               { icon: FileText, label: 'Passport', value: passportStatus === 'valid' ? 'Valid' : passportStatus === 'expiring' ? 'Expiring' : passportStatus === 'expired' ? 'Expired' : 'Not Added', color: passportStatus === 'valid' ? 'text-primary' : passportStatus === 'expiring' ? 'text-gold' : passportStatus === 'expired' ? 'text-destructive' : 'text-muted-foreground', bg: passportStatus === 'valid' ? 'bg-primary/10' : passportStatus === 'expiring' ? 'bg-gold/10' : passportStatus === 'expired' ? 'bg-destructive/10' : 'bg-muted' },
             ].map(({ icon: Icon, label, value, color, bg }) => (
@@ -182,12 +209,7 @@ export function UserDashboard() {
                 {passport ? (
                   <>
                     {passport.passport_image_url && (
-                      <img
-                        src={passport.passport_image_url}
-                        alt="Passport"
-                        className="w-full h-36 object-cover rounded-lg mb-3"
-                        onContextMenu={e => e.preventDefault()}
-                      />
+                      <img src={passport.passport_image_url} alt="Passport" className="w-full h-36 object-cover rounded-lg mb-3" onContextMenu={e => e.preventDefault()} />
                     )}
                     {passportRows.map(({ label, value }) => (
                       <div key={label} className="flex justify-between py-2 border-b border-border/50 last:border-0">
@@ -195,22 +217,12 @@ export function UserDashboard() {
                         <span className="text-sm font-medium text-foreground">{value}</span>
                       </div>
                     ))}
-                    {passportStatus !== 'valid' && passportStatus !== 'unknown' && (
-                      <div className="mt-3 p-3 rounded-lg bg-gold/10 border border-gold/30">
-                        <p className="text-sm text-gold font-medium flex items-center gap-1">
-                          <AlertTriangle className="h-4 w-4" />
-                          {daysToExpiry !== null && daysToExpiry < 0 ? 'Passport Expired!' : `Expires in ${daysToExpiry} days`}
-                        </p>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm mb-3">No passport uploaded yet</p>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/profile')} className="text-primary border-primary hover:bg-primary/10">
-                      Upload Passport
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/profile')} className="text-primary border-primary hover:bg-primary/10">Upload Passport</Button>
                   </div>
                 )}
               </CardContent>
@@ -224,16 +236,28 @@ export function UserDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Current Plan</p>
-                    <p className="font-bold text-lg text-foreground capitalize">{profile?.membership_type} Member</p>
+                <div className={`flex items-center gap-3 p-4 rounded-xl mb-4 ${tier.bg} border border-border`}>
+                  <div className={`w-10 h-10 rounded-xl ${tier.bg} flex items-center justify-center`}>
+                    <TierIcon className={`h-5 w-5 ${tier.color}`} />
                   </div>
-                  <Badge className={membershipBadgeClass}>{profile?.membership_status}</Badge>
+                  <div className="flex-1">
+                    <p className="font-bold text-foreground">{tier.label}</p>
+                    <p className="text-xs text-muted-foreground">Status: <span className="capitalize font-medium">{profile?.membership_status}</span></p>
+                  </div>
+                  {pendingPayment && (
+                    <Badge className="bg-gold/20 text-gold border-gold/30 text-[10px]">
+                      <Clock className="h-2.5 w-2.5 mr-1" /> Pending
+                    </Badge>
+                  )}
                 </div>
-                {profile?.membership_type === 'regular' && (
+                {(profile?.membership_type === 'free' || profile?.membership_type === 'regular' || !profile?.membership_type) && !pendingPayment && (
                   <Button onClick={() => navigate('/membership')} className="w-full gradient-gold text-gold-foreground gap-2">
-                    Upgrade to Premium <ChevronRight className="h-4 w-4" />
+                    Upgrade Membership <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
+                {(profile?.membership_type === 'premium') && !pendingPayment && (
+                  <Button onClick={() => navigate('/membership')} className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2">
+                    Upgrade to Gold <Crown className="h-4 w-4" />
                   </Button>
                 )}
               </CardContent>
@@ -248,11 +272,7 @@ export function UserDashboard() {
               </CardHeader>
               <CardContent className="space-y-1">
                 {quickActions.map(({ label, href, icon: Icon }) => (
-                  <button
-                    key={href}
-                    onClick={() => navigate(href)}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-primary/10 transition-smooth text-left"
-                  >
+                  <button key={href} onClick={() => navigate(href)} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-primary/10 transition-smooth text-left">
                     <Icon className="h-4 w-4 text-primary shrink-0" />
                     <span className="text-sm text-foreground">{label}</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
@@ -260,6 +280,44 @@ export function UserDashboard() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* Payment History */}
+            {paymentHistory.length > 0 && (
+              <Card className="shadow-card md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-primary" /> Payment History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {paymentHistory.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground capitalize">{p.plan_type} Plan</span>
+                            <Badge className={`text-[10px] border ${
+                              ['approved','completed'].includes(p.payment_status) ? 'bg-primary/20 text-primary border-primary/30' :
+                              p.payment_status === 'pending' ? 'bg-gold/20 text-gold border-gold/30' :
+                              'bg-destructive/20 text-destructive border-destructive/30'
+                            }`}>
+                              {p.payment_status === 'pending' ? <Clock className="h-2.5 w-2.5 mr-1 inline" /> : p.payment_status === 'approved' || p.payment_status === 'completed' ? <CheckCircle className="h-2.5 w-2.5 mr-1 inline" /> : null}
+                              {p.payment_status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {p.currency === 'VND' ? VND(Number(p.amount)) : p.amount} · {new Date(p.created_at).toLocaleDateString()} · Ref: {p.payment_reference || '—'}
+                          </p>
+                        </div>
+                        {p.valid_until && (
+                          <p className="text-xs text-muted-foreground shrink-0">Until {new Date(p.valid_until).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

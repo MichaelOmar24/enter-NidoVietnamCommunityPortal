@@ -3637,41 +3637,59 @@ export type Database = {
       memberships: {
         Row: {
           amount: number | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           currency: string | null
           id: string
+          notes: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
           payment_status: string | null
           plan_type: string | null
-          stripe_session_id: string | null
           user_id: string | null
           valid_from: string | null
           valid_until: string | null
         }
         Insert: {
           amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           currency?: string | null
           id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
           payment_status?: string | null
           plan_type?: string | null
-          stripe_session_id?: string | null
           user_id?: string | null
           valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
           amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           currency?: string | null
           id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
           payment_status?: string | null
           plan_type?: string | null
-          stripe_session_id?: string | null
           user_id?: string | null
           valid_from?: string | null
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "memberships_approved_by_fkey"
+            columns: ["approved_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "memberships_user_id_fkey"
             columns: ["user_id"]
@@ -3727,6 +3745,49 @@ export type Database = {
           {
             foreignKeyName: "passports_user_id_fkey"
             columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_settings: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          id: string
+          qr_code_url: string | null
+          transfer_instructions: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          id?: string
+          qr_code_url?: string | null
+          transfer_instructions?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          id?: string
+          qr_code_url?: string | null
+          transfer_instructions?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_settings_updated_by_fkey"
+            columns: ["updated_by"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

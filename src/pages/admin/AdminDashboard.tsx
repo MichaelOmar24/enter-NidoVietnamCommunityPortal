@@ -4,21 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp } from 'lucide-react';
+import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard } from 'lucide-react';
 import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 
 const COLORS = ['#008751', '#FFD700', '#DA251D', '#006B40', '#FF8C00', '#4169E1'];
 
+const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
+
 export function AdminDashboard() {
   const [stats, setStats] = useState({
     total: 0, active: 0, pending: 0, companies: 0,
-    expiringPassports: 0, expiredPassports: 0
+    expiringPassports: 0, expiredPassports: 0,
+    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0
   });
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [maritalData, setMaritalData] = useState<{ name: string; value: number }[]>([]);
   const [cityData, setCityData] = useState<{ city: string; members: number }[]>([]);
-  const [recentMembers, setRecentMembers] = useState<{ first_name: string; last_name: string; email: string; occupation_type: string; membership_status: string; created_at: string }[]>([]);
+  const [revenueData, setRevenueData] = useState<{ plan: string; count: number; revenue: number }[]>([]);
+  const [recentMembers, setRecentMembers] = useState<{ first_name: string; last_name: string; email: string; occupation_type: string; membership_status: string; membership_type: string; created_at: string }[]>([]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -30,15 +34,17 @@ export function AdminDashboard() {
       { count: companies },
       { data: profiles },
       { data: passports },
-      { data: recent }
+      { data: recent },
+      { data: memberships },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'pending'),
       supabase.from('companies').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city'),
+      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city, membership_type'),
       supabase.from('passports').select('expiry_date'),
-      supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, membership_type, created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
     ]);
 
     // Count expiring passports
@@ -52,25 +58,48 @@ export function AdminDashboard() {
       }
     });
 
-    setStats({ total: total || 0, active: active || 0, pending: pending || 0, companies: companies || 0, expiringPassports: expiring, expiredPassports: expired });
+    // Membership payment stats
+    const allMemberships = memberships || [];
+    const approvedMemberships = allMemberships.filter((m: { payment_status: string }) => ['approved','completed'].includes(m.payment_status));
+    const premiumMembers = approvedMemberships.filter((m: { plan_type: string }) => m.plan_type === 'premium').length;
+    const goldMembers = approvedMemberships.filter((m: { plan_type: string }) => m.plan_type === 'gold').length;
+    const pendingPayments = allMemberships.filter((m: { payment_status: string }) => m.payment_status === 'pending').length;
+    const totalRevenue = approvedMemberships
+      .filter((m: { currency: string }) => m.currency === 'VND')
+      .reduce((sum: number, m: { amount: number }) => sum + Number(m.amount || 0), 0);
+
+    // Revenue by plan
+    const revMap: Record<string, { count: number; revenue: number }> = { premium: { count: 0, revenue: 0 }, gold: { count: 0, revenue: 0 } };
+    approvedMemberships.forEach((m: { plan_type: string; amount: number }) => {
+      if (revMap[m.plan_type]) {
+        revMap[m.plan_type].count++;
+        revMap[m.plan_type].revenue += Number(m.amount || 0);
+      }
+    });
+    setRevenueData([
+      { plan: 'Premium', count: revMap.premium.count, revenue: revMap.premium.revenue },
+      { plan: 'Gold', count: revMap.gold.count, revenue: revMap.gold.revenue },
+    ]);
+
+    setStats({ total: total || 0, active: active || 0, pending: pending || 0, companies: companies || 0, expiringPassports: expiring, expiredPassports: expired, premiumMembers, goldMembers, pendingPayments, totalRevenue });
 
     // Occupation breakdown
     const occMap: Record<string, number> = {};
-    (profiles || []).forEach((p: { occupation_type: string | null; marital_status: string | null; vietnam_city: string | null }) => {
+    (profiles || []).forEach((p: { occupation_type: string | null }) => {
       if (p.occupation_type) occMap[p.occupation_type] = (occMap[p.occupation_type] || 0) + 1;
     });
     setOccupationData(Object.entries(occMap).map(([k, v]) => ({ name: OCCUPATION_LABELS[k as keyof typeof OCCUPATION_LABELS] || k, value: v })));
 
     // Marital status breakdown
     const marMap: Record<string, number> = {};
-    (profiles || []).forEach((p2: { occupation_type: string | null; marital_status: string | null; vietnam_city: string | null }) => {
+    (profiles || []).forEach((p2: { marital_status: string | null }) => {
       if (p2.marital_status) marMap[p2.marital_status] = (marMap[p2.marital_status] || 0) + 1;
     });
     setMaritalData(Object.entries(marMap).map(([k, v]) => ({ name: MARITAL_STATUS_LABELS[k as keyof typeof MARITAL_STATUS_LABELS] || k, value: v })));
 
     // City breakdown
     const cityMap: Record<string, number> = {};
-    (profiles || []).forEach((p3: { occupation_type: string | null; marital_status: string | null; vietnam_city: string | null }) => {
+    (profiles || []).forEach((p3: { vietnam_city: string | null }) => {
       if (p3.vietnam_city) cityMap[p3.vietnam_city] = (cityMap[p3.vietnam_city] || 0) + 1;
     });
     setCityData(Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => ({ city: k, members: v })));
@@ -83,14 +112,22 @@ export function AdminDashboard() {
     { icon: CheckCircle, label: 'Active Members', value: stats.active, color: 'text-green-600', bg: 'bg-green-500' },
     { icon: Clock, label: 'Pending Members', value: stats.pending, color: 'text-gold', bg: 'gradient-gold' },
     { icon: Building2, label: 'Businesses', value: stats.companies, color: 'text-accent', bg: 'bg-accent' },
+    { icon: Shield, label: 'Premium Members', value: stats.premiumMembers, color: 'text-primary', bg: 'gradient-primary' },
+    { icon: Crown, label: 'Gold Stakeholders', value: stats.goldMembers, color: 'text-amber-600', bg: 'bg-amber-500' },
+    { icon: CreditCard, label: 'Pending Payments', value: stats.pendingPayments, color: 'text-gold', bg: 'gradient-gold' },
     { icon: AlertTriangle, label: 'Expiring Passports', value: stats.expiringPassports, color: 'text-orange-500', bg: 'bg-orange-500' },
-    { icon: AlertTriangle, label: 'Expired Passports', value: stats.expiredPassports, color: 'text-destructive', bg: 'bg-destructive' },
   ];
+
+  const tierBadge = (type: string) => {
+    if (type === 'gold') return <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 text-[10px]">Gold</Badge>;
+    if (type === 'premium') return <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">Premium</Badge>;
+    return <Badge className="bg-muted text-muted-foreground text-[10px]">Free</Badge>;
+  };
 
   return (
     <AdminLayout title="Admin Dashboard">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {statCards.map(({ icon: Icon, label, value, color, bg }) => (
           <Card key={label} className="shadow-card">
             <CardContent className="p-4 text-center">
@@ -103,6 +140,31 @@ export function AdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Revenue Card */}
+      <Card className="shadow-card mb-6">
+        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+            <Banknote className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground">Total Membership Revenue (VND)</p>
+            <p className="text-3xl font-bold text-foreground">{VND(stats.totalRevenue)}</p>
+          </div>
+          <div className="flex gap-6 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Premium</p>
+              <p className="font-semibold text-foreground">{VND(revenueData[0]?.revenue || 0)}</p>
+              <p className="text-xs text-muted-foreground">{revenueData[0]?.count || 0} members</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Gold</p>
+              <p className="font-semibold text-foreground">{VND(revenueData[1]?.revenue || 0)}</p>
+              <p className="text-xs text-muted-foreground">{revenueData[1]?.count || 0} members</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Occupation Pie Chart */}
@@ -122,6 +184,30 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue Bar Chart */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-foreground">Revenue by Membership Tier</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenueData.some(d => d.revenue > 0) ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={revenueData}>
+                  <XAxis dataKey="plan" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => (v / 1_000_000).toFixed(1) + 'M'} />
+                  <Tooltip formatter={(v: number) => VND(v)} />
+                  <Bar dataKey="revenue" name="Revenue (VND)" radius={[4,4,0,0]}>
+                    <Cell fill="#008751" />
+                    <Cell fill="#f59e0b" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">No revenue data yet</div>
             )}
           </CardContent>
         </Card>
@@ -149,7 +235,7 @@ export function AdminDashboard() {
         </Card>
 
         {/* City Bar Chart */}
-        <Card className="shadow-card lg:col-span-2">
+        <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="text-sm font-semibold text-foreground">Members by City in Vietnam</CardTitle>
           </CardHeader>
@@ -187,7 +273,7 @@ export function AdminDashboard() {
                   <tr className="border-b border-border text-left">
                     <th className="pb-2 text-muted-foreground font-medium">Name</th>
                     <th className="pb-2 text-muted-foreground font-medium">Email</th>
-                    <th className="pb-2 text-muted-foreground font-medium">Occupation</th>
+                    <th className="pb-2 text-muted-foreground font-medium">Tier</th>
                     <th className="pb-2 text-muted-foreground font-medium">Status</th>
                     <th className="pb-2 text-muted-foreground font-medium">Joined</th>
                   </tr>
@@ -197,7 +283,7 @@ export function AdminDashboard() {
                     <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
                       <td className="py-2.5 font-medium text-foreground">{m.first_name} {m.last_name}</td>
                       <td className="py-2.5 text-muted-foreground">{m.email}</td>
-                      <td className="py-2.5 text-muted-foreground capitalize">{m.occupation_type?.replace(/_/g, ' ') || '-'}</td>
+                      <td className="py-2.5">{tierBadge(m.membership_type)}</td>
                       <td className="py-2.5">
                         <Badge className={m.membership_status === 'active' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-gold/20 text-gold border-gold/30'}>
                           {m.membership_status}

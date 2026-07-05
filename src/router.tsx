@@ -20,6 +20,7 @@ import { AdminDocuments } from "./pages/admin/AdminDocuments";
 import { AdminActivities } from "./pages/admin/AdminActivities";
 import { AdminWelfare } from "./pages/admin/AdminWelfare";
 import { AdminDeceased } from "./pages/admin/AdminDeceased";
+import { AdminMemberships } from "./pages/admin/AdminMemberships";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
 import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
@@ -105,6 +106,11 @@ export const routers = [
     path: "/admin/deceased",
     name: "admin-deceased",
     element: <ProtectedRoute adminOnly><AdminDeceased /></ProtectedRoute>
+  },
+  {
+    path: "/admin/memberships",
+    name: "admin-memberships",
+    element: <ProtectedRoute adminOnly><AdminMemberships /></ProtectedRoute>
   },
   {
     path: "/embassy",
