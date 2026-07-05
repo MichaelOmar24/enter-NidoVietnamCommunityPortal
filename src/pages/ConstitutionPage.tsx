@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen, Lock, Award, FileText, Megaphone, RotateCcw,
-  ExternalLink, Download, Eye
+  ExternalLink, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -210,13 +210,14 @@ export function ConstitutionPage() {
 function CertificateCard({ doc }: { doc: Doc }) {
   const cfg = TYPE_CONFIG.certificate;
   const isImage = doc.document_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(doc.document_url);
+  const [showViewer, setShowViewer] = useState(false);
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden hover:border-purple-500/40 hover:shadow-card transition-all group">
       {/* Certificate preview area */}
       <div className="relative bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 h-48 flex items-center justify-center border-b border-border">
         {isImage && doc.document_url ? (
-          <img src={doc.document_url} alt={doc.title} className="h-full w-full object-contain p-4" crossOrigin="anonymous" />
+          <img src={doc.document_url} alt={doc.title} className="h-full w-full object-contain p-4" crossOrigin="anonymous" onContextMenu={e => e.preventDefault()} />
         ) : (
           <div className="flex flex-col items-center gap-2">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: cfg.bg }}>
@@ -237,15 +238,43 @@ function CertificateCard({ doc }: { doc: Doc }) {
         <p className="font-semibold text-foreground text-sm mb-1">{doc.title}</p>
         {doc.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{doc.description}</p>}
         {doc.document_url && (
-          <div className="flex gap-2">
-            <a href={doc.document_url} target="_blank" rel="noopener noreferrer" className="flex-1">
-              <Button size="sm" className="w-full gap-1.5 text-xs gradient-primary text-primary-foreground">
-                <Eye className="h-3.5 w-3.5" /> View Certificate
-              </Button>
-            </a>
-          </div>
+          <Button size="sm" className="w-full gap-1.5 text-xs gradient-primary text-primary-foreground" onClick={() => setShowViewer(true)}>
+            <Eye className="h-3.5 w-3.5" /> View Certificate
+          </Button>
         )}
       </div>
+
+      {/* Inline viewer modal */}
+      {showViewer && doc.document_url && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col">
+          <div className="flex items-center justify-between px-5 py-3 bg-card border-b border-border shrink-0">
+            <div className="flex items-center gap-3">
+              <Award className="h-5 w-5 text-purple-500" />
+              <p className="font-semibold text-foreground text-sm">{doc.title}</p>
+              <Badge className="text-[10px] bg-purple-500/20 text-purple-600">View Only</Badge>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setShowViewer(false)}>Close</Button>
+          </div>
+          {isImage ? (
+            <div className="flex-1 flex items-center justify-center bg-black/60 p-6" onContextMenu={e => e.preventDefault()}>
+              <img
+                src={doc.document_url}
+                alt={doc.title}
+                className="max-h-full max-w-full object-contain select-none pointer-events-none"
+                crossOrigin="anonymous"
+                draggable={false}
+              />
+            </div>
+          ) : (
+            <iframe
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(doc.document_url)}&embedded=true`}
+              title={doc.title}
+              className="flex-1 w-full"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -272,11 +301,13 @@ function DocumentRow({ doc, onView }: { doc: Doc; onView: () => void }) {
           <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8 text-primary border-primary hover:bg-primary/10" onClick={onView}>
             <Eye className="h-3.5 w-3.5" /> View
           </Button>
-          <a href={doc.document_url} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-              <Download className="h-3.5 w-3.5" />
-            </Button>
-          </a>
+          {doc.document_type === 'announcement' && (
+            <a href={doc.document_url} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </a>
+          )}
         </div>
       )}
     </div>
