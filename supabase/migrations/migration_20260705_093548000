@@ -1,0 +1,11 @@
+-- Reset password for admin@nidovietnam.com to Admin123!
+-- Also ensure is_super_admin is set
+UPDATE auth.users 
+SET encrypted_password = crypt('Admin123!', gen_salt('bf')),
+    updated_at = now()
+WHERE email = 'admin@nidovietnam.com';
+
+-- Also ensure the profile has both admin flags
+UPDATE profiles 
+SET is_admin = true, is_super_admin = true
+WHERE email = 'admin@nidovietnam.com';
