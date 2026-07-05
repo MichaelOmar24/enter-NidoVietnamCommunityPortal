@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
+import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, OccupationType, MaritalStatus, Gender } from '@/lib/types';
 import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +30,13 @@ export function AdminMembers() {
   const [passportImageOpen, setPassportImageOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: '', first_name: '', last_name: '', phone: '' });
+  const [createForm, setCreateForm] = useState({
+    email: '', first_name: '', last_name: '', phone: '',
+    date_of_birth: '', gender: '' as Gender | '',
+    occupation_type: '' as OccupationType | '',
+    marital_status: '' as MaritalStatus | '',
+    vietnam_city: '', nigerian_state_of_origin: '',
+  });
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const PAGE_SIZE = 15;
@@ -94,7 +100,15 @@ export function AdminMembers() {
     }
     setCreating(true);
     const { data, error } = await supabase.functions.invoke('create-user', {
-      body: createForm,
+      body: {
+        ...createForm,
+        gender: createForm.gender || undefined,
+        occupation_type: createForm.occupation_type || undefined,
+        marital_status: createForm.marital_status || undefined,
+        date_of_birth: createForm.date_of_birth || undefined,
+        vietnam_city: createForm.vietnam_city || undefined,
+        nigerian_state_of_origin: createForm.nigerian_state_of_origin || undefined,
+      },
     });
     setCreating(false);
     if (error || data?.error) {
@@ -102,7 +116,11 @@ export function AdminMembers() {
       return;
     }
     setCreateOpen(false);
-    setCreateForm({ email: '', first_name: '', last_name: '', phone: '' });
+    setCreateForm({
+      email: '', first_name: '', last_name: '', phone: '',
+      date_of_birth: '', gender: '', occupation_type: '',
+      marital_status: '', vietnam_city: '', nigerian_state_of_origin: '',
+    });
     setCredentials({ email: createForm.email, password: data.password });
     loadMembers();
   };
@@ -140,7 +158,7 @@ export function AdminMembers() {
 
       {/* Create Account Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary" /> Create Member Account
@@ -148,8 +166,10 @@ export function AdminMembers() {
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <p className="text-sm text-muted-foreground">
-              A secure password will be generated automatically. The credentials will be displayed for you to share with the member.
+              A secure password will be generated automatically and shown after creation.
             </p>
+
+            {/* Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>First Name *</Label>
@@ -160,14 +180,90 @@ export function AdminMembers() {
                 <Input value={createForm.last_name} onChange={e => setCreateForm(f => ({ ...f, last_name: e.target.value }))} placeholder="e.g. Okeke" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Email Address *</Label>
-              <Input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="member@example.com" />
+
+            {/* Email & Phone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Email Address *</Label>
+                <Input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="member@example.com" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone Number</Label>
+                <Input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} placeholder="+84..." />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Phone Number</Label>
-              <Input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} placeholder="+84..." />
+
+            {/* DOB & Gender */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Date of Birth</Label>
+                <Input type="date" value={createForm.date_of_birth} onChange={e => setCreateForm(f => ({ ...f, date_of_birth: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gender</Label>
+                <Select value={createForm.gender} onValueChange={v => setCreateForm(f => ({ ...f, gender: v as Gender }))}>
+                  <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {/* Occupation & Marital Status */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Occupation</Label>
+                <Select value={createForm.occupation_type} onValueChange={v => setCreateForm(f => ({ ...f, occupation_type: v as OccupationType }))}>
+                  <SelectTrigger><SelectValue placeholder="Select occupation" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(OCCUPATION_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Marital Status</Label>
+                <Select value={createForm.marital_status} onValueChange={v => setCreateForm(f => ({ ...f, marital_status: v as MaritalStatus }))}>
+                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MARITAL_STATUS_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Vietnam City & State of Origin */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Vietnam City</Label>
+                <Select value={createForm.vietnam_city} onValueChange={v => setCreateForm(f => ({ ...f, vietnam_city: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                  <SelectContent>
+                    {VIETNAM_CITIES.map(city => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>State of Origin</Label>
+                <Select value={createForm.nigerian_state_of_origin} onValueChange={v => setCreateForm(f => ({ ...f, nigerian_state_of_origin: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                  <SelectContent>
+                    {NIGERIAN_STATES.map(state => (
+                      <SelectItem key={state} value={state}>{state}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-1">
               <Button onClick={createUser} disabled={creating} className="flex-1 gradient-primary text-primary-foreground">
                 {creating ? 'Creating...' : 'Create Account'}

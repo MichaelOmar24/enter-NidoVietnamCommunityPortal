@@ -20,7 +20,6 @@ function generatePassword(length = 12): string {
   for (let i = password.length; i < length; i++) {
     password.push(all[Math.floor(Math.random() * all.length)]);
   }
-  // shuffle
   for (let i = password.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [password[i], password[j]] = [password[j], password[i]];
@@ -34,7 +33,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, first_name, last_name, phone } = await req.json();
+    const {
+      email, first_name, last_name, phone,
+      date_of_birth, gender, occupation_type,
+      marital_status, vietnam_city, nigerian_state_of_origin,
+    } = await req.json();
 
     if (!email || !first_name || !last_name) {
       return new Response(JSON.stringify({ error: 'Email, first name and last name are required' }), {
@@ -51,12 +54,12 @@ Deno.serve(async (req) => {
 
     const password = generatePassword();
 
-    // Create the user with the generated password (email pre-confirmed)
+    // Create the auth user with the generated password (email pre-confirmed)
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { first_name, last_name, phone: phone || null },
+      user_metadata: { first_name, last_name },
     });
 
     if (userError) {
@@ -68,27 +71,32 @@ Deno.serve(async (req) => {
 
     const userId = userData.user?.id;
 
-    // Upsert profile so the member shows up in the admin panel immediately
+    // Upsert profile with all provided fields
     if (userId) {
-      await supabaseAdmin.from('profiles').upsert({
+      const profileData: Record<string, unknown> = {
         id: userId,
         email,
         first_name,
         last_name,
-        phone: phone || null,
         membership_status: 'pending',
-      }, { onConflict: 'id' });
+      };
+      if (phone) profileData.phone = phone;
+      if (date_of_birth) profileData.date_of_birth = date_of_birth;
+      if (gender) profileData.gender = gender;
+      if (occupation_type) profileData.occupation_type = occupation_type;
+      if (marital_status) profileData.marital_status = marital_status;
+      if (vietnam_city) profileData.vietnam_city = vietnam_city;
+      if (nigerian_state_of_origin) profileData.nigerian_state_of_origin = nigerian_state_of_origin;
+
+      await supabaseAdmin.from('profiles').upsert(profileData, { onConflict: 'id' });
     }
 
-    // Send a password-reset link email so the user gets an official email from Supabase
-    // directing them to set/confirm their password. The admin will also see the temp
-    // password in the UI and can share it directly.
+    // Trigger Supabase's built-in password reset email so the user receives
+    // an official notification to set/confirm their access.
     try {
-      await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: `${Deno.env.get('SUPABASE_URL')?.split('.supabase.co')[0].replace('https://', 'https://') ?? ''}/login`,
-      });
+      await supabaseAdmin.auth.resetPasswordForEmail(email);
     } catch (_) {
-      // Non-fatal – the account is created regardless
+      // Non-fatal — account is created regardless
     }
 
     return new Response(
