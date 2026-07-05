@@ -7,8 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Mail, MailOpen, Reply, Search, Inbox, Clock, CheckCheck,
-  User, Calendar, Tag, ExternalLink, RefreshCw
+  Mail, MailOpen, Reply, Search, Inbox, CheckCheck,
+  User, Calendar, Tag, Send, RefreshCw, Loader2
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -65,18 +65,40 @@ export function AdminMessages() {
   const sendReply = async () => {
     if (!selected || !reply.trim()) return;
     setReplying(true);
-    const { error } = await supabase.from('contact_messages').update({
+
+    // Save to DB
+    const { error: dbError } = await supabase.from('contact_messages').update({
       admin_reply: reply.trim(),
       status: 'replied',
       replied_at: new Date().toISOString(),
       replied_by: profile!.id,
     }).eq('id', selected.id);
 
-    if (!error) {
-      const updated = { ...selected, admin_reply: reply.trim(), status: 'replied' as const, replied_at: new Date().toISOString() };
-      setSelected(updated);
-      setMessages(prev => prev.map(m => m.id === selected.id ? updated : m));
-      toast({ title: 'Reply saved', description: 'Use the email link below to send it to the sender.' });
+    if (dbError) {
+      toast({ title: 'Error', description: 'Failed to save reply.', variant: 'destructive' });
+      setReplying(false);
+      return;
+    }
+
+    // Send email via Resend
+    const { error: fnError } = await supabase.functions.invoke('send-reply', {
+      body: {
+        to: selected.email,
+        toName: selected.name,
+        subject: selected.subject,
+        replyText: reply.trim(),
+        originalMessage: selected.message,
+      },
+    });
+
+    const updated = { ...selected, admin_reply: reply.trim(), status: 'replied' as const, replied_at: new Date().toISOString() };
+    setSelected(updated);
+    setMessages(prev => prev.map(m => m.id === selected.id ? updated : m));
+
+    if (fnError) {
+      toast({ title: 'Reply saved, email failed', description: 'Reply saved to database but email could not be sent.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Reply sent', description: `Email sent to ${selected.email}` });
     }
     setReplying(false);
   };
@@ -250,21 +272,12 @@ export function AdminMessages() {
                       disabled={replying || !reply.trim()}
                       className="gradient-primary text-primary-foreground gap-2"
                     >
-                      <Reply className="h-4 w-4" />
-                      {replying ? 'Saving...' : 'Save Reply'}
+                      {replying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      {replying ? 'Sending...' : selected.admin_reply ? 'Update & Resend' : 'Send Reply'}
                     </Button>
-                    {reply.trim() && (
-                      <a
-                        href={`mailto:${selected.email}?subject=Re: ${encodeURIComponent(selected.subject)}&body=${encodeURIComponent(reply)}`}
-                        className="flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> Send via Email Client
-                      </a>
-                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Reply is saved here. Use "Send via Email Client" to actually email the sender at {selected.email}.
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Reply will be saved and emailed to {selected.email}
                   </p>
                 </div>
               </div>
