@@ -3499,14 +3499,22 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           date_of_death: string
+          death_certificate_url: string | null
           description: string
           destination_country: string | null
           full_name: string
           id: string
           is_nido_member: boolean | null
+          local_government: string | null
           member_id: string | null
+          passport_expiry_date: string | null
+          passport_image_url: string | null
+          passport_issue_date: string | null
+          passport_number: string | null
+          passport_place_of_issue: string | null
           place_of_death: string | null
           remains_disposition: string | null
+          state_of_origin: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3516,14 +3524,22 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date_of_death: string
+          death_certificate_url?: string | null
           description: string
           destination_country?: string | null
           full_name: string
           id?: string
           is_nido_member?: boolean | null
+          local_government?: string | null
           member_id?: string | null
+          passport_expiry_date?: string | null
+          passport_image_url?: string | null
+          passport_issue_date?: string | null
+          passport_number?: string | null
+          passport_place_of_issue?: string | null
           place_of_death?: string | null
           remains_disposition?: string | null
+          state_of_origin?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3533,14 +3549,22 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           date_of_death?: string
+          death_certificate_url?: string | null
           description?: string
           destination_country?: string | null
           full_name?: string
           id?: string
           is_nido_member?: boolean | null
+          local_government?: string | null
           member_id?: string | null
+          passport_expiry_date?: string | null
+          passport_image_url?: string | null
+          passport_issue_date?: string | null
+          passport_number?: string | null
+          passport_place_of_issue?: string | null
           place_of_death?: string | null
           remains_disposition?: string | null
+          state_of_origin?: string | null
           updated_at?: string | null
         }
         Relationships: [

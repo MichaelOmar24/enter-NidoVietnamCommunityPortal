@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Heart, Search, X, Calendar, MapPin, Edit, Trash2, Plane, DollarSign } from 'lucide-react';
+import {
+  Plus, Heart, Search, X, Calendar, MapPin, Edit, Trash2,
+  Plane, DollarSign, FileText, Upload, User, CreditCard, ExternalLink
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { NIGERIAN_STATES, VIETNAM_CITIES } from '@/lib/types';
 
 const CAUSE_OPTIONS = [
   { value: 'illness', label: 'Illness' },
@@ -60,6 +64,14 @@ interface DeceasedMember {
   destination_country?: string;
   community_raised_amount?: number;
   community_raised_currency?: string;
+  passport_number?: string;
+  passport_issue_date?: string;
+  passport_expiry_date?: string;
+  passport_place_of_issue?: string;
+  passport_image_url?: string;
+  state_of_origin?: string;
+  local_government?: string;
+  death_certificate_url?: string;
   created_at: string;
 }
 
@@ -74,7 +86,73 @@ const BLANK_FORM = {
   destination_country: '',
   community_raised_amount: '',
   community_raised_currency: 'VND',
+  passport_number: '',
+  passport_issue_date: '',
+  passport_expiry_date: '',
+  passport_place_of_issue: '',
+  state_of_origin: '',
+  local_government: '',
 };
+
+async function uploadFile(file: File, folder: string): Promise<string | null> {
+  const ext = file.name.split('.').pop();
+  const fileName = `${folder}_${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('memorial-documents').upload(fileName, file, { upsert: true });
+  if (error) return null;
+  const { data } = supabase.storage.from('memorial-documents').getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
+// Section header component
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-2 pb-1 border-b border-border">
+      <Icon className="h-4 w-4 text-primary" />
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+    </div>
+  );
+}
+
+// File upload field component
+function FileUploadField({
+  label, accept, currentUrl, file, onChange, uploading
+}: {
+  label: string;
+  accept: string;
+  currentUrl?: string;
+  file: File | null;
+  onChange: (f: File | null) => void;
+  uploading: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-1.5 flex items-center gap-2">
+        <label className="flex-1 flex items-center gap-2 border border-dashed border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors">
+          <Upload className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm text-muted-foreground truncate">
+            {file ? file.name : uploading ? 'Uploading...' : 'Click to select file'}
+          </span>
+          <input
+            ref={ref}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={e => onChange(e.target.files?.[0] || null)}
+          />
+        </label>
+        {currentUrl && (
+          <a href={currentUrl} target="_blank" rel="noopener noreferrer"
+            className="p-2 rounded-lg border border-border hover:bg-muted transition-colors shrink-0"
+            title="View current file">
+            <ExternalLink className="h-4 w-4 text-primary" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function AdminDeceased() {
   const { profile } = useAuth();
@@ -87,6 +165,11 @@ export function AdminDeceased() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [certFile, setCertFile] = useState<File | null>(null);
+  const [currentPassportUrl, setCurrentPassportUrl] = useState<string | undefined>();
+  const [currentCertUrl, setCurrentCertUrl] = useState<string | undefined>();
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -100,7 +183,16 @@ export function AdminDeceased() {
     setLoading(false);
   };
 
-  const openNew = () => { setForm(BLANK_FORM); setEditId(null); setShowForm(true); };
+  const openNew = () => {
+    setForm(BLANK_FORM);
+    setEditId(null);
+    setPassportFile(null);
+    setCertFile(null);
+    setCurrentPassportUrl(undefined);
+    setCurrentCertUrl(undefined);
+    setShowForm(true);
+  };
+
   const openEdit = (r: DeceasedMember) => {
     setForm({
       full_name: r.full_name,
@@ -113,7 +205,17 @@ export function AdminDeceased() {
       destination_country: r.destination_country || '',
       community_raised_amount: r.community_raised_amount ? String(r.community_raised_amount) : '',
       community_raised_currency: r.community_raised_currency || 'VND',
+      passport_number: r.passport_number || '',
+      passport_issue_date: r.passport_issue_date || '',
+      passport_expiry_date: r.passport_expiry_date || '',
+      passport_place_of_issue: r.passport_place_of_issue || '',
+      state_of_origin: r.state_of_origin || '',
+      local_government: r.local_government || '',
     });
+    setPassportFile(null);
+    setCertFile(null);
+    setCurrentPassportUrl(r.passport_image_url);
+    setCurrentCertUrl(r.death_certificate_url);
     setEditId(r.id);
     setShowForm(true);
   };
@@ -125,6 +227,22 @@ export function AdminDeceased() {
       return;
     }
     setSaving(true);
+    setUploading(true);
+
+    // Upload files if selected
+    let passportImageUrl = currentPassportUrl || null;
+    let deathCertUrl = currentCertUrl || null;
+
+    if (passportFile) {
+      const url = await uploadFile(passportFile, 'passport');
+      if (url) passportImageUrl = url;
+    }
+    if (certFile) {
+      const url = await uploadFile(certFile, 'death_cert');
+      if (url) deathCertUrl = url;
+    }
+    setUploading(false);
+
     const payload = {
       full_name: form.full_name,
       date_of_death: form.date_of_death,
@@ -133,12 +251,21 @@ export function AdminDeceased() {
       description: form.description,
       is_nido_member: form.is_nido_member,
       remains_disposition: form.remains_disposition || null,
-      destination_country: (form.remains_disposition === 'cremated_sent_other' && form.destination_country) ? form.destination_country : null,
+      destination_country: form.remains_disposition === 'cremated_sent_other' ? (form.destination_country || null) : null,
       community_raised_amount: form.community_raised_amount ? parseFloat(form.community_raised_amount) : null,
       community_raised_currency: form.community_raised_amount ? form.community_raised_currency : null,
+      passport_number: form.passport_number || null,
+      passport_issue_date: form.passport_issue_date || null,
+      passport_expiry_date: form.passport_expiry_date || null,
+      passport_place_of_issue: form.passport_place_of_issue || null,
+      passport_image_url: passportImageUrl,
+      state_of_origin: form.state_of_origin || null,
+      local_government: form.local_government || null,
+      death_certificate_url: deathCertUrl,
       created_by: profile!.id,
       updated_at: new Date().toISOString(),
     };
+
     if (editId) {
       await supabase.from('deceased_members').update(payload).eq('id', editId);
       toast({ title: 'Record updated' });
@@ -220,10 +347,10 @@ export function AdminDeceased() {
           {filtered.map(r => (
             <div key={r.id} className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-colors">
               <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <Heart className="h-4 w-4 text-muted-foreground" />
-                    <p className="font-bold text-foreground">{r.full_name}</p>
+                    <Heart className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <p className="font-bold text-foreground truncate">{r.full_name}</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {r.is_nido_member && (
@@ -234,6 +361,11 @@ export function AdminDeceased() {
                         <Plane className="h-2.5 w-2.5 mr-1" />
                         {REMAINS_LABEL[r.remains_disposition] || r.remains_disposition}
                         {r.remains_disposition === 'cremated_sent_other' && r.destination_country ? ` (${r.destination_country})` : ''}
+                      </Badge>
+                    )}
+                    {r.death_certificate_url && (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400">
+                        <FileText className="h-2.5 w-2.5 mr-1" /> Death Cert
                       </Badge>
                     )}
                   </div>
@@ -248,7 +380,7 @@ export function AdminDeceased() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-2.5 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" /> {format(parseISO(r.date_of_death), 'dd MMMM yyyy')}
                 </span>
@@ -260,10 +392,32 @@ export function AdminDeceased() {
                 <span className="capitalize">{r.cause_of_death.replace('_', ' ')}</span>
               </div>
 
-              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2 mb-3">{r.description}</p>
+              {(r.state_of_origin || r.local_government || r.passport_number) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mb-2.5 text-xs text-muted-foreground">
+                  {r.state_of_origin && <span className="flex items-center gap-1"><User className="h-3 w-3" />{r.state_of_origin}{r.local_government ? `, ${r.local_government} LGA` : ''}</span>}
+                  {r.passport_number && <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />Passport: {r.passport_number}</span>}
+                </div>
+              )}
+
+              <div className="flex gap-2 mb-2.5">
+                {r.passport_image_url && (
+                  <a href={r.passport_image_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-primary hover:underline">
+                    <CreditCard className="h-3 w-3" /> View Passport
+                  </a>
+                )}
+                {r.death_certificate_url && (
+                  <a href={r.death_certificate_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-primary hover:underline">
+                    <FileText className="h-3 w-3" /> View Death Cert
+                  </a>
+                )}
+              </div>
+
+              <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">{r.description}</p>
 
               {r.community_raised_amount && r.community_raised_amount > 0 && (
-                <div className="flex items-center gap-2 pt-2.5 border-t border-border">
+                <div className="flex items-center gap-2 pt-2.5 mt-2.5 border-t border-border">
                   <DollarSign className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
                   <p className="text-xs text-muted-foreground">
                     Community raised: <span className="font-semibold text-green-700 dark:text-green-400">
@@ -280,23 +434,27 @@ export function AdminDeceased() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-card rounded-2xl border border-border w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-2xl border border-border w-full max-w-xl shadow-xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
               <p className="font-bold text-foreground">{editId ? 'Edit Memorial Record' : 'Add Memorial Record'}</p>
               <button onClick={() => setShowForm(false)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
-            <form onSubmit={save} className="p-5 space-y-4">
-              {/* Full Name */}
+            <form onSubmit={save} className="p-5 space-y-5">
+
+              {/* ── BASIC INFO ── */}
+              <SectionHeader icon={Heart} title="Basic Information" />
+
               <div>
                 <Label>Full Name *</Label>
-                <Input className="mt-1.5" placeholder="Full name of the deceased" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} />
+                <Input className="mt-1.5" placeholder="Full name of the deceased"
+                  value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} />
               </div>
 
-              {/* Date + Cause */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Date of Death *</Label>
-                  <Input type="date" className="mt-1.5" value={form.date_of_death} onChange={e => setForm(f => ({ ...f, date_of_death: e.target.value }))} />
+                  <Input type="date" className="mt-1.5" value={form.date_of_death}
+                    onChange={e => setForm(f => ({ ...f, date_of_death: e.target.value }))} />
                 </div>
                 <div>
                   <Label>Cause of Death *</Label>
@@ -309,22 +467,100 @@ export function AdminDeceased() {
                 </div>
               </div>
 
-              {/* Place of Death */}
               <div>
-                <Label>Place of Death</Label>
-                <Input className="mt-1.5" placeholder="City / Country" value={form.place_of_death} onChange={e => setForm(f => ({ ...f, place_of_death: e.target.value }))} />
+                <Label>Place of Death (Vietnam City)</Label>
+                <Select value={form.place_of_death} onValueChange={v => setForm(f => ({ ...f, place_of_death: v }))}>
+                  <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select city..." /></SelectTrigger>
+                  <SelectContent>
+                    {VIETNAM_CITIES.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* NIDO member */}
               <div className="flex items-center gap-3">
-                <input type="checkbox" id="nido_member" checked={form.is_nido_member} onChange={e => setForm(f => ({ ...f, is_nido_member: e.target.checked }))} className="h-4 w-4 accent-primary" />
+                <input type="checkbox" id="nido_member" checked={form.is_nido_member}
+                  onChange={e => setForm(f => ({ ...f, is_nido_member: e.target.checked }))}
+                  className="h-4 w-4 accent-primary" />
                 <Label htmlFor="nido_member" className="cursor-pointer">Was a NIDO Vietnam member</Label>
               </div>
 
-              {/* Remains Disposition */}
+              {/* ── ORIGIN ── */}
+              <SectionHeader icon={User} title="State of Origin (Nigeria)" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>State of Origin</Label>
+                  <Select value={form.state_of_origin} onValueChange={v => setForm(f => ({ ...f, state_of_origin: v }))}>
+                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select state..." /></SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {NIGERIAN_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Local Government Area</Label>
+                  <Input className="mt-1.5" placeholder="LGA name"
+                    value={form.local_government} onChange={e => setForm(f => ({ ...f, local_government: e.target.value }))} />
+                </div>
+              </div>
+
+              {/* ── PASSPORT ── */}
+              <SectionHeader icon={CreditCard} title="Passport Information" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Passport Number</Label>
+                  <Input className="mt-1.5" placeholder="e.g. A12345678"
+                    value={form.passport_number} onChange={e => setForm(f => ({ ...f, passport_number: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Place of Issue</Label>
+                  <Input className="mt-1.5" placeholder="e.g. Lagos"
+                    value={form.passport_place_of_issue} onChange={e => setForm(f => ({ ...f, passport_place_of_issue: e.target.value }))} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Issue Date</Label>
+                  <Input type="date" className="mt-1.5" value={form.passport_issue_date}
+                    onChange={e => setForm(f => ({ ...f, passport_issue_date: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Expiry Date</Label>
+                  <Input type="date" className="mt-1.5" value={form.passport_expiry_date}
+                    onChange={e => setForm(f => ({ ...f, passport_expiry_date: e.target.value }))} />
+                </div>
+              </div>
+
+              <FileUploadField
+                label="Passport Data Page (Image)"
+                accept="image/*"
+                currentUrl={currentPassportUrl}
+                file={passportFile}
+                onChange={setPassportFile}
+                uploading={uploading}
+              />
+
+              {/* ── DOCUMENTS ── */}
+              <SectionHeader icon={FileText} title="Documents" />
+
+              <FileUploadField
+                label="Death Certificate (Image or PDF)"
+                accept="image/*,application/pdf"
+                currentUrl={currentCertUrl}
+                file={certFile}
+                onChange={setCertFile}
+                uploading={uploading}
+              />
+
+              {/* ── FINAL ARRANGEMENTS ── */}
+              <SectionHeader icon={Plane} title="Final Arrangements" />
+
               <div>
                 <Label>Remains / Final Arrangements</Label>
-                <Select value={form.remains_disposition} onValueChange={v => setForm(f => ({ ...f, remains_disposition: v, destination_country: v !== 'cremated_sent_other' ? '' : f.destination_country }))}>
+                <Select value={form.remains_disposition}
+                  onValueChange={v => setForm(f => ({ ...f, remains_disposition: v, destination_country: v !== 'cremated_sent_other' ? '' : f.destination_country }))}>
                   <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select arrangement..." /></SelectTrigger>
                   <SelectContent>
                     {REMAINS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -332,26 +568,20 @@ export function AdminDeceased() {
                 </Select>
               </div>
 
-              {/* Destination country (only if cremated_sent_other) */}
               {form.remains_disposition === 'cremated_sent_other' && (
                 <div>
                   <Label>Destination Country</Label>
-                  <Input className="mt-1.5" placeholder="Country where ashes were sent" value={form.destination_country} onChange={e => setForm(f => ({ ...f, destination_country: e.target.value }))} />
+                  <Input className="mt-1.5" placeholder="Country where ashes were sent"
+                    value={form.destination_country} onChange={e => setForm(f => ({ ...f, destination_country: e.target.value }))} />
                 </div>
               )}
 
-              {/* Community Raised */}
               <div>
                 <Label>Community Support Raised</Label>
                 <div className="flex gap-2 mt-1.5">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Amount raised by community"
-                    className="flex-1"
+                  <Input type="number" min="0" placeholder="Amount raised by community" className="flex-1"
                     value={form.community_raised_amount}
-                    onChange={e => setForm(f => ({ ...f, community_raised_amount: e.target.value }))}
-                  />
+                    onChange={e => setForm(f => ({ ...f, community_raised_amount: e.target.value }))} />
                   <Select value={form.community_raised_currency} onValueChange={v => setForm(f => ({ ...f, community_raised_currency: v }))}>
                     <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -364,15 +594,19 @@ export function AdminDeceased() {
                 </div>
               </div>
 
-              {/* Description */}
+              {/* ── DESCRIPTION ── */}
+              <SectionHeader icon={FileText} title="Case Description" />
+
               <div>
                 <Label>Description of Case *</Label>
-                <Textarea className="mt-1.5 min-h-[100px]" placeholder="Brief description of the death case, circumstances, and any relevant information..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                <Textarea className="mt-1.5 min-h-[100px]"
+                  placeholder="Brief description of the death case, circumstances, and any relevant information..."
+                  value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
 
               <div className="flex gap-3 pt-1">
                 <Button type="submit" className="flex-1 gradient-primary text-primary-foreground" disabled={saving}>
-                  {saving ? 'Saving...' : editId ? 'Update Record' : 'Add Record'}
+                  {saving ? (uploading ? 'Uploading files...' : 'Saving...') : editId ? 'Update Record' : 'Add Record'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>

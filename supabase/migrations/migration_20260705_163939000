@@ -1,0 +1,45 @@
+-- Add passport, origin, and document fields to deceased_members
+ALTER TABLE deceased_members
+  ADD COLUMN IF NOT EXISTS passport_number text,
+  ADD COLUMN IF NOT EXISTS passport_issue_date date,
+  ADD COLUMN IF NOT EXISTS passport_expiry_date date,
+  ADD COLUMN IF NOT EXISTS passport_place_of_issue text,
+  ADD COLUMN IF NOT EXISTS passport_image_url text,
+  ADD COLUMN IF NOT EXISTS state_of_origin text,
+  ADD COLUMN IF NOT EXISTS local_government text,
+  ADD COLUMN IF NOT EXISTS death_certificate_url text;
+
+-- Create storage bucket for memorial documents
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('memorial-documents', 'memorial-documents', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Drop existing policies if they exist, then recreate
+DROP POLICY IF EXISTS "Admins can upload memorial documents" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can view memorial documents" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can delete memorial documents" ON storage.objects;
+
+CREATE POLICY "Admins can upload memorial documents"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'memorial-documents'
+  AND EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR is_super_admin = true)
+  )
+);
+
+CREATE POLICY "Anyone can view memorial documents"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'memorial-documents');
+
+CREATE POLICY "Admins can delete memorial documents"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'memorial-documents'
+  AND EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR is_super_admin = true)
+  )
+);
