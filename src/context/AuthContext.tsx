@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .maybeSingle();
     setProfile(data as Profile | null);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -40,19 +41,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         if (currentSession?.user) {
+          // Defer profile fetch; fetchProfile will call setLoading(false) when done
           setTimeout(() => fetchProfile(currentSession.user.id), 0);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
-      else setLoading(false);
+      if (s?.user) {
+        fetchProfile(s.user.id); // fetchProfile sets loading=false when done
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
