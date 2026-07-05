@@ -8,11 +8,21 @@ import { Badge } from '@/components/ui/badge';
 import {
   Users, Building2, Globe, ChevronRight, BookOpen, Image,
   Calendar, AlertCircle, Facebook, MessageCircle, Phone,
-  ExternalLink, CheckCircle, Shield, Star, ArrowRight, Rss, Bell
+  ExternalLink, CheckCircle, Shield, Star, ArrowRight, Rss, Bell, X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Activity, GalleryPhoto } from '@/lib/types';
+
+interface EmbassyNewsItem {
+  id: number;
+  title: string;
+  date: string;
+  excerpt: string;
+  content: string;
+  url: string;
+  category: string;
+}
 
 interface Stats {
   totalMembers: number;
@@ -23,9 +33,10 @@ interface Stats {
 
 export function HomePage() {
   const [stats, setStats] = useState<Stats>({ totalMembers: 0, activeMembers: 0, companies: 0, activities: 0 });
-  const [embassyNews, setEmbassyNews] = useState<{ title: string; date: string; excerpt: string; url: string; category: string }[]>([]);
+  const [embassyNews, setEmbassyNews] = useState<EmbassyNewsItem[]>([]);
   const [noticeBoard, setNoticeBoard] = useState<{ type: string; title: string; excerpt: string; url: string }[]>([]);
   const [embassySource, setEmbassySource] = useState<'loading' | 'live' | 'fallback'>('loading');
+  const [activeArticle, setActiveArticle] = useState<EmbassyNewsItem | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
   const { user } = useAuth();
@@ -215,12 +226,10 @@ export function HomePage() {
               ) : (
                 <div className="divide-y divide-border">
                   {embassyNews.map((item, i) => (
-                    <a
+                    <button
                       key={i}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-3.5 px-5 py-4 hover:bg-muted/40 transition-smooth group"
+                      onClick={() => setActiveArticle(item)}
+                      className="w-full flex items-start gap-3.5 px-5 py-4 hover:bg-muted/40 transition-smooth group text-left"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0 group-hover:scale-125 transition-smooth" />
                       <div className="flex-1 min-w-0">
@@ -232,8 +241,8 @@ export function HomePage() {
                           )}
                         </div>
                       </div>
-                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-smooth shrink-0 mt-0.5" />
-                    </a>
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-smooth shrink-0 mt-0.5" />
+                    </button>
                   ))}
                 </div>
               )}
@@ -255,12 +264,10 @@ export function HomePage() {
                 [1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted/30 animate-pulse" />)
               ) : (
                 noticeBoard.map((notice, i) => (
-                  <a
+                  <button
                     key={i}
-                    href={notice.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-card transition-smooth group"
+                    onClick={() => setActiveArticle({ id: -i, title: notice.title, date: '', excerpt: notice.excerpt, content: '', url: notice.url, category: 'Notice Board' })}
+                    className="w-full block rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-card transition-smooth group text-left"
                   >
                     <div className="flex items-start gap-2.5">
                       <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -269,7 +276,7 @@ export function HomePage() {
                         <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-3">{notice.excerpt}</p>
                       </div>
                     </div>
-                  </a>
+                  </button>
                 ))
               )}
             </div>
@@ -478,6 +485,72 @@ export function HomePage() {
       </section>
 
       <Footer />
+
+      {/* Embassy Article Modal */}
+      {activeArticle && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-16 overflow-y-auto"
+          onClick={() => setActiveArticle(null)}
+        >
+          <div
+            className="bg-card rounded-2xl border border-border w-full max-w-3xl shadow-2xl mb-8"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="sticky top-0 bg-card rounded-t-2xl border-b border-border px-6 py-4 flex items-start justify-between gap-4 z-10">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{activeArticle.category}</span>
+                  {activeArticle.date && <span className="text-[11px] text-muted-foreground">{activeArticle.date}</span>}
+                </div>
+                <h2 className="font-bold text-foreground text-lg leading-snug">{activeArticle.title}</h2>
+              </div>
+              <button
+                onClick={() => setActiveArticle(null)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Article content */}
+            <div className="px-6 py-5">
+              {activeArticle.content ? (
+                <div
+                  className="prose prose-sm max-w-none text-foreground/90 leading-relaxed
+                    [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-2
+                    [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:mt-4 [&_h2]:mb-2
+                    [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1.5
+                    [&_p]:mb-3 [&_p]:text-sm [&_p]:text-foreground/85 [&_p]:leading-relaxed
+                    [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
+                    [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ul]:space-y-1
+                    [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3
+                    [&_li]:text-sm [&_li]:text-foreground/85
+                    [&_strong]:font-semibold [&_strong]:text-foreground
+                    [&_img]:rounded-xl [&_img]:my-4 [&_img]:max-w-full [&_img]:h-auto
+                    [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: activeArticle.content }}
+                />
+              ) : (
+                <p className="text-sm text-foreground/85 leading-relaxed">{activeArticle.excerpt}</p>
+              )}
+            </div>
+
+            {/* Footer with source link */}
+            <div className="px-6 py-4 border-t border-border rounded-b-2xl bg-muted/20 flex items-center justify-between gap-4">
+              <p className="text-xs text-muted-foreground">Source: Nigerian Embassy Vietnam</p>
+              <a
+                href={activeArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+              >
+                View on embassy website <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
