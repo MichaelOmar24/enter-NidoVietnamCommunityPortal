@@ -22,33 +22,27 @@ export function Footer() {
             </p>
             {/* Social Links */}
             <div className="flex gap-3 mt-5">
-              <a
-                href="https://www.facebook.com/groups/357099351095953"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => window.open('https://www.facebook.com/groups/357099351095953', '_blank', 'noopener,noreferrer')}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="Facebook Group"
               >
                 <Facebook className="h-4 w-4" />
-              </a>
-              <a
-                href="https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ"
-                target="_blank"
-                rel="noopener noreferrer"
+              </button>
+              <button
+                onClick={() => window.open('https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ', '_blank', 'noopener,noreferrer')}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="WhatsApp Community"
               >
                 <MessageCircle className="h-4 w-4" />
-              </a>
-              <a
-                href="https://chat.whatsapp.com/HFaStQ14rmkAuaswLKhaUl"
-                target="_blank"
-                rel="noopener noreferrer"
+              </button>
+              <button
+                onClick={() => window.open('https://chat.whatsapp.com/HFaStQ14rmkAuaswLKhaUl', '_blank', 'noopener,noreferrer')}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-accent hover:bg-primary hover:text-primary-foreground transition-smooth"
                 title="WhatsApp Group 2"
               >
                 <MessageCircle className="h-4 w-4" />
-              </a>
+              </button>
             </div>
           </div>
 

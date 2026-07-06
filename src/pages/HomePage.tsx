@@ -139,14 +139,16 @@ export function HomePage() {
               {/* Social quick links */}
               <div className="flex items-center gap-5 mt-10 justify-center lg:justify-start">
                 <span className="text-primary-foreground/50 text-sm">Connect:</span>
-                <a href="https://www.facebook.com/groups/357099351095953" target="_blank" rel="noopener noreferrer"
+                <button
+                  onClick={() => window.open('https://www.facebook.com/groups/357099351095953', '_blank', 'noopener,noreferrer')}
                   className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-gold transition-smooth text-sm font-medium">
                   <Facebook className="h-4 w-4" /> Facebook
-                </a>
-                <a href="https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ" target="_blank" rel="noopener noreferrer"
+                </button>
+                <button
+                  onClick={() => window.open('https://chat.whatsapp.com/JY6blJObydS8b7CMvcrYMJ', '_blank', 'noopener,noreferrer')}
                   className="flex items-center gap-1.5 text-primary-foreground/70 hover:text-gold transition-smooth text-sm font-medium">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
-                </a>
+                </button>
               </div>
             </div>
             <div className="flex-shrink-0 relative">
