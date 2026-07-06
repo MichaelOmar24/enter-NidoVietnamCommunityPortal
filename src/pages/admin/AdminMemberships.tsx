@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import {
   Clock, CheckCircle, XCircle, Users, Crown, Shield,
-  Banknote, Settings, RefreshCw, Search, ChevronDown, Upload, QrCode
+  Banknote, Settings, RefreshCw, Search, ChevronDown, Upload, QrCode, Mail
 } from 'lucide-react';
 
 const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
@@ -28,6 +29,7 @@ interface MembershipRecord {
   notes: string;
   approved_at: string;
   created_at: string;
+  receipt_sent: boolean;
   profiles?: { first_name: string; last_name: string; email: string; phone: string };
 }
 
@@ -57,6 +59,7 @@ const PLAN_CONFIG: Record<string, { label: string; color: string; icon: React.El
 
 export function AdminMemberships() {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [records, setRecords] = useState<MembershipRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -70,6 +73,7 @@ export function AdminMemberships() {
   const [uploadingQR, setUploadingQR] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [stats, setStats] = useState({ pending: 0, premium: 0, gold: 0, totalRevenue: 0 });
+  const [sendingReceipt, setSendingReceipt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -147,8 +151,11 @@ export function AdminMemberships() {
             },
           },
         });
+        await supabase.from('memberships').update({ receipt_sent: true }).eq('id', selected.id);
+        toast({ title: 'Approved & receipt sent!', description: `Email sent to ${selected.profiles?.email}` });
       } catch (e) {
         console.error('Receipt email failed:', e);
+        toast({ title: 'Membership approved', description: 'Receipt email failed to send', variant: 'destructive' });
       }
     }
 
@@ -156,6 +163,35 @@ export function AdminMemberships() {
     setSelected(null);
     setActionNote('');
     load();
+  };
+
+  const resendReceipt = async (r: MembershipRecord) => {
+    setSendingReceipt(r.id);
+    const memberName = `${r.profiles?.first_name || ''} ${r.profiles?.last_name || ''}`.trim();
+    try {
+      const { error } = await supabase.functions.invoke('send-receipt', {
+        body: {
+          type: 'membership',
+          to_email: r.profiles?.email,
+          to_name: memberName,
+          data: {
+            name: memberName,
+            email: r.profiles?.email || '',
+            plan_type: r.plan_type.charAt(0).toUpperCase() + r.plan_type.slice(1),
+            amount: String(r.amount),
+            currency: r.currency || 'VND',
+            payment_reference: r.payment_reference || '',
+          },
+        },
+      });
+      if (error) throw error;
+      await supabase.from('memberships').update({ receipt_sent: true }).eq('id', r.id);
+      toast({ title: 'Receipt sent!', description: `Email delivered to ${r.profiles?.email}` });
+      load();
+    } catch {
+      toast({ title: 'Failed to send receipt', description: 'Check the email address and try again', variant: 'destructive' });
+    }
+    setSendingReceipt(null);
   };
 
   const handleSaveSettings = async (overrideSettings?: PaymentSettings) => {
@@ -255,7 +291,7 @@ export function AdminMemberships() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pending.map(r => <PaymentRow key={r.id} record={r} onReview={setSelected} />)}
+                  {pending.map(r => <PaymentRow key={r.id} record={r} onReview={setSelected} onResend={resendReceipt} sendingReceipt={sendingReceipt} />)}
                 </div>
               )}
             </CardContent>
@@ -292,7 +328,7 @@ export function AdminMemberships() {
                 <p className="text-sm text-muted-foreground text-center py-6">No records found</p>
               ) : (
                 <div className="space-y-3">
-                  {filtered.map(r => <PaymentRow key={r.id} record={r} onReview={setSelected} />)}
+                  {filtered.map(r => <PaymentRow key={r.id} record={r} onReview={setSelected} onResend={resendReceipt} sendingReceipt={sendingReceipt} />)}
                 </div>
               )}
             </CardContent>
@@ -460,7 +496,13 @@ export function AdminMemberships() {
   );
 }
 
-function PaymentRow({ record, onReview }: { record: MembershipRecord; onReview: (r: MembershipRecord) => void }) {
+function PaymentRow({ record, onReview, onResend, sendingReceipt }: {
+  record: MembershipRecord;
+  onReview: (r: MembershipRecord) => void;
+  onResend: (r: MembershipRecord) => void;
+  sendingReceipt: string | null;
+}) {
+  const isApproved = ['approved', 'completed'].includes(record.payment_status);
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-smooth">
       <div className="flex-1 min-w-0">
@@ -470,13 +512,31 @@ function PaymentRow({ record, onReview }: { record: MembershipRecord; onReview: 
           </p>
           <PlanBadge plan={record.plan_type} />
           <StatusBadge status={record.payment_status} />
+          {isApproved && (
+            <Badge className={`text-[10px] border gap-1 ${record.receipt_sent ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-300/40' : 'bg-amber-500/10 text-amber-600 border-amber-400/30'}`}>
+              <Mail className="h-2.5 w-2.5" /> {record.receipt_sent ? 'Receipt sent' : 'No receipt'}
+            </Badge>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{record.profiles?.email} · Ref: {record.payment_reference || '—'}</p>
         <p className="text-xs text-muted-foreground">{new Date(record.created_at).toLocaleDateString()} · {record.currency === 'VND' ? (record.amount ? (Number(record.amount)).toLocaleString('vi-VN') + ' ₫' : '—') : record.amount}</p>
       </div>
-      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs text-primary border-primary hover:bg-primary/10 shrink-0" onClick={() => onReview(record)}>
-        <ChevronDown className="h-3.5 w-3.5" /> Review
-      </Button>
+      <div className="flex gap-2">
+        {isApproved && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-xs text-primary border-primary hover:bg-primary/10 shrink-0"
+            onClick={() => onResend(record)}
+            disabled={sendingReceipt === record.id}
+          >
+            <Mail className="h-3.5 w-3.5" /> {sendingReceipt === record.id ? 'Sending...' : 'Resend Receipt'}
+          </Button>
+        )}
+        <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs text-primary border-primary hover:bg-primary/10 shrink-0" onClick={() => onReview(record)}>
+          <ChevronDown className="h-3.5 w-3.5" /> Review
+        </Button>
+      </div>
     </div>
   );
 }

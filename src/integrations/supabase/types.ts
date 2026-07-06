@@ -4065,6 +4065,7 @@ export type Database = {
           payment_reference: string | null
           payment_status: string | null
           plan_type: string | null
+          receipt_sent: boolean | null
           user_id: string | null
           valid_from: string | null
           valid_until: string | null
@@ -4081,6 +4082,7 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: string | null
           plan_type?: string | null
+          receipt_sent?: boolean | null
           user_id?: string | null
           valid_from?: string | null
           valid_until?: string | null
@@ -4097,6 +4099,7 @@ export type Database = {
           payment_reference?: string | null
           payment_status?: string | null
           plan_type?: string | null
+          receipt_sent?: boolean | null
           user_id?: string | null
           valid_from?: string | null
           valid_until?: string | null
