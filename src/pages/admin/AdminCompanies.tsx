@@ -317,6 +317,29 @@ export function AdminCompanies() {
     }
 
     toast({ title: `Payment recorded for ${c.company_name}`, description: `${fmtVND(fee)} valid until ${format(validUntil, 'dd MMM yyyy')}` });
+
+    // Send receipt email to company email if available
+    if (c.email) {
+      try {
+        await supabase.functions.invoke('send-receipt', {
+          body: {
+            type: 'company_listing',
+            to_email: c.email,
+            to_name: c.company_name,
+            data: {
+              company_name: c.company_name,
+              email: c.email,
+              amount: String(fee),
+              valid_from: format(today, 'dd MMM yyyy'),
+              valid_until: format(validUntil, 'dd MMM yyyy'),
+            },
+          },
+        });
+      } catch (e) {
+        console.error('Listing receipt email failed:', e);
+      }
+    }
+
     setPayDialog({ open: false, company: null });
     setRecordingPayment(false);
     load();

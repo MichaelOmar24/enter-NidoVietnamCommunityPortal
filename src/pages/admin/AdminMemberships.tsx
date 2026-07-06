@@ -129,6 +129,27 @@ export function AdminMemberships() {
         created_by: profile.id,
         notes: `Ref: ${selected.payment_reference || '—'}`,
       });
+
+      // Send receipt email
+      try {
+        await supabase.functions.invoke('send-receipt', {
+          body: {
+            type: 'membership',
+            to_email: selected.profiles?.email,
+            to_name: memberName,
+            data: {
+              name: memberName,
+              email: selected.profiles?.email || '',
+              plan_type: selected.plan_type.charAt(0).toUpperCase() + selected.plan_type.slice(1),
+              amount: String(selected.amount),
+              currency: selected.currency || 'VND',
+              payment_reference: selected.payment_reference || '',
+            },
+          },
+        });
+      } catch (e) {
+        console.error('Receipt email failed:', e);
+      }
     }
 
     setActing(false);

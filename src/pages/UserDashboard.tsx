@@ -111,6 +111,7 @@ export function UserDashboard() {
 
   const quickActions = [
     { label: 'Hall of Honor', href: '/recognitions', icon: Award },
+    { label: 'Community Donations', href: '/donations', icon: Heart },
     { label: 'View NIDO Constitution', href: '/constitution', icon: FileText },
     { label: 'Browse Business Directory', href: '/directory', icon: Building2 },
     { label: 'Community Gallery', href: '/gallery', icon: ImageIcon },

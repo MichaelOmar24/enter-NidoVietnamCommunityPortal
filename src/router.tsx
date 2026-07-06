@@ -24,7 +24,9 @@ import { AdminMemberships } from "./pages/admin/AdminMemberships";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { AdminMessages } from "./pages/admin/AdminMessages";
 import { AdminRecognitions } from "./pages/admin/AdminRecognitions";
+import { AdminDonations } from "./pages/admin/AdminDonations";
 import { RecognitionsPage } from "./pages/RecognitionsPage";
+import { DonationsPage } from "./pages/DonationsPage";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
 import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
@@ -70,6 +72,11 @@ export const routers = [
   { path: "/gallery", name: "gallery", element: <GalleryPage /> },
   { path: "/activities", name: "activities", element: <ActivitiesPage /> },
   { path: "/recognitions", name: "recognitions", element: <RecognitionsPage /> },
+  {
+    path: "/donations",
+    name: "donations",
+    element: <ProtectedRoute><DonationsPage /></ProtectedRoute>
+  },
   { path: "/passport-info", name: "passport-info", element: <PassportInfoPage /> },
   { path: "/contact", name: "contact", element: <ContactPage /> },
   {
@@ -131,6 +138,11 @@ export const routers = [
     path: "/admin/recognitions",
     name: "admin-recognitions",
     element: <ProtectedRoute adminOnly><AdminRecognitions /></ProtectedRoute>
+  },
+  {
+    path: "/admin/donations",
+    name: "admin-donations",
+    element: <ProtectedRoute adminOnly><AdminDonations /></ProtectedRoute>
   },
   {
     path: "/embassy",

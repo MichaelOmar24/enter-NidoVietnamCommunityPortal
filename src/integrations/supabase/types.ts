@@ -3765,6 +3765,134 @@ export type Database = {
         }
         Relationships: []
       }
+      donation_campaigns: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          beneficiary_name: string
+          created_at: string
+          created_by: string | null
+          description: string
+          evidence_urls: string[] | null
+          id: string
+          images: string[] | null
+          is_active: boolean
+          is_published: boolean
+          qr_code_url: string | null
+          story: string | null
+          target_amount_vnd: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          beneficiary_name: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          evidence_urls?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          is_published?: boolean
+          qr_code_url?: string | null
+          story?: string | null
+          target_amount_vnd?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          beneficiary_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          evidence_urls?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          is_published?: boolean
+          qr_code_url?: string | null
+          story?: string | null
+          target_amount_vnd?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donation_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      donations: {
+        Row: {
+          amount_vnd: number
+          campaign_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          donor_id: string
+          id: string
+          notes: string | null
+          payment_reference: string | null
+          receipt_sent: boolean
+          status: string
+        }
+        Insert: {
+          amount_vnd: number
+          campaign_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          donor_id: string
+          id?: string
+          notes?: string | null
+          payment_reference?: string | null
+          receipt_sent?: boolean
+          status?: string
+        }
+        Update: {
+          amount_vnd?: number
+          campaign_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          donor_id?: string
+          id?: string
+          notes?: string | null
+          payment_reference?: string | null
+          receipt_sent?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            referencedRelation: "donation_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donations_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donations_donor_id_fkey"
+            columns: ["donor_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fund_transactions: {
         Row: {
           amount: number

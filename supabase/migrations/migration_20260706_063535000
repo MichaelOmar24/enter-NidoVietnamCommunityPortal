@@ -1,0 +1,54 @@
+
+-- Donation Campaigns
+CREATE TABLE IF NOT EXISTS donation_campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  beneficiary_name text NOT NULL,
+  description text NOT NULL,
+  story text,
+  images text[] DEFAULT '{}',
+  evidence_urls text[] DEFAULT '{}',
+  bank_name text,
+  account_name text,
+  account_number text,
+  qr_code_url text,
+  target_amount_vnd numeric,
+  is_active boolean NOT NULL DEFAULT true,
+  is_published boolean NOT NULL DEFAULT false,
+  created_by uuid REFERENCES profiles(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE donation_campaigns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins manage campaigns" ON donation_campaigns FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin OR is_super_admin)));
+CREATE POLICY "Members read published campaigns" ON donation_campaigns FOR SELECT
+  USING (is_published = true AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid()));
+
+-- Donations (member-logged, admin-confirmed)
+CREATE TABLE IF NOT EXISTS donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES donation_campaigns(id) ON DELETE CASCADE,
+  donor_id uuid NOT NULL REFERENCES profiles(id),
+  amount_vnd numeric NOT NULL,
+  payment_reference text,
+  notes text,
+  status text NOT NULL DEFAULT 'pending',
+  receipt_sent boolean NOT NULL DEFAULT false,
+  confirmed_by uuid REFERENCES profiles(id),
+  confirmed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT donations_status_check CHECK (status = ANY (ARRAY['pending','confirmed','rejected']))
+);
+
+ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins manage donations" ON donations FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin OR is_super_admin)));
+CREATE POLICY "Members view own donations" ON donations FOR SELECT
+  USING (donor_id = auth.uid());
+CREATE POLICY "Members insert own donations" ON donations FOR INSERT
+  WITH CHECK (donor_id = auth.uid());
+
+ALTER PUBLICATION supabase_realtime ADD TABLE "donations";
+ALTER PUBLICATION supabase_realtime ADD TABLE "donation_campaigns";

@@ -22,6 +22,7 @@ const adminLinks = [
   { icon: HeartHandshake, label: 'Welfare', href: '/admin/welfare' },
   { icon: Heart, label: 'Memorial', href: '/admin/deceased' },
   { icon: Award, label: 'Recognitions', href: '/admin/recognitions' },
+  { icon: Heart, label: 'Donations', href: '/admin/donations' },
   { icon: Inbox, label: 'Messages', href: '/admin/messages' },
 ];
 
