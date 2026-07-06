@@ -192,12 +192,28 @@ export function AdminDonations() {
       toast({ title: 'Donation confirmed', description: 'Email receipt failed to send', variant: 'destructive' });
     }
     setSendingReceipt(null);
+
+    // Auto-close campaign if target is reached
+    if (campaign.target_amount_vnd) {
+      const newTotal = totalRaised(campaign.id) + Number(d.amount_vnd);
+      if (newTotal >= campaign.target_amount_vnd && campaign.is_active) {
+        await supabase.from('donation_campaigns').update({ is_active: false }).eq('id', campaign.id);
+        toast({ title: 'Target achieved!', description: `${campaign.title} has been automatically closed.` });
+      }
+    }
+
     load();
   };
 
   const rejectDonation = async (id: string) => {
     await supabase.from('donations').update({ status: 'rejected' }).eq('id', id);
     toast({ title: 'Donation rejected' });
+    load();
+  };
+
+  const toggleActive = async (c: Campaign) => {
+    await supabase.from('donation_campaigns').update({ is_active: !c.is_active }).eq('id', c.id);
+    toast({ title: c.is_active ? 'Campaign closed' : 'Campaign reopened' });
     load();
   };
 
@@ -253,10 +269,11 @@ export function AdminDonations() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
+                <div className="grid grid-cols-3 gap-3 mb-3 text-sm">
                   <div className="rounded-lg bg-muted/30 p-2.5 text-center">
                     <p className="text-xs text-muted-foreground">Raised</p>
                     <p className="font-bold text-primary">{VND(totalRaised(c.id))}</p>
+                    {c.target_amount_vnd && <p className="text-[10px] text-muted-foreground">of {VND(c.target_amount_vnd)}</p>}
                   </div>
                   <div className="rounded-lg bg-muted/30 p-2.5 text-center">
                     <p className="text-xs text-muted-foreground">Donors</p>
@@ -268,9 +285,34 @@ export function AdminDonations() {
                   </div>
                 </div>
 
+                {/* Progress bar */}
+                {c.target_amount_vnd && (() => {
+                  const pct = Math.min(100, (totalRaised(c.id) / c.target_amount_vnd) * 100);
+                  const achieved = pct >= 100;
+                  return (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={achieved ? 'text-primary font-semibold' : 'text-muted-foreground'}>
+                          {achieved ? 'Target achieved!' : `${pct.toFixed(0)}% of goal`}
+                        </span>
+                        <span className="text-muted-foreground">{VND(c.target_amount_vnd)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${achieved ? 'bg-primary' : 'gradient-primary'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="flex gap-2 flex-wrap mb-4">
                   <Button size="sm" variant="outline" onClick={() => togglePublish(c)} className={`gap-1 text-xs ${c.is_published ? 'text-muted-foreground' : 'text-primary border-primary hover:bg-primary/10'}`}>
                     {c.is_published ? <><EyeOff className="h-3 w-3" /> Unpublish</> : <><Eye className="h-3 w-3" /> Publish</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => toggleActive(c)} className={`gap-1 text-xs ${c.is_active ? 'text-destructive border-destructive hover:bg-destructive/10' : 'text-primary border-primary hover:bg-primary/10'}`}>
+                    {c.is_active ? 'Close Campaign' : 'Reopen Campaign'}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openEdit(c)} className="gap-1 text-xs">
                     <Edit className="h-3 w-3" /> Edit

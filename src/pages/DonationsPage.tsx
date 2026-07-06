@@ -13,7 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   Heart, QrCode, Banknote, CheckCircle, Clock, Users,
-  ChevronDown, ChevronUp, Send, ImageIcon, AlertCircle
+  ChevronDown, ChevronUp, Send, AlertCircle, Trophy
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -31,6 +31,7 @@ interface Campaign {
   account_number?: string;
   qr_code_url?: string;
   target_amount_vnd?: number;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -159,6 +160,9 @@ export function DonationsPage() {
             const donors = (donations[c.id] || []).length;
             const myD = myDonations.filter(d => d.campaign_id === c.id);
             const isOpen = expanded === c.id;
+            const pct = c.target_amount_vnd ? Math.min(100, (raised / c.target_amount_vnd) * 100) : null;
+            const targetAchieved = pct !== null && pct >= 100;
+            const isClosed = !c.is_active;
 
             return (
               <Card key={c.id} className="shadow-card overflow-hidden">
@@ -177,29 +181,60 @@ export function DonationsPage() {
                       <h2 className="text-lg font-bold text-foreground">{c.title}</h2>
                       <p className="text-sm text-muted-foreground">Beneficiary: <strong className="text-foreground">{c.beneficiary_name}</strong></p>
                     </div>
-                    {myD.length > 0 && (
-                      <Badge className="bg-rose-500/10 text-rose-600 border-rose-300/40 shrink-0 gap-1">
-                        <Heart className="h-2.5 w-2.5" /> You donated
-                      </Badge>
-                    )}
+                    <div className="flex gap-1.5 flex-col items-end">
+                      {isClosed && (
+                        <Badge className={`shrink-0 gap-1 ${targetAchieved ? 'bg-primary/10 text-primary border-primary/30' : 'bg-muted text-muted-foreground'}`}>
+                          {targetAchieved ? <><Trophy className="h-2.5 w-2.5" /> Target Achieved</> : 'Closed'}
+                        </Badge>
+                      )}
+                      {myD.length > 0 && (
+                        <Badge className="bg-rose-500/10 text-rose-600 border-rose-300/40 shrink-0 gap-1">
+                          <Heart className="h-2.5 w-2.5" /> You donated
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{c.description}</p>
+
+                  {/* Progress bar */}
+                  {pct !== null && (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className={targetAchieved ? 'text-primary font-semibold flex items-center gap-1' : 'text-muted-foreground'}>
+                          {targetAchieved ? <><Trophy className="h-3 w-3" /> Target achieved!</> : `${pct.toFixed(0)}% of goal reached`}
+                        </span>
+                        <span className="text-muted-foreground">{VND(c.target_amount_vnd!)}</span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${targetAchieved ? 'bg-primary' : 'gradient-primary'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Progress */}
                   <div className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-muted/40 border border-border">
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground mb-1">Total Raised</p>
                       <p className="text-xl font-bold text-primary">{VND(raised)}</p>
-                      {c.target_amount_vnd && <p className="text-xs text-muted-foreground mt-0.5">of {VND(c.target_amount_vnd)} goal</p>}
+                      {c.target_amount_vnd && !targetAchieved && <p className="text-xs text-muted-foreground mt-0.5">of {VND(c.target_amount_vnd)} goal</p>}
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Donors</p>
                       <p className="text-xl font-bold text-foreground">{donors}</p>
                     </div>
-                    <Button onClick={() => setDonateDialog({ open: true, campaign: c })} className="gradient-primary text-primary-foreground gap-1.5 shrink-0">
-                      <Heart className="h-4 w-4" /> Donate
-                    </Button>
+                    {isClosed ? (
+                      <div className={`px-4 py-2 rounded-lg text-sm font-semibold shrink-0 ${targetAchieved ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        {targetAchieved ? 'Goal Reached' : 'Campaign Closed'}
+                      </div>
+                    ) : (
+                      <Button onClick={() => setDonateDialog({ open: true, campaign: c })} className="gradient-primary text-primary-foreground gap-1.5 shrink-0">
+                        <Heart className="h-4 w-4" /> Donate
+                      </Button>
+                    )}
                   </div>
 
                   {/* Expand toggle */}
