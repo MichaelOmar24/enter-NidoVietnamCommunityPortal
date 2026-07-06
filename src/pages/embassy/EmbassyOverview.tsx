@@ -8,10 +8,11 @@ import {
 } from 'recharts';
 import {
   Users, ShieldCheck, Clock, XCircle, Briefcase,
-  Building2, Image, FileText, Activity, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock
+  Building2, FileText, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock, Download
 } from 'lucide-react';
 import { differenceInDays, parseISO, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { OCCUPATION_LABELS } from '@/lib/types';
+import * as XLSX from 'xlsx';
 
 const CHART_COLORS = ['#00b359', '#FFD700', '#DA251D', '#3b82f6', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'];
 
@@ -171,6 +172,48 @@ export function EmbassyOverview() {
     setGenderData(Object.entries(genMap).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })));
 
     setLoading(false);
+  };
+
+  const exportToExcel = () => {
+    const rows = companyIntel.map(({ company: c, priv: p }) => ({
+      'Company Name': c.company_name,
+      'Industry': c.industry || '',
+      'Business Type': c.business_type || '',
+      'Public Status': c.is_approved ? 'Approved' : 'Pending',
+      'Registration Number': p?.registration_number || '',
+      'Tax Code': p?.tax_code || '',
+      'Annual Revenue (VND)': p?.annual_revenue_vnd ?? '',
+      'Monthly Revenue (VND)': p?.monthly_revenue_vnd ?? '',
+      'Trade Volume Notes': p?.trade_volume_notes || '',
+      'Registration Doc': p?.registration_doc_url ? 'On file' : '',
+      'Tax Code Doc': p?.tax_code_doc_url ? 'On file' : '',
+      'Legally Verified': p?.is_verified ? 'Yes' : 'No',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Column widths
+    ws['!cols'] = [
+      { wch: 30 }, { wch: 18 }, { wch: 20 }, { wch: 12 },
+      { wch: 20 }, { wch: 20 }, { wch: 22 }, { wch: 22 },
+      { wch: 35 }, { wch: 16 }, { wch: 14 }, { wch: 16 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Company Trade Intelligence');
+
+    // Add a metadata sheet
+    const meta = XLSX.utils.aoa_to_sheet([
+      ['NIDO Vietnam — Company Trade Intelligence Report'],
+      ['Classification: CONFIDENTIAL — Embassy & Admin Use Only'],
+      ['Exported:', new Date().toLocaleString('en-GB')],
+      ['Total Companies:', rows.length],
+      ['Verified:', rows.filter(r => r['Legally Verified'] === 'Yes').length],
+      ['Total Annual Trade Volume (VND):', companyIntel.reduce((s, c) => s + (c.priv?.annual_revenue_vnd || 0), 0)],
+    ]);
+    XLSX.utils.book_append_sheet(wb, meta, 'Report Info');
+
+    XLSX.writeFile(wb, `NIDO_Trade_Intelligence_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const kpiCards = [
@@ -413,7 +456,13 @@ export function EmbassyOverview() {
         <div className="flex items-center gap-2 mb-1">
           <Lock className="h-4 w-4 text-amber-400" />
           <p className="text-sm font-semibold text-white">Company Trade Intelligence</p>
-          <span className="ml-auto text-[10px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full">CONFIDENTIAL</span>
+          <span className="text-[10px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full">CONFIDENTIAL</span>
+          <button
+            onClick={exportToExcel}
+            className="ml-auto flex items-center gap-1.5 text-xs bg-green-500/10 text-green-400 border border-green-400/20 hover:bg-green-500/20 transition-colors px-3 py-1.5 rounded-lg font-medium"
+          >
+            <Download className="h-3.5 w-3.5" /> Export to Excel
+          </button>
         </div>
         <p className="text-xs text-gray-500 mb-4">Private financial data — not shared with the public</p>
 
