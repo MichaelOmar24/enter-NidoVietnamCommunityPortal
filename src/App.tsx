@@ -8,9 +8,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { AIChatWidget } from "./components/common/AIChatWidget";
 
 const queryClient = new QueryClient();
+const router = createBrowserRouter(routers);
 
 const App = () => {
-  const router = createBrowserRouter(routers);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
