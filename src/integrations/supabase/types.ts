@@ -3872,6 +3872,58 @@ export type Database = {
           },
         ]
       }
+      member_recognitions: {
+        Row: {
+          award_title: string
+          awarded_by: string | null
+          awarded_date: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_published: boolean
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          award_title: string
+          awarded_by?: string | null
+          awarded_date?: string
+          category?: string
+          created_at?: string
+          description: string
+          id?: string
+          is_published?: boolean
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          award_title?: string
+          awarded_by?: string | null
+          awarded_date?: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_published?: boolean
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_recognitions_awarded_by_fkey"
+            columns: ["awarded_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_recognitions_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           amount: number | null

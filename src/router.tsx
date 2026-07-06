@@ -23,6 +23,8 @@ import { AdminDeceased } from "./pages/admin/AdminDeceased";
 import { AdminMemberships } from "./pages/admin/AdminMemberships";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { AdminMessages } from "./pages/admin/AdminMessages";
+import { AdminRecognitions } from "./pages/admin/AdminRecognitions";
+import { RecognitionsPage } from "./pages/RecognitionsPage";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
 import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
@@ -67,6 +69,7 @@ export const routers = [
   { path: "/directory", name: "directory", element: <DirectoryPage /> },
   { path: "/gallery", name: "gallery", element: <GalleryPage /> },
   { path: "/activities", name: "activities", element: <ActivitiesPage /> },
+  { path: "/recognitions", name: "recognitions", element: <RecognitionsPage /> },
   { path: "/passport-info", name: "passport-info", element: <PassportInfoPage /> },
   { path: "/contact", name: "contact", element: <ContactPage /> },
   {
@@ -123,6 +126,11 @@ export const routers = [
     path: "/admin/messages",
     name: "admin-messages",
     element: <ProtectedRoute adminOnly><AdminMessages /></ProtectedRoute>
+  },
+  {
+    path: "/admin/recognitions",
+    name: "admin-recognitions",
+    element: <ProtectedRoute adminOnly><AdminRecognitions /></ProtectedRoute>
   },
   {
     path: "/embassy",

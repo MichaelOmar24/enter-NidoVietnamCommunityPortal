@@ -18,6 +18,7 @@ const navLinks = [
   { label: 'Directory', href: '/directory' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'Activities', href: '/activities' },
+  { label: 'Hall of Honor', href: '/recognitions' },
   { label: 'Passport Info', href: '/passport-info' },
   { label: 'Documents', href: '/constitution' },
   { label: 'Contact', href: '/contact' },

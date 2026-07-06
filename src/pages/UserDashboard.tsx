@@ -12,7 +12,7 @@ import { Passport } from '@/lib/types';
 import {
   User, FileText, Shield, Calendar, AlertTriangle, CheckCircle,
   CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon,
-  Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock,
+  Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock, Award, Star,
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -43,6 +43,7 @@ export function UserDashboard() {
   const [totalMembers, setTotalMembers] = useState(0);
   const [paymentHistory, setPaymentHistory] = useState<MembershipRecord[]>([]);
   const [fundBalance, setFundBalance] = useState<{ income: number; expense: number; net: number } | null>(null);
+  const [myRecognitions, setMyRecognitions] = useState<{ award_title: string; category: string; awarded_date: string }[]>([]);
   const navigate = useNavigate();
 
   const isPaidMember = profile?.membership_type === 'premium' || profile?.membership_type === 'gold';
@@ -51,6 +52,7 @@ export function UserDashboard() {
     if (profile) {
       fetchPassport();
       fetchPaymentHistory();
+      fetchMyRecognitions();
       if (isPaidMember) fetchFundBalance();
     }
     fetchMemberCount();
@@ -81,6 +83,17 @@ export function UserDashboard() {
     setFundBalance({ income, expense, net: income - expense });
   };
 
+  const fetchMyRecognitions = async () => {
+    if (!profile) return;
+    const { data } = await supabase
+      .from('member_recognitions')
+      .select('award_title, category, awarded_date')
+      .eq('profile_id', profile.id)
+      .eq('is_published', true)
+      .order('awarded_date', { ascending: false });
+    setMyRecognitions((data || []) as { award_title: string; category: string; awarded_date: string }[]);
+  };
+
   const daysToExpiry = passport?.expiry_date ? differenceInDays(parseISO(passport.expiry_date), new Date()) : null;
   const passportStatus = daysToExpiry !== null
     ? daysToExpiry < 0 ? 'expired' : daysToExpiry <= 365 ? 'expiring' : 'valid'
@@ -97,6 +110,7 @@ export function UserDashboard() {
   const pendingPayment = paymentHistory.find(p => p.payment_status === 'pending');
 
   const quickActions = [
+    { label: 'Hall of Honor', href: '/recognitions', icon: Award },
     { label: 'View NIDO Constitution', href: '/constitution', icon: FileText },
     { label: 'Browse Business Directory', href: '/directory', icon: Building2 },
     { label: 'Community Gallery', href: '/gallery', icon: ImageIcon },
@@ -166,6 +180,27 @@ export function UserDashboard() {
               <AlertTitle className="text-gold">Passport Expiring Soon</AlertTitle>
               <AlertDescription>Your passport expires in <strong>{daysToExpiry} days</strong>.</AlertDescription>
             </Alert>
+          )}
+
+          {/* Recognition Banner */}
+          {myRecognitions.length > 0 && (
+            <div className="rounded-2xl border border-amber-400/40 bg-amber-500/5 p-5 mb-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center shrink-0 shadow-gold">
+                <Award className="h-6 w-6 text-gold-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-foreground flex items-center gap-1.5">
+                  <Star className="h-4 w-4 text-amber-500" /> You are a Hall of Honor Honoree!
+                </p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {myRecognitions[0].award_title} · {new Date(myRecognitions[0].awarded_date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                  {myRecognitions.length > 1 && ` and ${myRecognitions.length - 1} more award${myRecognitions.length > 2 ? 's' : ''}`}
+                </p>
+              </div>
+              <button onClick={() => navigate('/recognitions')} className="text-xs text-primary hover:underline shrink-0 flex items-center gap-1">
+                View <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
           )}
 
           {/* Stats */}
