@@ -16,7 +16,7 @@ export function AdminDashboard() {
     total: 0, active: 0, pending: 0, companies: 0,
     expiringPassports: 0, expiredPassports: 0,
     premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0,
-    fundIncome: 0, fundExpense: 0, fundBalance: 0,
+    fundIncome: 0, fundExpense: 0, fundBalance: 0, listingIncome: 0,
   });
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [maritalData, setMaritalData] = useState<{ name: string; value: number }[]>([]);
@@ -46,7 +46,7 @@ export function AdminDashboard() {
       supabase.from('passports').select('expiry_date'),
       supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, membership_type, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
-      supabase.from('fund_transactions').select('transaction_type, amount'),
+      supabase.from('fund_transactions').select('transaction_type, amount, category'),
     ]);
 
     // Count expiring passports
@@ -87,6 +87,7 @@ export function AdminDashboard() {
       fundIncome: (fundTxns || []).filter((t: { transaction_type: string }) => t.transaction_type === 'income').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
       fundExpense: (fundTxns || []).filter((t: { transaction_type: string }) => t.transaction_type === 'expense').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
       fundBalance: (fundTxns || []).reduce((s: number, t: { transaction_type: string; amount: number }) => s + (t.transaction_type === 'income' ? Number(t.amount) : -Number(t.amount)), 0),
+      listingIncome: (fundTxns || []).filter((t: { category: string }) => t.category === 'company_listing').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
     });
 
     // Occupation breakdown
@@ -160,7 +161,7 @@ export function AdminDashboard() {
                 <p className={`text-2xl font-bold ${stats.fundBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{VND(stats.fundBalance)}</p>
               </div>
             </div>
-            <div className="flex gap-8 flex-wrap">
+              <div className="flex gap-8 flex-wrap">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <div>
@@ -173,6 +174,13 @@ export function AdminDashboard() {
                 <div>
                   <p className="text-xs text-muted-foreground">Total Expenses</p>
                   <p className="font-semibold text-destructive text-sm">{VND(stats.fundExpense)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-accent" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Listing Income</p>
+                  <p className="font-semibold text-accent text-sm">{VND(stats.listingIncome)}</p>
                 </div>
               </div>
             </div>

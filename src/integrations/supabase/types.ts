@@ -3491,6 +3491,34 @@ export type Database = {
           },
         ]
       }
+      company_fee_config: {
+        Row: {
+          annual_fee_vnd: number
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          annual_fee_vnd?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          annual_fee_vnd?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_fee_config_updated_by_fkey"
+            columns: ["updated_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_private_info: {
         Row: {
           annual_revenue_vnd: number | null
@@ -3498,6 +3526,11 @@ export type Database = {
           created_at: string
           id: string
           is_verified: boolean
+          listing_fee_amount_paid: number | null
+          listing_fee_paid_date: string | null
+          listing_fee_status: string
+          listing_fee_valid_until: string | null
+          listing_fund_transaction_id: string | null
           monthly_revenue_vnd: number | null
           registration_doc_url: string | null
           registration_number: string | null
@@ -3514,6 +3547,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_verified?: boolean
+          listing_fee_amount_paid?: number | null
+          listing_fee_paid_date?: string | null
+          listing_fee_status?: string
+          listing_fee_valid_until?: string | null
+          listing_fund_transaction_id?: string | null
           monthly_revenue_vnd?: number | null
           registration_doc_url?: string | null
           registration_number?: string | null
@@ -3530,6 +3568,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_verified?: boolean
+          listing_fee_amount_paid?: number | null
+          listing_fee_paid_date?: string | null
+          listing_fee_status?: string
+          listing_fee_valid_until?: string | null
+          listing_fund_transaction_id?: string | null
           monthly_revenue_vnd?: number | null
           registration_doc_url?: string | null
           registration_number?: string | null

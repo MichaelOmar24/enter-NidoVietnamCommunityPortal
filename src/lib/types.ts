@@ -75,8 +75,21 @@ export interface CompanyPrivateInfo {
   is_verified: boolean;
   verified_by?: string;
   verified_at?: string;
+  // Listing fee payment tracking
+  listing_fee_status?: 'unpaid' | 'paid' | 'expired';
+  listing_fee_amount_paid?: number | null;
+  listing_fee_paid_date?: string | null;
+  listing_fee_valid_until?: string | null;
+  listing_fund_transaction_id?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CompanyFeeConfig {
+  id: string;
+  annual_fee_vnd: number;
+  updated_by?: string;
+  updated_at: string;
 }
 
 export interface GalleryAlbum {

@@ -9,13 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { Company, CompanyPrivateInfo } from '@/lib/types';
+import { Company, CompanyPrivateInfo, CompanyFeeConfig } from '@/lib/types';
 import {
   Plus, Check, X, Edit, Trash2, Building2, Upload, ImageIcon,
-  FileText, ShieldCheck, AlertCircle, TrendingUp,
+  FileText, ShieldCheck, AlertCircle, TrendingUp, Banknote, Settings,
+  CreditCard, CalendarCheck, Clock, CheckCircle2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { format, addYears, parseISO, isAfter } from 'date-fns';
 
 const EMPTY: Partial<Company> = {
   company_name: '', description: '', business_type: '', industry: '',
@@ -42,6 +44,16 @@ const fmtVND = (n: number | null | undefined) =>
     : n.toLocaleString('vi-VN') + ' ₫'
   : '—';
 
+function feeStatusInfo(priv?: CompanyPrivateInfo): { label: string; color: string; icon: React.ReactNode } {
+  const status = priv?.listing_fee_status;
+  if (status === 'paid' && priv?.listing_fee_valid_until) {
+    const expired = !isAfter(parseISO(priv.listing_fee_valid_until), new Date());
+    if (expired) return { label: 'Expired', color: 'bg-destructive/10 text-destructive border-destructive/30', icon: <Clock className="h-2.5 w-2.5" /> };
+    return { label: 'Paid', color: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-300/40', icon: <CheckCircle2 className="h-2.5 w-2.5" /> };
+  }
+  return { label: 'Unpaid', color: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-300/40', icon: <AlertCircle className="h-2.5 w-2.5" /> };
+}
+
 export function AdminCompanies() {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -58,18 +70,44 @@ export function AdminCompanies() {
   const [taxDocFile, setTaxDocFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Fee config state
+  const [feeConfig, setFeeConfig] = useState<CompanyFeeConfig | null>(null);
+  const [editingFee, setEditingFee] = useState(false);
+  const [feeInput, setFeeInput] = useState('');
+  const [savingFee, setSavingFee] = useState(false);
+  const [listingIncome, setListingIncome] = useState(0);
+  const [listingPaidCount, setListingPaidCount] = useState(0);
+
+  // Payment dialog
+  const [payDialog, setPayDialog] = useState<{ open: boolean; company: Company | null }>({ open: false, company: null });
+  const [recordingPayment, setRecordingPayment] = useState(false);
+
   useEffect(() => { load(); }, []);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: cos }, { data: privs }] = await Promise.all([
+    const [{ data: cos }, { data: privs }, { data: feeRows }, { data: txns }] = await Promise.all([
       supabase.from('companies').select('*').order('created_at', { ascending: false }),
       supabase.from('company_private_info').select('*'),
+      supabase.from('company_fee_config').select('*').limit(1),
+      supabase.from('fund_transactions').select('amount').eq('category', 'company_listing').eq('transaction_type', 'income'),
     ]);
     setCompanies((cos || []) as Company[]);
     const map: Record<string, CompanyPrivateInfo> = {};
     (privs || []).forEach((p: CompanyPrivateInfo) => { if (p.company_id) map[p.company_id] = p; });
     setPrivateMap(map);
+
+    if (feeRows && feeRows.length > 0) setFeeConfig(feeRows[0] as CompanyFeeConfig);
+    const income = (txns || []).reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0);
+    setListingIncome(income);
+
+    // Count paid (non-expired) companies
+    const paid = Object.values(map).filter(p => {
+      if (p.listing_fee_status !== 'paid' || !p.listing_fee_valid_until) return false;
+      return isAfter(parseISO(p.listing_fee_valid_until), new Date());
+    }).length;
+    setListingPaidCount(paid);
+
     setLoading(false);
   };
 
@@ -105,7 +143,6 @@ export function AdminCompanies() {
     if (!form.company_name) return;
     setUploading(true);
 
-    // Upload logo if changed
     let logo_url = form.logo_url;
     if (logoFile) {
       const fd = new FormData();
@@ -121,7 +158,6 @@ export function AdminCompanies() {
       }
     }
 
-    // Save company
     let companyId = editingId;
     if (editingId) {
       await supabase.from('companies').update({ ...form, logo_url }).eq('id', editingId);
@@ -136,7 +172,6 @@ export function AdminCompanies() {
       toast({ title: 'Company added' });
     }
 
-    // Save private info
     if (companyId) {
       let privUpdated = { ...privateForm };
       if (regDocFile) {
@@ -221,23 +256,125 @@ export function AdminCompanies() {
     setDialogOpen(true);
   };
 
+  // Fee config
+  const startEditFee = () => {
+    setFeeInput(String(feeConfig?.annual_fee_vnd || 1000000));
+    setEditingFee(true);
+  };
+
+  const saveFee = async () => {
+    const val = parseFloat(feeInput);
+    if (!val || val <= 0) { toast({ title: 'Invalid fee amount', variant: 'destructive' }); return; }
+    setSavingFee(true);
+    if (feeConfig?.id) {
+      await supabase.from('company_fee_config').update({ annual_fee_vnd: val, updated_by: profile?.id, updated_at: new Date().toISOString() }).eq('id', feeConfig.id);
+    } else {
+      await supabase.from('company_fee_config').insert({ annual_fee_vnd: val, updated_by: profile?.id });
+    }
+    toast({ title: 'Annual listing fee updated' });
+    setEditingFee(false);
+    setSavingFee(false);
+    load();
+  };
+
+  // Record payment
+  const recordPayment = async () => {
+    if (!payDialog.company || !feeConfig) return;
+    setRecordingPayment(true);
+    const c = payDialog.company;
+    const fee = feeConfig.annual_fee_vnd;
+    const today = new Date();
+    const validUntil = addYears(today, 1);
+
+    // Insert fund transaction
+    const { data: txn } = await supabase.from('fund_transactions').insert({
+      transaction_type: 'income',
+      category: 'company_listing',
+      amount: fee,
+      currency: 'VND',
+      description: `Annual listing fee — ${c.company_name}`,
+      reference_type: 'company',
+      created_by: profile?.id,
+      notes: `Listing fee for year ${today.getFullYear()}–${validUntil.getFullYear()}`,
+    }).select('id').single();
+
+    // Upsert company_private_info payment fields
+    const existing = privateMap[c.id];
+    const paymentPatch = {
+      company_id: c.id,
+      listing_fee_status: 'paid',
+      listing_fee_amount_paid: fee,
+      listing_fee_paid_date: format(today, 'yyyy-MM-dd'),
+      listing_fee_valid_until: format(validUntil, 'yyyy-MM-dd'),
+      listing_fund_transaction_id: txn?.id || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existing?.id) {
+      await supabase.from('company_private_info').update(paymentPatch).eq('id', existing.id);
+    } else {
+      await supabase.from('company_private_info').insert({ ...EMPTY_PRIVATE, ...paymentPatch, is_verified: false });
+    }
+
+    toast({ title: `Payment recorded for ${c.company_name}`, description: `${fmtVND(fee)} valid until ${format(validUntil, 'dd MMM yyyy')}` });
+    setPayDialog({ open: false, company: null });
+    setRecordingPayment(false);
+    load();
+  };
+
   // Stats
   const allPriv = Object.values(privateMap);
   const totalVolume = allPriv.reduce((s, p) => s + (p.annual_revenue_vnd || 0), 0);
   const verifiedCount = allPriv.filter(p => p.is_verified).length;
-  const docsCount = allPriv.filter(p => p.registration_doc_url || p.tax_code_doc_url).length;
 
   const currentLogo = logoPreview || form.logo_url;
 
   return (
     <AdminLayout title="Business Directory">
+
+      {/* Fee Config Banner */}
+      <div className="rounded-xl border border-border bg-card p-4 mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-primary">
+          <Banknote className="h-4 w-4" />
+          <span className="text-sm font-semibold">Annual Listing Fee</span>
+        </div>
+        {editingFee ? (
+          <div className="flex items-center gap-2 flex-1">
+            <Input
+              type="number" min="0" step="100000"
+              value={feeInput}
+              onChange={e => setFeeInput(e.target.value)}
+              className="h-8 w-40 text-sm"
+              placeholder="e.g. 1000000"
+            />
+            <Button size="sm" onClick={saveFee} disabled={savingFee} className="gradient-primary text-primary-foreground h-8 text-xs">
+              {savingFee ? 'Saving...' : 'Save'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditingFee(false)} className="h-8 text-xs">Cancel</Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 flex-1">
+            <span className="text-lg font-bold text-foreground">{fmtVND(feeConfig?.annual_fee_vnd ?? 1000000)}</span>
+            <span className="text-xs text-muted-foreground">per company / year</span>
+            <Button size="sm" variant="ghost" onClick={startEditFee} className="h-7 text-xs gap-1 ml-auto">
+              <Settings className="h-3 w-3" /> Update Fee
+            </Button>
+          </div>
+        )}
+        <div className="flex items-center gap-4 text-sm border-l border-border pl-4">
+          <span className="text-muted-foreground text-xs">Listing Income</span>
+          <span className="font-bold text-primary">{fmtVND(listingIncome)}</span>
+          <span className="text-xs text-muted-foreground">{listingPaidCount} / {companies.length} paid</span>
+        </div>
+      </div>
+
       {/* Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total Companies', value: companies.length, sub: '' },
           { label: 'Total Annual Trade', value: fmtVND(totalVolume), sub: 'Combined annual revenue (VND)' },
           { label: 'Verified', value: verifiedCount, sub: 'Documents reviewed' },
-          { label: 'Docs on File', value: docsCount, sub: 'Registration or tax doc' },
+          { label: 'Listing Income', value: fmtVND(listingIncome), sub: `${listingPaidCount} of ${companies.length} paid` },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-3">
             <p className="text-xl font-bold text-foreground">{s.value}</p>
@@ -266,6 +403,7 @@ export function AdminCompanies() {
         <div className="grid md:grid-cols-2 gap-4">
           {companies.map(c => {
             const priv = privateMap[c.id];
+            const feeStatus = feeStatusInfo(priv);
             return (
               <Card key={c.id} className="shadow-card">
                 <CardContent className="p-5">
@@ -287,6 +425,9 @@ export function AdminCompanies() {
                       <Badge className={c.is_approved ? 'bg-primary/20 text-primary' : 'bg-gold/20 text-gold'}>
                         {c.is_approved ? 'Approved' : 'Pending'}
                       </Badge>
+                      <Badge className={`text-[10px] gap-1 border ${feeStatus.color}`}>
+                        {feeStatus.icon} {feeStatus.label}
+                      </Badge>
                       {priv?.is_verified && (
                         <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border border-green-300/40 text-[10px] gap-1">
                           <ShieldCheck className="h-2.5 w-2.5" /> Verified
@@ -296,6 +437,14 @@ export function AdminCompanies() {
                   </div>
 
                   {c.description && <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{c.description}</p>}
+
+                  {/* Payment info line */}
+                  {priv?.listing_fee_status === 'paid' && priv.listing_fee_valid_until && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                      <CalendarCheck className="h-3 w-3 text-green-600" />
+                      <span>Paid {fmtVND(priv.listing_fee_amount_paid)} · valid until {format(parseISO(priv.listing_fee_valid_until), 'dd MMM yyyy')}</span>
+                    </div>
+                  )}
 
                   {/* Private intel summary */}
                   {priv && (priv.annual_revenue_vnd || priv.tax_code || priv.registration_doc_url || priv.tax_code_doc_url) && (
@@ -327,6 +476,13 @@ export function AdminCompanies() {
                     <Button size="sm" variant="outline" onClick={() => edit(c)} className="gap-1 text-xs">
                       <Edit className="h-3 w-3" /> Edit
                     </Button>
+                    <Button
+                      size="sm" variant="outline"
+                      onClick={() => setPayDialog({ open: true, company: c })}
+                      className="gap-1 text-xs text-primary border-primary hover:bg-primary/10"
+                    >
+                      <CreditCard className="h-3 w-3" /> Record Payment
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => remove(c.id)} className="gap-1 text-xs text-destructive border-destructive hover:bg-destructive/10">
                       <Trash2 className="h-3 w-3" /> Delete
                     </Button>
@@ -337,6 +493,45 @@ export function AdminCompanies() {
           })}
         </div>
       )}
+
+      {/* Payment Dialog */}
+      <Dialog open={payDialog.open} onOpenChange={open => setPayDialog(v => ({ ...v, open }))}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" /> Record Annual Payment
+            </DialogTitle>
+          </DialogHeader>
+          {payDialog.company && (
+            <div className="space-y-4 pt-1">
+              <div className="rounded-lg bg-muted/30 border border-border p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Company</span>
+                  <span className="font-semibold text-foreground">{payDialog.company.company_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Annual Fee</span>
+                  <span className="font-bold text-primary text-base">{fmtVND(feeConfig?.annual_fee_vnd ?? 1000000)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valid Until</span>
+                  <span className="font-medium text-foreground">{format(addYears(new Date(), 1), 'dd MMM yyyy')}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This will post income to the treasury and mark the company listing as paid for 12 months.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={recordPayment} disabled={recordingPayment} className="flex-1 gradient-primary text-primary-foreground gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {recordingPayment ? 'Recording...' : 'Confirm Payment'}
+                </Button>
+                <Button variant="outline" onClick={() => setPayDialog({ open: false, company: null })} className="flex-1">Cancel</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit / Add Dialog */}
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>

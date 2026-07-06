@@ -24,10 +24,11 @@ const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; type: 'income' | 'expense' | 'both' }> = {
   membership_payment:  { label: 'Membership Payment',  color: '#00b359', type: 'income' },
+  company_listing:     { label: 'Company Listing Fee', color: '#3b82f6', type: 'income' },
   welfare_support:     { label: 'Welfare Support',     color: '#DA251D', type: 'expense' },
   national_day_event:  { label: 'National Day Event',  color: '#FFD700', type: 'expense' },
-  community_event:     { label: 'Community Event',     color: '#3b82f6', type: 'expense' },
-  administrative:      { label: 'Administrative',      color: '#8b5cf6', type: 'expense' },
+  community_event:     { label: 'Community Event',     color: '#8b5cf6', type: 'expense' },
+  administrative:      { label: 'Administrative',      color: '#f97316', type: 'expense' },
   other:               { label: 'Other',               color: '#6b7280', type: 'both' },
 };
 

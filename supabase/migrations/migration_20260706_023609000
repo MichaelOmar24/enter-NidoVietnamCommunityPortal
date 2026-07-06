@@ -1,0 +1,44 @@
+
+-- 1. Create company_fee_config table (single-row, admin-controlled)
+CREATE TABLE IF NOT EXISTS company_fee_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  annual_fee_vnd numeric NOT NULL DEFAULT 1000000,
+  updated_by uuid REFERENCES profiles(id),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Insert default row
+INSERT INTO company_fee_config (annual_fee_vnd) VALUES (1000000)
+ON CONFLICT DO NOTHING;
+
+-- RLS
+ALTER TABLE company_fee_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage fee config" ON company_fee_config
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin OR is_super_admin))
+  );
+
+CREATE POLICY "Anyone can read fee config" ON company_fee_config
+  FOR SELECT USING (true);
+
+-- 2. Add payment tracking columns to company_private_info
+ALTER TABLE company_private_info
+  ADD COLUMN IF NOT EXISTS listing_fee_status text NOT NULL DEFAULT 'unpaid',
+  ADD COLUMN IF NOT EXISTS listing_fee_amount_paid numeric,
+  ADD COLUMN IF NOT EXISTS listing_fee_paid_date date,
+  ADD COLUMN IF NOT EXISTS listing_fee_valid_until date,
+  ADD COLUMN IF NOT EXISTS listing_fund_transaction_id uuid;
+
+-- 3. Extend fund_transactions category to include 'company_listing'
+ALTER TABLE fund_transactions DROP CONSTRAINT IF EXISTS fund_transactions_category_check;
+ALTER TABLE fund_transactions ADD CONSTRAINT fund_transactions_category_check
+  CHECK (category = ANY (ARRAY[
+    'membership_payment', 'welfare_support', 'national_day_event',
+    'community_event', 'administrative', 'company_listing', 'other'
+  ]));
+
+-- 4. Extend fund_transactions reference_type to include 'company'
+ALTER TABLE fund_transactions DROP CONSTRAINT IF EXISTS fund_transactions_reference_type_check;
+ALTER TABLE fund_transactions ADD CONSTRAINT fund_transactions_reference_type_check
+  CHECK (reference_type = ANY (ARRAY['membership', 'welfare_request', 'manual', 'company']));
