@@ -12,7 +12,7 @@ import { Passport } from '@/lib/types';
 import {
   User, FileText, Shield, Calendar, AlertTriangle, CheckCircle,
   CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon,
-  Crown, Clock, ArrowRight
+  Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock,
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -42,12 +42,16 @@ export function UserDashboard() {
   const [passport, setPassport] = useState<Passport | null>(null);
   const [totalMembers, setTotalMembers] = useState(0);
   const [paymentHistory, setPaymentHistory] = useState<MembershipRecord[]>([]);
+  const [fundBalance, setFundBalance] = useState<{ income: number; expense: number; net: number } | null>(null);
   const navigate = useNavigate();
+
+  const isPaidMember = profile?.membership_type === 'premium' || profile?.membership_type === 'gold';
 
   useEffect(() => {
     if (profile) {
       fetchPassport();
       fetchPaymentHistory();
+      if (isPaidMember) fetchFundBalance();
     }
     fetchMemberCount();
   }, [profile]);
@@ -67,6 +71,14 @@ export function UserDashboard() {
     if (!profile) return;
     const { data } = await supabase.from('memberships').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
     setPaymentHistory((data || []) as MembershipRecord[]);
+  };
+
+  const fetchFundBalance = async () => {
+    const { data } = await supabase.from('fund_transactions').select('transaction_type, amount');
+    const rows = data || [];
+    const income = rows.filter((r: { transaction_type: string }) => r.transaction_type === 'income').reduce((s: number, r: { amount: number }) => s + Number(r.amount), 0);
+    const expense = rows.filter((r: { transaction_type: string }) => r.transaction_type === 'expense').reduce((s: number, r: { amount: number }) => s + Number(r.amount), 0);
+    setFundBalance({ income, expense, net: income - expense });
   };
 
   const daysToExpiry = passport?.expiry_date ? differenceInDays(parseISO(passport.expiry_date), new Date()) : null;
@@ -280,6 +292,70 @@ export function UserDashboard() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* Community Fund Balance — paid members only */}
+            {isPaidMember ? (
+              <Card className={`shadow-card md:col-span-2 border ${profile?.membership_type === 'gold' ? 'border-amber-400/40' : 'border-primary/30'} overflow-hidden`}>
+                <div className={`h-1 w-full ${profile?.membership_type === 'gold' ? 'gradient-gold' : 'gradient-primary'}`} />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Banknote className={`h-5 w-5 ${profile?.membership_type === 'gold' ? 'text-amber-500' : 'text-primary'}`} />
+                    Community Fund Balance
+                    <Badge className={`ml-auto text-[10px] border ${profile?.membership_type === 'gold' ? 'bg-amber-500/10 text-amber-600 border-amber-400/30' : 'bg-primary/10 text-primary border-primary/30'}`}>
+                      {profile?.membership_type === 'gold' ? <Crown className="h-2.5 w-2.5 mr-1 inline" /> : <Shield className="h-2.5 w-2.5 mr-1 inline" />}
+                      {profile?.membership_type === 'gold' ? 'Gold Exclusive' : 'Premium Access'}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {fundBalance ? (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="col-span-3 sm:col-span-1 rounded-xl bg-muted/40 border border-border p-4 text-center">
+                        <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">Net Balance</p>
+                        <p className={`text-2xl font-bold ${fundBalance.net >= 0 ? (profile?.membership_type === 'gold' ? 'text-amber-600' : 'text-primary') : 'text-destructive'}`}>
+                          {VND(fundBalance.net)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Community treasury</p>
+                      </div>
+                      <div className="rounded-xl bg-green-500/5 border border-green-300/30 p-4 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Income</p>
+                        </div>
+                        <p className="text-lg font-bold text-green-700 dark:text-green-400">{VND(fundBalance.income)}</p>
+                      </div>
+                      <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-4 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Expenses</p>
+                        </div>
+                        <p className="text-lg font-bold text-destructive">{VND(fundBalance.expense)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground">
+                      <Banknote className="h-5 w-5 animate-pulse" />
+                      <span className="text-sm">Loading balance...</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="shadow-card md:col-span-2 border border-border/50 opacity-60">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground text-sm">Community Fund Balance</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Upgrade to Premium or Gold to view the community treasury balance.</p>
+                  </div>
+                  <Button size="sm" onClick={() => navigate('/membership')} className="gradient-gold text-gold-foreground shrink-0">
+                    Upgrade
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Payment History */}
             {paymentHistory.length > 0 && (
