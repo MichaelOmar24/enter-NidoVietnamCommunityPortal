@@ -12,7 +12,7 @@ import { Passport } from '@/lib/types';
 import {
   User, FileText, Shield, Calendar, AlertTriangle, CheckCircle,
   CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon,
-  Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock, Award, Star,
+  Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock, Award, Star, Heart,
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
