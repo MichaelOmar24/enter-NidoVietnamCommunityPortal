@@ -1,0 +1,35 @@
+-- Create company_private_info table
+CREATE TABLE public.company_private_info (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  company_id uuid NOT NULL UNIQUE REFERENCES public.companies(id) ON DELETE CASCADE,
+  registration_number text,
+  tax_code text,
+  annual_revenue_vnd numeric(15,2),
+  monthly_revenue_vnd numeric(15,2),
+  trade_volume_notes text,
+  registration_doc_url text,
+  tax_code_doc_url text,
+  is_verified boolean NOT NULL DEFAULT false,
+  verified_by uuid REFERENCES public.profiles(id),
+  verified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT company_private_info_pkey PRIMARY KEY (id)
+);
+
+ALTER TABLE public.company_private_info ENABLE ROW LEVEL SECURITY;
+
+-- Admins: full access
+CREATE POLICY "Admins can manage company private info"
+  ON public.company_private_info
+  FOR ALL
+  USING (is_current_user_admin());
+
+-- Embassy staff: read only
+CREATE POLICY "Embassy staff can view company private info"
+  ON public.company_private_info
+  FOR SELECT
+  USING (is_current_user_embassy_staff());
+
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.company_private_info;

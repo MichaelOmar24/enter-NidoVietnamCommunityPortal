@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   Users, ShieldCheck, Clock, XCircle, Briefcase,
-  Building2, Image, FileText, Activity, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote
+  Building2, Image, FileText, Activity, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock
 } from 'lucide-react';
 import { differenceInDays, parseISO, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { OCCUPATION_LABELS } from '@/lib/types';
@@ -49,6 +49,7 @@ export function EmbassyOverview() {
   const [cityData, setCityData] = useState<{ city: string; count: number }[]>([]);
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
+  const [companyIntel, setCompanyIntel] = useState<{ company: { id: string; company_name: string; industry: string | null; business_type: string | null; is_approved: boolean }; priv: { annual_revenue_vnd: number | null; monthly_revenue_vnd: number | null; tax_code: string | null; registration_number: string | null; is_verified: boolean; registration_doc_url: string | null; tax_code_doc_url: string | null } | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
@@ -77,6 +78,20 @@ export function EmbassyOverview() {
       supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type'),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
     ]);
+
+    // Company intelligence
+    const [{ data: coData }, { data: privData }] = await Promise.all([
+      supabase.from('companies').select('id, company_name, industry, business_type, is_approved').order('company_name'),
+      supabase.from('company_private_info').select('*'),
+    ]);
+    const privMap: Record<string, typeof privData extends (infer T)[] | null ? T : never> = {};
+    (privData || []).forEach((p: { company_id: string }) => { if (p.company_id) (privMap as Record<string, typeof p>)[p.company_id] = p; });
+    setCompanyIntel(
+      (coData || []).map((c: { id: string; company_name: string; industry: string | null; business_type: string | null; is_approved: boolean }) => ({
+        company: c,
+        priv: (privMap as Record<string, { annual_revenue_vnd: number | null; monthly_revenue_vnd: number | null; tax_code: string | null; registration_number: string | null; is_verified: boolean; registration_doc_url: string | null; tax_code_doc_url: string | null } | null>)[c.id] ?? null,
+      }))
+    );
 
     const now = new Date();
     let expiring = 0, expiredPass = 0;
@@ -349,7 +364,7 @@ export function EmbassyOverview() {
       </div>
 
       {/* Passport health + Gender */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 mb-4">
         {/* Passport Health Bar */}
         <div className="embassy-chart-card p-4">
           <p className="text-sm font-semibold text-white mb-1">Passport Health Overview</p>
@@ -390,6 +405,81 @@ export function EmbassyOverview() {
               <Legend wrapperStyle={{ fontSize: 12, color: '#8b949e' }} />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Company Trade Intelligence */}
+      <div className="embassy-chart-card p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Lock className="h-4 w-4 text-amber-400" />
+          <p className="text-sm font-semibold text-white">Company Trade Intelligence</p>
+          <span className="ml-auto text-[10px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full">CONFIDENTIAL</span>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">Private financial data — not shared with the public</p>
+
+        {/* Summary stats */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[
+            { label: 'Total Annual Trade Volume', value: (() => { const t = companyIntel.reduce((s, c) => s + (c.priv?.annual_revenue_vnd || 0), 0); return t >= 1_000_000_000 ? `${(t/1_000_000_000).toFixed(1)}B ₫` : t >= 1_000_000 ? `${(t/1_000_000).toFixed(0)}M ₫` : t.toLocaleString('vi-VN') + ' ₫'; })() },
+            { label: 'Verified Companies', value: `${companyIntel.filter(c => c.priv?.is_verified).length} / ${companyIntel.length}` },
+            { label: 'Docs Submitted', value: companyIntel.filter(c => c.priv?.registration_doc_url || c.priv?.tax_code_doc_url).length },
+          ].map(s => (
+            <div key={s.label} className="rounded-lg bg-white/5 border border-white/10 p-3">
+              <p className="text-lg font-bold text-white">{s.value}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-white/10">
+                {['Company', 'Industry', 'Annual Revenue', 'Monthly Revenue', 'Reg. No.', 'Tax Code', 'Docs', 'Status'].map(h => (
+                  <th key={h} className="pb-2 text-left text-gray-500 font-medium pr-4 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {companyIntel.map(({ company: c, priv: p }) => (
+                <tr key={c.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="py-2.5 pr-4 font-medium text-white whitespace-nowrap">{c.company_name}</td>
+                  <td className="py-2.5 pr-4 text-gray-400 whitespace-nowrap">{c.industry || '—'}</td>
+                  <td className="py-2.5 pr-4 text-green-400 font-medium whitespace-nowrap">
+                    {p?.annual_revenue_vnd
+                      ? p.annual_revenue_vnd >= 1_000_000_000
+                        ? `${(p.annual_revenue_vnd/1_000_000_000).toFixed(1)}B ₫`
+                        : `${(p.annual_revenue_vnd/1_000_000).toFixed(0)}M ₫`
+                      : <span className="text-gray-600">—</span>}
+                  </td>
+                  <td className="py-2.5 pr-4 text-gray-300 whitespace-nowrap">
+                    {p?.monthly_revenue_vnd
+                      ? p.monthly_revenue_vnd >= 1_000_000_000
+                        ? `${(p.monthly_revenue_vnd/1_000_000_000).toFixed(1)}B ₫`
+                        : `${(p.monthly_revenue_vnd/1_000_000).toFixed(0)}M ₫`
+                      : <span className="text-gray-600">—</span>}
+                  </td>
+                  <td className="py-2.5 pr-4 text-gray-400 font-mono">{p?.registration_number || <span className="text-gray-600">—</span>}</td>
+                  <td className="py-2.5 pr-4 text-gray-400 font-mono">{p?.tax_code || <span className="text-gray-600">—</span>}</td>
+                  <td className="py-2.5 pr-4">
+                    <div className="flex gap-1">
+                      {p?.registration_doc_url && <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-400/20 px-1.5 py-0.5 rounded">Reg</span>}
+                      {p?.tax_code_doc_url && <span className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-400/20 px-1.5 py-0.5 rounded">Tax</span>}
+                      {!p?.registration_doc_url && !p?.tax_code_doc_url && <span className="text-gray-600">—</span>}
+                    </div>
+                  </td>
+                  <td className="py-2.5">
+                    {p?.is_verified
+                      ? <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-400/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit"><ShieldCheck className="h-2.5 w-2.5" /> Verified</span>
+                      : <span className="text-gray-600 text-[10px]">Unverified</span>}
+                  </td>
+                </tr>
+              ))}
+              {companyIntel.length === 0 && (
+                <tr><td colSpan={8} className="py-8 text-center text-gray-600">No company data yet</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </EmbassyLayout>

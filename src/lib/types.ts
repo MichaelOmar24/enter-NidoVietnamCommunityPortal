@@ -62,6 +62,23 @@ export interface Company {
   profile?: Profile;
 }
 
+export interface CompanyPrivateInfo {
+  id?: string;
+  company_id: string;
+  registration_number?: string;
+  tax_code?: string;
+  annual_revenue_vnd?: number | null;
+  monthly_revenue_vnd?: number | null;
+  trade_volume_notes?: string;
+  registration_doc_url?: string;
+  tax_code_doc_url?: string;
+  is_verified: boolean;
+  verified_by?: string;
+  verified_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface GalleryAlbum {
   id: string;
   title: string;

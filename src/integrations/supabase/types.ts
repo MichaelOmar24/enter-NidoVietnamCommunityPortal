@@ -3491,6 +3491,70 @@ export type Database = {
           },
         ]
       }
+      company_private_info: {
+        Row: {
+          annual_revenue_vnd: number | null
+          company_id: string
+          created_at: string
+          id: string
+          is_verified: boolean
+          monthly_revenue_vnd: number | null
+          registration_doc_url: string | null
+          registration_number: string | null
+          tax_code: string | null
+          tax_code_doc_url: string | null
+          trade_volume_notes: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          annual_revenue_vnd?: number | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          monthly_revenue_vnd?: number | null
+          registration_doc_url?: string | null
+          registration_number?: string | null
+          tax_code?: string | null
+          tax_code_doc_url?: string | null
+          trade_volume_notes?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          annual_revenue_vnd?: number | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          monthly_revenue_vnd?: number | null
+          registration_doc_url?: string | null
+          registration_number?: string | null
+          tax_code?: string | null
+          tax_code_doc_url?: string | null
+          trade_volume_notes?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_private_info_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_private_info_verified_by_fkey"
+            columns: ["verified_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           admin_reply: string | null
