@@ -833,33 +833,33 @@ export function AdminMembers() {
                                       <div>
                                         <span className="text-muted-foreground text-xs block">Spouse Name</span>
                                         <span className="text-foreground">
-                                          {[(selected as Profile & { spouse_first_name?: string }).spouse_first_name, (selected as Profile & { spouse_last_name?: string }).spouse_last_name].filter(Boolean).join(' ') || '-'}
+                                          {[selected.spouse_first_name, selected.spouse_last_name].filter(Boolean).join(' ') || '-'}
                                         </span>
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground text-xs block">Spouse Nationality</span>
                                         <span className="text-foreground capitalize">
-                                          {(selected as Profile & { spouse_nationality?: string; spouse_nationality_other?: string }).spouse_nationality === 'other'
-                                            ? (selected as Profile & { spouse_nationality_other?: string }).spouse_nationality_other || 'Other'
-                                            : (selected as Profile & { spouse_nationality?: string }).spouse_nationality || '-'}
+                                          {selected.spouse_nationality === 'other'
+                                            ? selected.spouse_nationality_other || 'Other'
+                                            : selected.spouse_nationality || '-'}
                                         </span>
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground text-xs block">Children</span>
                                         <span className="text-foreground flex items-center gap-1">
                                           <Baby className="h-3.5 w-3.5 text-purple-500" />
-                                          {(selected as Profile & { number_of_kids?: number }).number_of_kids ?? 0}
+                                          {selected.number_of_kids ?? 0}
                                         </span>
                                       </div>
                                     </div>
                                     {/* Spouse Passport */}
-                                    {(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url && (
+                                    {selected.spouse_passport_url && (
                                       <div>
                                         <p className="text-xs text-muted-foreground mb-1.5">Spouse Passport</p>
                                         <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
-                                          onClick={() => window.open((selected as Profile & { spouse_passport_url?: string }).spouse_passport_url, '_blank')}>
+                                          onClick={() => window.open(selected.spouse_passport_url!, '_blank')}>
                                           <img
-                                            src={(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url}
+                                            src={selected.spouse_passport_url}
                                             alt="Spouse Passport"
                                             className="w-full h-36 object-cover transition-transform group-hover:scale-105"
                                             onContextMenu={e => e.preventDefault()}
