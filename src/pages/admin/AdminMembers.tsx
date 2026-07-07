@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, RELIGION_LABELS, OccupationType, MaritalStatus, Gender, ReligionType } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff } from 'lucide-react';
+import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, RELIGION_LABELS, QUALIFICATION_LABELS, PURPOSE_OF_VISIT_LABELS, OccupationType, MaritalStatus, Gender, ReligionType, QualificationType, PurposeOfVisitType, SpouseNationality } from '@/lib/types';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,9 +38,15 @@ export function AdminMembers() {
     occupation_type: '' as OccupationType | '',
     occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '',
     marital_status: '' as MaritalStatus | '',
-    vietnam_city: '', nigerian_state_of_origin: '',
+    vietnam_city: '', vietnam_address: '', nigerian_state_of_origin: '', lga_of_origin: '',
     next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
     religion: '' as ReligionType | '',
+    highest_qualification: '' as QualificationType | '',
+    purpose_of_visit: '' as PurposeOfVisitType | '',
+    // Spouse & family
+    spouse_nationality: '' as SpouseNationality | '',
+    spouse_nationality_other: '',
+    number_of_kids: '' as number | '',
   });
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -51,6 +57,8 @@ export function AdminMembers() {
   });
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [passportPreview, setPassportPreview] = useState<string | null>(null);
+  const [spousePassportFile, setSpousePassportFile] = useState<File | null>(null);
+  const [spousePassportPreview, setSpousePassportPreview] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberWithPassport | null>(null);
   const [deleting, setDeleting] = useState(false);
   const PAGE_SIZE = 15;
@@ -155,15 +163,38 @@ export function AdminMembers() {
 
     // Update profile with extended fields
     if (userId) {
+      let spousePassportUrl: string | null = null;
+      if (spousePassportFile) {
+        const ext = spousePassportFile.name.split('.').pop();
+        const fileName = `spouse_passport_${userId}_${Date.now()}.${ext}`;
+        const { data: spUploadData, error: spUploadErr } = await supabase.storage
+          .from('passport-images')
+          .upload(fileName, spousePassportFile);
+        if (!spUploadErr && spUploadData) {
+          const { data: spUrlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
+          spousePassportUrl = spUrlData.publicUrl;
+        }
+      }
+
       await (supabase.from('profiles') as unknown as { update: (d: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> } }).update({
         occupation_institution_name: createForm.occupation_institution_name || null,
         occupation_institution_address: createForm.occupation_institution_address || null,
         occupation_country_state: createForm.occupation_country_state || null,
+        vietnam_address: createForm.vietnam_address || null,
+        lga_of_origin: createForm.lga_of_origin || null,
         next_of_kin_name: createForm.next_of_kin_name || null,
         next_of_kin_relationship: createForm.next_of_kin_relationship || null,
         next_of_kin_phone: createForm.next_of_kin_phone || null,
         next_of_kin_address: createForm.next_of_kin_address || null,
         religion: createForm.religion || null,
+        highest_qualification: createForm.highest_qualification || null,
+        purpose_of_visit: createForm.purpose_of_visit || null,
+        ...(createForm.marital_status === 'married' ? {
+          spouse_nationality: createForm.spouse_nationality || null,
+          spouse_nationality_other: createForm.spouse_nationality === 'other' ? createForm.spouse_nationality_other || null : null,
+          number_of_kids: createForm.number_of_kids !== '' ? Number(createForm.number_of_kids) : 0,
+          spouse_passport_url: spousePassportUrl,
+        } : {}),
       }).eq('id', userId);
     }
 
@@ -206,13 +237,16 @@ export function AdminMembers() {
       email: '', first_name: '', last_name: '', phone: '',
       date_of_birth: '', gender: '', occupation_type: '',
       occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '',
-      marital_status: '', vietnam_city: '', nigerian_state_of_origin: '',
+      marital_status: '', vietnam_city: '', vietnam_address: '', nigerian_state_of_origin: '', lga_of_origin: '',
       next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
-      religion: '',
+      religion: '', highest_qualification: '', purpose_of_visit: '',
+      spouse_nationality: '', spouse_nationality_other: '', number_of_kids: '',
     });
     setPassportForm({ passport_number: '', place_of_issue: '', issue_date: '', expiry_date: '', is_biometric: false, verified: false, admin_notes: '' });
     setPassportFile(null);
     setPassportPreview(null);
+    setSpousePassportFile(null);
+    setSpousePassportPreview(null);
     setCredentials({ email: createForm.email, password: data.password });
     loadMembers();
   };
@@ -376,7 +410,7 @@ export function AdminMembers() {
               );
             })()}
 
-            {/* Vietnam City & State of Origin */}
+            {/* Vietnam City & Address */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Vietnam City</Label>
@@ -390,6 +424,14 @@ export function AdminMembers() {
                 </Select>
               </div>
               <div className="space-y-1.5">
+                <Label>Address in Vietnam</Label>
+                <Input value={createForm.vietnam_address} onChange={e => setCreateForm(f => ({ ...f, vietnam_address: e.target.value }))} placeholder="Street address, district..." />
+              </div>
+            </div>
+
+            {/* State of Origin & LGA */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label>State of Origin</Label>
                 <Select value={createForm.nigerian_state_of_origin} onValueChange={v => setCreateForm(f => ({ ...f, nigerian_state_of_origin: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
@@ -400,20 +442,117 @@ export function AdminMembers() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>LGA of Origin</Label>
+                <Input value={createForm.lga_of_origin} onChange={e => setCreateForm(f => ({ ...f, lga_of_origin: e.target.value }))} placeholder="Local Government Area" />
+              </div>
             </div>
 
-            {/* Religion */}
+            {/* Religion & Qualification */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Religion</Label>
+                <Select value={createForm.religion} onValueChange={v => setCreateForm(f => ({ ...f, religion: v as ReligionType }))}>
+                  <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(RELIGION_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Highest Qualification</Label>
+                <Select value={createForm.highest_qualification} onValueChange={v => setCreateForm(f => ({ ...f, highest_qualification: v as QualificationType }))}>
+                  <SelectTrigger><SelectValue placeholder="Select qualification" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(QUALIFICATION_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Purpose of Visit */}
             <div className="space-y-1.5">
-              <Label>Religion</Label>
-              <Select value={createForm.religion} onValueChange={v => setCreateForm(f => ({ ...f, religion: v as ReligionType }))}>
-                <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+              <Label>Purpose of Visit to Vietnam</Label>
+              <Select value={createForm.purpose_of_visit} onValueChange={v => setCreateForm(f => ({ ...f, purpose_of_visit: v as PurposeOfVisitType }))}>
+                <SelectTrigger><SelectValue placeholder="Select purpose of visit" /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(RELIGION_LABELS).map(([val, label]) => (
+                  {Object.entries(PURPOSE_OF_VISIT_LABELS).map(([val, label]) => (
                     <SelectItem key={val} value={val}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Married Sub-Form */}
+            {createForm.marital_status === 'married' && (
+              <div className="p-3 rounded-lg bg-muted/40 border border-border space-y-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Heart className="h-3.5 w-3.5 text-red-500" /> Spouse &amp; Family Information
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Spouse Nationality</Label>
+                    <Select value={createForm.spouse_nationality} onValueChange={v => setCreateForm(f => ({ ...f, spouse_nationality: v as SpouseNationality }))}>
+                      <SelectTrigger><SelectValue placeholder="Select nationality" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vietnamese">Vietnamese</SelectItem>
+                        <SelectItem value="nigerian">Nigerian</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Number of Children</Label>
+                    <Input
+                      type="number" min={0} max={20}
+                      value={createForm.number_of_kids === '' ? '' : String(createForm.number_of_kids)}
+                      onChange={e => setCreateForm(f => ({ ...f, number_of_kids: e.target.value === '' ? '' : Number(e.target.value) }))}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                {createForm.spouse_nationality === 'other' && (
+                  <div className="space-y-1.5">
+                    <Label>Spouse's Nationality (specify)</Label>
+                    <Input value={createForm.spouse_nationality_other} onChange={e => setCreateForm(f => ({ ...f, spouse_nationality_other: e.target.value }))} placeholder="e.g. Ghanaian, Chinese, Indian..." />
+                  </div>
+                )}
+                {/* Spouse Passport Upload */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    Spouse Passport <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                  </Label>
+                  {spousePassportPreview ? (
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-muted/30">
+                      <img src={spousePassportPreview} alt="Spouse Passport" className="w-full h-36 object-cover" />
+                      <button onClick={() => { setSpousePassportFile(null); setSpousePassportPreview(null); }} className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                      <div className="absolute top-2 left-2">
+                        <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+                          <Heart className="h-2.5 w-2.5 mr-1" /> Spouse Passport
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('create-spouse-passport-upload')?.click()}>
+                      <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">Click to upload spouse passport</p>
+                    </div>
+                  )}
+                  <input id="create-spouse-passport-upload" type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    setSpousePassportFile(file);
+                    if (file) setSpousePassportPreview(URL.createObjectURL(file));
+                    else setSpousePassportPreview(null);
+                  }} />
+                </div>
+              </div>
+            )}
 
             {/* Next of Kin */}
             <div className="border-t border-border pt-4 space-y-3">
@@ -713,6 +852,62 @@ export function AdminMembers() {
                                     </div>
                                   ))}
                                 </div>
+
+                                {/* Spouse & Family Info */}
+                                {selected.marital_status === 'married' && (
+                                  <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-3">
+                                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <Heart className="h-3.5 w-3.5 text-red-500" /> Spouse &amp; Family
+                                    </p>
+                                    <div className="grid grid-cols-3 gap-3 text-sm">
+                                      <div>
+                                        <span className="text-muted-foreground text-xs block">Spouse Nationality</span>
+                                        <span className="text-foreground capitalize">
+                                          {(selected as Profile & { spouse_nationality?: string; spouse_nationality_other?: string }).spouse_nationality === 'other'
+                                            ? (selected as Profile & { spouse_nationality_other?: string }).spouse_nationality_other || 'Other'
+                                            : (selected as Profile & { spouse_nationality?: string }).spouse_nationality || '-'}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground text-xs block">Children</span>
+                                        <span className="text-foreground flex items-center gap-1">
+                                          <Baby className="h-3.5 w-3.5 text-purple-500" />
+                                          {(selected as Profile & { number_of_kids?: number }).number_of_kids ?? 0}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {/* Spouse Passport */}
+                                    {(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url ? (
+                                      <div>
+                                        <p className="text-xs text-muted-foreground mb-1.5">Spouse Passport</p>
+                                        <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
+                                          onClick={() => window.open((selected as Profile & { spouse_passport_url?: string }).spouse_passport_url, '_blank')}>
+                                          <img
+                                            src={(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url}
+                                            alt="Spouse Passport"
+                                            className="w-full h-36 object-cover transition-transform group-hover:scale-105"
+                                            onContextMenu={e => e.preventDefault()}
+                                          />
+                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div className="flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 px-3 py-1.5 rounded-full">
+                                              <ZoomIn className="h-3.5 w-3.5" /> View Full Size
+                                            </div>
+                                          </div>
+                                          <div className="absolute top-2 left-2">
+                                            <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+                                              <Heart className="h-2.5 w-2.5 mr-1" /> Spouse Passport
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="h-20 rounded-lg border-2 border-dashed border-border bg-muted/10 flex flex-col items-center justify-center text-muted-foreground">
+                                        <FileImage className="h-5 w-5 mb-1 opacity-40" />
+                                        <span className="text-xs">No spouse passport uploaded</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
 
                                 {/* Status control */}
                                 <div className="flex gap-2 flex-wrap">
