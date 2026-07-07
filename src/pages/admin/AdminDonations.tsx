@@ -13,7 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   Plus, Edit, Trash2, Heart, Eye, EyeOff, CheckCircle,
-  Clock, XCircle, Banknote, QrCode, Users, Send, Upload, ImageIcon
+  Clock, XCircle, Banknote, QrCode, Users, Send, Upload, ImageIcon, X
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -53,6 +53,7 @@ const EMPTY_CAMPAIGN = {
   title: '', beneficiary_name: '', description: '', story: '',
   bank_name: '', account_name: '', account_number: '', qr_code_url: '',
   target_amount_vnd: '', is_active: true, is_published: false,
+  images: [] as string[],
 };
 
 export function AdminDonations() {
@@ -66,6 +67,7 @@ export function AdminDonations() {
   const [form, setForm] = useState(EMPTY_CAMPAIGN);
   const [saving, setSaving] = useState(false);
   const [uploadingQR, setUploadingQR] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [sendingReceipt, setSendingReceipt] = useState<string | null>(null);
 
@@ -107,6 +109,7 @@ export function AdminDonations() {
       account_number: c.account_number || '', qr_code_url: c.qr_code_url || '',
       target_amount_vnd: c.target_amount_vnd ? String(c.target_amount_vnd) : '',
       is_active: c.is_active, is_published: c.is_published,
+      images: c.images || [],
     });
     setEditingId(c.id);
     setDialogOpen(true);
@@ -124,6 +127,7 @@ export function AdminDonations() {
       account_number: form.account_number || null, qr_code_url: form.qr_code_url || null,
       target_amount_vnd: form.target_amount_vnd ? parseFloat(form.target_amount_vnd) : null,
       is_active: form.is_active, is_published: form.is_published,
+      images: form.images || [],
       created_by: profile?.id, updated_at: new Date().toISOString(),
     };
     if (editingId) {
@@ -159,6 +163,29 @@ export function AdminDonations() {
       setForm(f => ({ ...f, qr_code_url: publicUrl }));
     }
     setUploadingQR(false);
+  };
+
+  const handleCampaignImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingImage(true);
+    const newUrls: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split('.').pop();
+      const path = `donation-campaigns/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
+        newUrls.push(publicUrl);
+      }
+    }
+    setForm(f => ({ ...f, images: [...(f.images || []), ...newUrls] }));
+    setUploadingImage(false);
+    e.target.value = '';
+  };
+
+  const removeCampaignImage = (idx: number) => {
+    setForm(f => ({ ...f, images: (f.images || []).filter((_, i) => i !== idx) }));
   };
 
   const confirmDonation = async (d: Donation, campaign: Campaign) => {
@@ -397,6 +424,37 @@ export function AdminDonations() {
               <div className="space-y-1.5">
                 <Label className="text-sm">Target Amount (VND, optional)</Label>
                 <Input type="number" value={form.target_amount_vnd} onChange={e => setForm(f => ({ ...f, target_amount_vnd: e.target.value }))} placeholder="e.g. 10000000" className="h-9 text-sm" />
+              </div>
+
+              {/* Campaign Images Upload */}
+              <div className="space-y-2">
+                <Label className="text-sm">Campaign Images</Label>
+                {(form.images || []).length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(form.images || []).map((url, i) => (
+                      <div key={i} className="relative group rounded-lg overflow-hidden border border-border aspect-video">
+                        <img src={url} alt={`Campaign image ${i + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeCampaignImage(i)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="cursor-pointer block">
+                  <div className={`flex items-center gap-2 px-3 py-3 rounded-lg border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-sm text-muted-foreground text-center justify-center ${uploadingImage ? 'opacity-60 pointer-events-none' : ''}`}>
+                    {uploadingImage ? (
+                      <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> Uploading...</>
+                    ) : (
+                      <><ImageIcon className="h-4 w-4 text-primary" /> {(form.images || []).length > 0 ? 'Add more images' : 'Upload campaign images'} (multiple allowed)</>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleCampaignImageUpload} disabled={uploadingImage} />
+                </label>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">

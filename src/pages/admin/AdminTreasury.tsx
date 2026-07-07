@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, Banknote, ArrowUpRight, ArrowDownRight,
-  Search, Plus, BookOpen, RefreshCw, Calendar
+  Search, Plus, BookOpen, RefreshCw, Calendar, User
 } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -61,6 +61,10 @@ export function AdminTreasury() {
   const [catData, setCatData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberResults, setMemberResults] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
+  const [selectedMember, setSelectedMember] = useState<{ id: string; first_name: string; last_name: string } | null>(null);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
 
   // Expense form state
   const [form, setForm] = useState({
@@ -113,15 +117,47 @@ export function AdminTreasury() {
 
   useEffect(() => { load(); }, [load]);
 
+  const searchMembers = async (q: string) => {
+    if (!q.trim()) { setMemberResults([]); setShowMemberDropdown(false); return; }
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`)
+      .limit(6);
+    setMemberResults((data || []) as { id: string; first_name: string; last_name: string }[]);
+    setShowMemberDropdown(true);
+  };
+
+  const selectMember = (m: { id: string; first_name: string; last_name: string }) => {
+    setSelectedMember(m);
+    setMemberSearch(`${m.first_name} ${m.last_name}`);
+    setShowMemberDropdown(false);
+    // Auto-populate description based on category
+    const fullName = `${m.first_name} ${m.last_name}`;
+    const catLabel = CATEGORY_CONFIG[form.category]?.label || form.category;
+    setForm(f => ({
+      ...f,
+      description: f.description
+        ? f.description
+        : `${catLabel} — ${fullName}`,
+    }));
+  };
+
   const handleAddExpense = async () => {
     if (!form.amount || !form.description.trim() || !profile) return;
     setSubmitting(true);
+    // Append member name to description if selected and not already there
+    const memberName = selectedMember ? `${selectedMember.first_name} ${selectedMember.last_name}` : '';
+    let finalDescription = form.description.trim();
+    if (memberName && !finalDescription.includes(memberName)) {
+      finalDescription = `${finalDescription} — ${memberName}`;
+    }
     const { error } = await supabase.from('fund_transactions').insert({
       transaction_type: 'expense',
       category: form.category,
       amount: parseFloat(form.amount.replace(/,/g, '')),
       currency: 'VND',
-      description: form.description.trim(),
+      description: finalDescription,
       notes: form.notes.trim() || null,
       reference_type: 'manual',
       created_by: profile.id,
@@ -130,6 +166,8 @@ export function AdminTreasury() {
     if (!error) {
       setSuccessMsg('Expense recorded successfully');
       setForm({ category: 'welfare_support', amount: '', description: '', notes: '' });
+      setSelectedMember(null);
+      setMemberSearch('');
       setTimeout(() => setSuccessMsg(''), 3000);
       load();
     }
@@ -332,7 +370,11 @@ export function AdminTreasury() {
 
                 <div>
                   <Label className="text-sm mb-1.5 block">Expense Category <span className="text-destructive">*</span></Label>
-                  <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <Select value={form.category} onValueChange={v => {
+                    setForm(f => ({ ...f, category: v, description: '' }));
+                    setSelectedMember(null);
+                    setMemberSearch('');
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -342,6 +384,48 @@ export function AdminTreasury() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Member Name (especially for welfare, but available for all) */}
+                <div className="relative">
+                  <Label className="text-sm mb-1.5 block flex items-center gap-1">
+                    <User className="h-3.5 w-3.5" /> Member Name
+                    {form.category === 'welfare_support' && <span className="text-destructive ml-0.5">*</span>}
+                    {form.category !== 'welfare_support' && <span className="text-muted-foreground text-xs">(optional — appended to description)</span>}
+                  </Label>
+                  <Input
+                    placeholder="Search member by name..."
+                    value={memberSearch}
+                    onChange={e => {
+                      setMemberSearch(e.target.value);
+                      setSelectedMember(null);
+                      searchMembers(e.target.value);
+                    }}
+                    onFocus={() => memberSearch && setShowMemberDropdown(true)}
+                    className="h-9 text-sm"
+                  />
+                  {showMemberDropdown && memberResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 rounded-lg border border-border bg-card shadow-card overflow-hidden">
+                      {memberResults.map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => selectMember(m)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-smooth border-b border-border/50 last:border-0 flex items-center gap-2"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-primary">{m.first_name[0]}{m.last_name[0]}</span>
+                          </div>
+                          <span className="font-medium text-foreground">{m.first_name} {m.last_name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedMember && (
+                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                      <User className="h-3 w-3" /> {selectedMember.first_name} {selectedMember.last_name} selected — name will be appended to description
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -385,6 +469,9 @@ export function AdminTreasury() {
                     <p className="text-xs text-muted-foreground mb-1">Preview</p>
                     <p className="font-semibold text-foreground">{VND(Number(form.amount))} deducted</p>
                     <p className="text-xs text-muted-foreground">from fund as <em>{CATEGORY_CONFIG[form.category]?.label}</em></p>
+                    <p className="text-xs text-foreground mt-1 font-medium">
+                      "{form.description.trim()}{selectedMember && !form.description.includes(`${selectedMember.first_name} ${selectedMember.last_name}`) ? ` — ${selectedMember.first_name} ${selectedMember.last_name}` : ''}"
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">New estimated balance: <strong className={balance.net - Number(form.amount) >= 0 ? 'text-primary' : 'text-destructive'}>{VND(balance.net - Number(form.amount))}</strong></p>
                   </div>
                 )}
