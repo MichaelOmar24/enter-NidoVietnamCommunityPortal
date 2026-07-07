@@ -29,8 +29,8 @@ export function SpouseFamilyDialog({ open, onOpenChange }: SpouseFamilyDialogPro
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    spouse_first_name: '',
-    spouse_last_name: '',
+    spouse_first_name: (profile as Profile & { spouse_first_name?: string })?.spouse_first_name || '',
+    spouse_last_name: (profile as Profile & { spouse_last_name?: string })?.spouse_last_name || '',
     spouse_nationality: (profile?.spouse_nationality || '') as SpouseNationality | '',
     spouse_nationality_other: profile?.spouse_nationality_other || '',
     number_of_kids: profile?.number_of_kids ?? '' as number | '',
@@ -58,6 +58,8 @@ export function SpouseFamilyDialog({ open, onOpenChange }: SpouseFamilyDialogPro
     setError(null);
 
     const { error: updateErr } = await (supabase.from('profiles') as ReturnType<typeof supabase.from>).update({
+      spouse_first_name: form.spouse_first_name || null,
+      spouse_last_name: form.spouse_last_name || null,
       spouse_nationality: form.spouse_nationality || null,
       spouse_nationality_other: form.spouse_nationality === 'other' ? form.spouse_nationality_other || null : null,
       number_of_kids: form.number_of_kids !== '' ? Number(form.number_of_kids) : 0,

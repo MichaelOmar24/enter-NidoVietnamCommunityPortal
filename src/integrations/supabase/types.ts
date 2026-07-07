@@ -4322,6 +4322,8 @@ export type Database = {
           purpose_of_visit: string | null
           qualification: string | null
           religion: string | null
+          spouse_first_name: string | null
+          spouse_last_name: string | null
           spouse_nationality: string | null
           spouse_nationality_other: string | null
           spouse_passport_url: string | null
@@ -4367,6 +4369,8 @@ export type Database = {
           purpose_of_visit?: string | null
           qualification?: string | null
           religion?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
           spouse_nationality?: string | null
           spouse_nationality_other?: string | null
           spouse_passport_url?: string | null
@@ -4412,6 +4416,8 @@ export type Database = {
           purpose_of_visit?: string | null
           qualification?: string | null
           religion?: string | null
+          spouse_first_name?: string | null
+          spouse_last_name?: string | null
           spouse_nationality?: string | null
           spouse_nationality_other?: string | null
           spouse_passport_url?: string | null

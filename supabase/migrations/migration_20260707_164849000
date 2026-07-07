@@ -1,0 +1,3 @@
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS spouse_first_name text,
+  ADD COLUMN IF NOT EXISTS spouse_last_name text;

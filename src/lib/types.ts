@@ -39,6 +39,8 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   // Spouse & family fields
+  spouse_first_name?: string;
+  spouse_last_name?: string;
   spouse_nationality?: SpouseNationality;
   spouse_nationality_other?: string;
   number_of_kids?: number;

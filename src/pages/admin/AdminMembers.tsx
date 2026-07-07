@@ -831,6 +831,12 @@ export function AdminMembers() {
                                     </p>
                                     <div className="grid grid-cols-3 gap-3 text-sm">
                                       <div>
+                                        <span className="text-muted-foreground text-xs block">Spouse Name</span>
+                                        <span className="text-foreground">
+                                          {[(selected as Profile & { spouse_first_name?: string }).spouse_first_name, (selected as Profile & { spouse_last_name?: string }).spouse_last_name].filter(Boolean).join(' ') || '-'}
+                                        </span>
+                                      </div>
+                                      <div>
                                         <span className="text-muted-foreground text-xs block">Spouse Nationality</span>
                                         <span className="text-foreground capitalize">
                                           {(selected as Profile & { spouse_nationality?: string; spouse_nationality_other?: string }).spouse_nationality === 'other'
