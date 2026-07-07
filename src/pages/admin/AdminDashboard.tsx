@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard, TrendingDown } from 'lucide-react';
-import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS } from '@/lib/types';
+import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 
 const COLORS = ['#008751', '#FFD700', '#DA251D', '#006B40', '#FF8C00', '#4169E1'];
@@ -22,6 +22,9 @@ export function AdminDashboard() {
   const [maritalData, setMaritalData] = useState<{ name: string; value: number }[]>([]);
   const [cityData, setCityData] = useState<{ city: string; members: number }[]>([]);
   const [revenueData, setRevenueData] = useState<{ plan: string; count: number; revenue: number }[]>([]);
+  const [religionData, setReligionData] = useState<{ name: string; value: number }[]>([]);
+  const [purposeData, setPurposeData] = useState<{ name: string; count: number }[]>([]);
+  const [qualificationData, setQualificationData] = useState<{ name: string; count: number }[]>([]);
   const [recentMembers, setRecentMembers] = useState<{ first_name: string; last_name: string; email: string; occupation_type: string; membership_status: string; membership_type: string; created_at: string }[]>([]);
 
   useEffect(() => { loadData(); }, []);
@@ -42,7 +45,7 @@ export function AdminDashboard() {
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'pending'),
       supabase.from('companies').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city, membership_type'),
+      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city, membership_type, religion, purpose_of_visit, highest_qualification'),
       supabase.from('passports').select('expiry_date'),
       supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, membership_type, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
@@ -110,6 +113,27 @@ export function AdminDashboard() {
       if (p3.vietnam_city) cityMap[p3.vietnam_city] = (cityMap[p3.vietnam_city] || 0) + 1;
     });
     setCityData(Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => ({ city: k, members: v })));
+
+    // Religion breakdown
+    const relMap: Record<string, number> = {};
+    (profiles || []).forEach((p4: { religion: string | null }) => {
+      if (p4.religion) relMap[p4.religion] = (relMap[p4.religion] || 0) + 1;
+    });
+    setReligionData(Object.entries(relMap).map(([k, v]) => ({ name: RELIGION_LABELS[k as keyof typeof RELIGION_LABELS] || k, value: v })));
+
+    // Purpose of visit breakdown
+    const pvMap: Record<string, number> = {};
+    (profiles || []).forEach((p5: { purpose_of_visit: string | null }) => {
+      if (p5.purpose_of_visit) pvMap[p5.purpose_of_visit] = (pvMap[p5.purpose_of_visit] || 0) + 1;
+    });
+    setPurposeData(Object.entries(pvMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: PURPOSE_OF_VISIT_LABELS[k as keyof typeof PURPOSE_OF_VISIT_LABELS] || k, count: v })));
+
+    // Qualification breakdown
+    const qualMap: Record<string, number> = {};
+    (profiles || []).forEach((p6: { highest_qualification: string | null }) => {
+      if (p6.highest_qualification) qualMap[p6.highest_qualification] = (qualMap[p6.highest_qualification] || 0) + 1;
+    });
+    setQualificationData(Object.entries(qualMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: QUALIFICATION_LABELS[k as keyof typeof QUALIFICATION_LABELS] || k, count: v })));
 
     setRecentMembers((recent || []) as typeof recentMembers);
   };
@@ -302,6 +326,73 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Religion & Purpose of Visit */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-foreground">Members by Religion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {religionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={religionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
+                    {religionData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-foreground">Purpose of Visit to Vietnam</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {purposeData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={purposeData} layout="vertical" margin={{ left: 10 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
+                  <Tooltip />
+                  <Bar dataKey="count" name="Members" radius={[0, 4, 4, 0]}>
+                    {purposeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Qualification Level */}
+      <Card className="shadow-card mb-6">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold text-foreground">Education / Qualification Level</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {qualificationData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={qualificationData} layout="vertical" margin={{ left: 10 }}>
+                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={180} />
+                <Tooltip />
+                <Bar dataKey="count" name="Members" fill="hsl(152, 100%, 26%)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Members */}
       <Card className="shadow-card">

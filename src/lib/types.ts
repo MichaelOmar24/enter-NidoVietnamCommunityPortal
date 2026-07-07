@@ -4,6 +4,18 @@ export type MembershipType = 'regular' | 'premium';
 export type MembershipStatus = 'active' | 'pending' | 'expired';
 export type Gender = 'male' | 'female' | 'other';
 
+export type QualificationType =
+  'secondary_school' | 'diploma' | 'undergraduate' | 'graduate_bachelor' |
+  'postgraduate_diploma' | 'masters' | 'phd_doctorate' | 'professional_qualification' | 'other';
+
+export type ReligionType =
+  'christianity' | 'islam' | 'traditional' | 'other' | 'prefer_not_to_say';
+
+export type PurposeOfVisitType =
+  'tourism' | 'business_visit' | 'business_investment' | 'business_partnership' |
+  'study_education' | 'work_employment' | 'family_visit' | 'medical_treatment' |
+  'official_government' | 'conference_event' | 'research' | 'relocation' | 'transit' | 'other';
+
 export interface Profile {
   id: string;
   first_name: string;
@@ -25,6 +37,17 @@ export interface Profile {
   is_embassy_staff: boolean;
   created_at: string;
   updated_at: string;
+  // Extended profile fields
+  occupation_institution_name?: string;
+  occupation_institution_address?: string;
+  occupation_country_state?: string;
+  next_of_kin_name?: string;
+  next_of_kin_relationship?: string;
+  next_of_kin_phone?: string;
+  next_of_kin_address?: string;
+  highest_qualification?: string;
+  religion?: string;
+  purpose_of_visit?: string;
 }
 
 export interface Passport {
@@ -184,4 +207,41 @@ export const MARITAL_STATUS_LABELS: Record<MaritalStatus, string> = {
   married: 'Married',
   divorced: 'Divorced',
   widowed: 'Widowed'
+};
+
+export const QUALIFICATION_LABELS: Record<QualificationType, string> = {
+  secondary_school: 'Secondary School / High School',
+  diploma: 'Diploma',
+  undergraduate: 'Undergraduate',
+  graduate_bachelor: 'Graduate / Bachelor Degree',
+  postgraduate_diploma: 'Postgraduate Diploma',
+  masters: 'Masters Degree',
+  phd_doctorate: 'PhD / Doctorate',
+  professional_qualification: 'Professional Qualification',
+  other: 'Other',
+};
+
+export const RELIGION_LABELS: Record<ReligionType, string> = {
+  christianity: 'Christianity',
+  islam: 'Islam',
+  traditional: 'Traditional Religion',
+  other: 'Other',
+  prefer_not_to_say: 'Prefer not to say',
+};
+
+export const PURPOSE_OF_VISIT_LABELS: Record<PurposeOfVisitType, string> = {
+  tourism: 'Tourism',
+  business_visit: 'Business Visit',
+  business_investment: 'Business Investment',
+  business_partnership: 'Business Partnership',
+  study_education: 'Study / Education',
+  work_employment: 'Work / Employment',
+  family_visit: 'Family Visit',
+  medical_treatment: 'Medical Treatment',
+  official_government: 'Official Government Visit',
+  conference_event: 'Conference / Event',
+  research: 'Research',
+  relocation: 'Relocation',
+  transit: 'Transit',
+  other: 'Other',
 };

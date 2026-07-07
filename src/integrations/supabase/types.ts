@@ -4286,70 +4286,127 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_address: string | null
+          business_name: string | null
           created_at: string | null
           date_of_birth: string | null
           email: string
+          employer_address: string | null
+          employer_name: string | null
           first_name: string
           gender: string | null
+          highest_qualification: string | null
           id: string
+          institution_address: string | null
+          institution_name: string | null
           is_admin: boolean | null
           is_embassy_staff: boolean | null
           is_super_admin: boolean | null
           last_name: string
+          lga_of_origin: string | null
           marital_status: string | null
           membership_status: string | null
           membership_type: string | null
+          next_of_kin_address: string | null
+          next_of_kin_name: string | null
+          next_of_kin_phone: string | null
+          next_of_kin_relationship: string | null
           nigerian_state_of_origin: string | null
+          occupation_country_state: string | null
+          occupation_institution_address: string | null
+          occupation_institution_name: string | null
           occupation_type: string | null
           phone: string | null
           profile_picture_url: string | null
+          purpose_of_visit: string | null
+          qualification: string | null
+          religion: string | null
           updated_at: string | null
           vietnam_address: string | null
           vietnam_city: string | null
+          workplace_name: string | null
         }
         Insert: {
+          business_address?: string | null
+          business_name?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email: string
+          employer_address?: string | null
+          employer_name?: string | null
           first_name: string
           gender?: string | null
+          highest_qualification?: string | null
           id: string
+          institution_address?: string | null
+          institution_name?: string | null
           is_admin?: boolean | null
           is_embassy_staff?: boolean | null
           is_super_admin?: boolean | null
           last_name: string
+          lga_of_origin?: string | null
           marital_status?: string | null
           membership_status?: string | null
           membership_type?: string | null
+          next_of_kin_address?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           nigerian_state_of_origin?: string | null
+          occupation_country_state?: string | null
+          occupation_institution_address?: string | null
+          occupation_institution_name?: string | null
           occupation_type?: string | null
           phone?: string | null
           profile_picture_url?: string | null
+          purpose_of_visit?: string | null
+          qualification?: string | null
+          religion?: string | null
           updated_at?: string | null
           vietnam_address?: string | null
           vietnam_city?: string | null
+          workplace_name?: string | null
         }
         Update: {
+          business_address?: string | null
+          business_name?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
+          employer_address?: string | null
+          employer_name?: string | null
           first_name?: string
           gender?: string | null
+          highest_qualification?: string | null
           id?: string
+          institution_address?: string | null
+          institution_name?: string | null
           is_admin?: boolean | null
           is_embassy_staff?: boolean | null
           is_super_admin?: boolean | null
           last_name?: string
+          lga_of_origin?: string | null
           marital_status?: string | null
           membership_status?: string | null
           membership_type?: string | null
+          next_of_kin_address?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           nigerian_state_of_origin?: string | null
+          occupation_country_state?: string | null
+          occupation_institution_address?: string | null
+          occupation_institution_name?: string | null
           occupation_type?: string | null
           phone?: string | null
           profile_picture_url?: string | null
+          purpose_of_visit?: string | null
+          qualification?: string | null
+          religion?: string | null
           updated_at?: string | null
           vietnam_address?: string | null
           vietnam_city?: string | null
+          workplace_name?: string | null
         }
         Relationships: []
       }

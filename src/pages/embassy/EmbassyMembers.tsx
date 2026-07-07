@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Filter, Download } from 'lucide-react';
-import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES } from '@/lib/types';
+import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { format } from 'date-fns';
 
@@ -24,6 +24,12 @@ interface Member {
   is_admin: boolean;
   created_at: string;
   date_of_birth?: string;
+  purpose_of_visit?: string;
+  religion?: string;
+  highest_qualification?: string;
+  next_of_kin_name?: string;
+  next_of_kin_relationship?: string;
+  next_of_kin_phone?: string;
 }
 
 export function EmbassyMembers() {
@@ -59,13 +65,20 @@ export function EmbassyMembers() {
   };
 
   const exportCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'City', 'State', 'Occupation', 'Status', 'Joined'];
+    const headers = ['Name', 'Email', 'Phone', 'City', 'State', 'Occupation', 'Marital', 'Gender', 'Status', 'Qualification', 'Religion', 'Purpose of Visit', 'Next of Kin', 'Next of Kin Phone', 'Joined'];
     const rows = filtered.map(m => [
       `${m.first_name} ${m.last_name}`, m.email, m.phone || '', m.vietnam_city || '',
-      m.nigerian_state_of_origin || '', m.occupation_type || '', m.membership_status,
+      m.nigerian_state_of_origin || '',
+      OCCUPATION_LABELS[m.occupation_type as keyof typeof OCCUPATION_LABELS] || m.occupation_type || '',
+      m.marital_status || '', m.gender || '', m.membership_status,
+      QUALIFICATION_LABELS[m.highest_qualification as keyof typeof QUALIFICATION_LABELS] || m.highest_qualification || '',
+      RELIGION_LABELS[m.religion as keyof typeof RELIGION_LABELS] || m.religion || '',
+      PURPOSE_OF_VISIT_LABELS[m.purpose_of_visit as keyof typeof PURPOSE_OF_VISIT_LABELS] || m.purpose_of_visit || '',
+      m.next_of_kin_name ? `${m.next_of_kin_name} (${m.next_of_kin_relationship || ''})` : '',
+      m.next_of_kin_phone || '',
       format(new Date(m.created_at), 'yyyy-MM-dd')
     ]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -141,7 +154,7 @@ export function EmbassyMembers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/5">
-                {['Member', 'Contact', 'Location', 'Occupation', 'Marital', 'Status', 'Type', 'Joined'].map(h => (
+                {['Member', 'Contact', 'Location', 'Occupation', 'Purpose of Visit', 'Religion', 'Status', 'Joined'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -174,11 +187,13 @@ export function EmbassyMembers() {
                   <td className="px-4 py-3 text-gray-400 text-xs capitalize">
                     {OCCUPATION_LABELS[m.occupation_type as keyof typeof OCCUPATION_LABELS] || m.occupation_type || '—'}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs capitalize">
-                    {MARITAL_STATUS_LABELS[m.marital_status as keyof typeof MARITAL_STATUS_LABELS] || m.marital_status || '—'}
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {PURPOSE_OF_VISIT_LABELS[m.purpose_of_visit as keyof typeof PURPOSE_OF_VISIT_LABELS] || m.purpose_of_visit || '—'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {RELIGION_LABELS[m.religion as keyof typeof RELIGION_LABELS] || m.religion || '—'}
                   </td>
                   <td className="px-4 py-3">{statusBadge(m.membership_status)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs capitalize">{m.membership_type}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{format(new Date(m.created_at), 'dd MMM yyyy')}</td>
                 </tr>
               ))}

@@ -1,0 +1,12 @@
+-- Add extended profile fields: dynamic occupation details, next of kin, qualification, religion, purpose of visit
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS occupation_institution_name TEXT,
+  ADD COLUMN IF NOT EXISTS occupation_institution_address TEXT,
+  ADD COLUMN IF NOT EXISTS occupation_country_state TEXT,
+  ADD COLUMN IF NOT EXISTS next_of_kin_name TEXT,
+  ADD COLUMN IF NOT EXISTS next_of_kin_relationship TEXT,
+  ADD COLUMN IF NOT EXISTS next_of_kin_phone TEXT,
+  ADD COLUMN IF NOT EXISTS next_of_kin_address TEXT,
+  ADD COLUMN IF NOT EXISTS highest_qualification TEXT,
+  ADD COLUMN IF NOT EXISTS religion TEXT,
+  ADD COLUMN IF NOT EXISTS purpose_of_visit TEXT;

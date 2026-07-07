@@ -9,15 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { NIGERIAN_STATES, VIETNAM_CITIES, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, OccupationType, MaritalStatus } from '@/lib/types';
-import { AlertCircle, CheckCircle, Upload, User, Briefcase, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
+import {
+  NIGERIAN_STATES, VIETNAM_CITIES, OCCUPATION_LABELS, MARITAL_STATUS_LABELS,
+  QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS,
+  OccupationType, MaritalStatus, QualificationType, ReligionType, PurposeOfVisitType
+} from '@/lib/types';
+import { AlertCircle, CheckCircle, Upload, User, Briefcase, FileText, ChevronRight, ChevronLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { trackEvent } from '@enter-pro/analytics-sdk';
 
 interface FormData {
-  // Step 1
+  // Step 1 — Personal Info
   first_name: string;
   last_name: string;
   email: string;
@@ -27,12 +32,23 @@ interface FormData {
   date_of_birth: string;
   gender: 'male' | 'female' | 'other';
   nigerian_state_of_origin: string;
-  // Step 2
+  // Step 2 — Profile Details
   occupation_type: OccupationType;
+  occupation_institution_name: string;
+  occupation_institution_address: string;
+  occupation_country_state: string;
   marital_status: MaritalStatus;
   vietnam_city: string;
   vietnam_address: string;
-  // Step 3
+  // Step 3 — Additional Details
+  next_of_kin_name: string;
+  next_of_kin_relationship: string;
+  next_of_kin_phone: string;
+  next_of_kin_address: string;
+  highest_qualification: QualificationType | '';
+  religion: ReligionType | '';
+  purpose_of_visit: PurposeOfVisitType | '';
+  // Step 4 — Passport
   passport_number: string;
   issue_date: string;
   expiry_date: string;
@@ -42,9 +58,43 @@ interface FormData {
 
 const STEPS = [
   { title: 'Personal Information', icon: User, desc: 'Basic identity details' },
-  { title: 'Profile Details', icon: Briefcase, desc: 'Occupation & marital status' },
+  { title: 'Profile Details', icon: Briefcase, desc: 'Occupation & location' },
+  { title: 'Additional Details', icon: Heart, desc: 'Next of kin, education & purpose' },
   { title: 'Passport Details', icon: FileText, desc: 'Passport information & upload' },
 ];
+
+// Dynamic sub-fields shown per occupation type
+const OCCUPATION_DETAIL_CONFIG: Partial<Record<OccupationType, {
+  sectionTitle: string;
+  nameLabel: string;
+  addressLabel: string;
+  showCountryState: boolean;
+}>> = {
+  student: {
+    sectionTitle: 'Institution Details',
+    nameLabel: 'Name of Institution',
+    addressLabel: 'Institution Address',
+    showCountryState: true,
+  },
+  business: {
+    sectionTitle: 'Business Details',
+    nameLabel: 'Business Name',
+    addressLabel: 'Business Address',
+    showCountryState: false,
+  },
+  employee: {
+    sectionTitle: 'Employer Details',
+    nameLabel: 'Employer / Company Name',
+    addressLabel: 'Company Address',
+    showCountryState: false,
+  },
+  teacher: {
+    sectionTitle: 'Workplace Details',
+    nameLabel: 'School / Academy / Training Centre Name',
+    addressLabel: 'Workplace Address',
+    showCountryState: false,
+  },
+};
 
 export function RegisterPage() {
   const [step, setStep] = useState(0);
@@ -54,7 +104,11 @@ export function RegisterPage() {
   const [form, setForm] = useState<FormData>({
     first_name: '', last_name: '', email: '', password: '', confirm_password: '',
     phone: '', date_of_birth: '', gender: 'male', nigerian_state_of_origin: '',
-    occupation_type: 'other', marital_status: 'single', vietnam_city: '', vietnam_address: '',
+    occupation_type: 'other',
+    occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '',
+    marital_status: 'single', vietnam_city: '', vietnam_address: '',
+    next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
+    highest_qualification: '', religion: '', purpose_of_visit: '',
     passport_number: '', issue_date: '', expiry_date: '', place_of_issue: '', passport_image: null,
   });
   const { signUp } = useAuth();
@@ -83,6 +137,7 @@ export function RegisterPage() {
   const handleNext = () => {
     const err = validateStep();
     if (err) { setError(err); return; }
+    setError(null);
     setStep(s => s + 1);
   };
 
@@ -99,9 +154,7 @@ export function RegisterPage() {
       const { data: uploadData, error: uploadErr } = await supabase.storage
         .from('passport-images')
         .upload(fileName, form.passport_image);
-      
       if (uploadErr) {
-        // If bucket doesn't exist yet, continue without image
         console.warn('Upload error:', uploadErr.message);
       } else if (uploadData) {
         const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
@@ -109,6 +162,7 @@ export function RegisterPage() {
       }
     }
 
+    // Create user + basic profile
     const { error: signUpErr } = await signUp(form.email, form.password, {
       first_name: form.first_name,
       last_name: form.last_name,
@@ -128,11 +182,24 @@ export function RegisterPage() {
       return;
     }
 
-    // Insert passport data
-    if (form.passport_number || passport_image_url) {
-      // Get newly created user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+    // Update profile with extended fields
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await (supabase.from('profiles') as unknown as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } }).update({
+        occupation_institution_name: form.occupation_institution_name || null,
+        occupation_institution_address: form.occupation_institution_address || null,
+        occupation_country_state: form.occupation_country_state || null,
+        next_of_kin_name: form.next_of_kin_name || null,
+        next_of_kin_relationship: form.next_of_kin_relationship || null,
+        next_of_kin_phone: form.next_of_kin_phone || null,
+        next_of_kin_address: form.next_of_kin_address || null,
+        highest_qualification: form.highest_qualification || null,
+        religion: form.religion || null,
+        purpose_of_visit: form.purpose_of_visit || null,
+      }).eq('id', user.id);
+
+      // Insert passport data
+      if (form.passport_number || passport_image_url) {
         await supabase.from('passports').insert({
           user_id: user.id,
           passport_number: form.passport_number || undefined,
@@ -154,6 +221,7 @@ export function RegisterPage() {
       properties: {
         city: form.vietnam_city || 'unknown',
         occupation: form.occupation_type || 'other',
+        purpose_of_visit: form.purpose_of_visit || 'unknown',
       },
     });
 
@@ -180,6 +248,8 @@ export function RegisterPage() {
       </div>
     );
   }
+
+  const occupationConfig = OCCUPATION_DETAIL_CONFIG[form.occupation_type];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -229,7 +299,7 @@ export function RegisterPage() {
                 </Alert>
               )}
 
-              {/* STEP 1: Personal Info */}
+              {/* ─── STEP 1: Personal Info ─── */}
               {step === 0 && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -291,18 +361,56 @@ export function RegisterPage() {
                 </>
               )}
 
-              {/* STEP 2: Profile Details */}
+              {/* ─── STEP 2: Profile Details ─── */}
               {step === 1 && (
                 <>
                   <div className="space-y-2">
-                    <Label>Occupation Type *</Label>
-                    <Select value={form.occupation_type} onValueChange={v => set('occupation_type', v as OccupationType)}>
+                    <Label>Occupation / User Type *</Label>
+                    <Select value={form.occupation_type} onValueChange={v => {
+                      set('occupation_type', v as OccupationType);
+                      // Clear dynamic fields when switching occupation
+                      setForm(prev => ({ ...prev, occupation_type: v as OccupationType, occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '' }));
+                    }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.entries(OCCUPATION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Dynamic occupation sub-fields */}
+                  {occupationConfig && (
+                    <div className="p-4 rounded-lg bg-muted/40 border border-border space-y-3">
+                      <p className="text-sm font-semibold text-foreground">{occupationConfig.sectionTitle}</p>
+                      <div className="space-y-2">
+                        <Label>{occupationConfig.nameLabel}</Label>
+                        <Input
+                          value={form.occupation_institution_name}
+                          onChange={e => set('occupation_institution_name', e.target.value)}
+                          placeholder={occupationConfig.nameLabel}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{occupationConfig.addressLabel}</Label>
+                        <Input
+                          value={form.occupation_institution_address}
+                          onChange={e => set('occupation_institution_address', e.target.value)}
+                          placeholder="Street address, district..."
+                        />
+                      </div>
+                      {occupationConfig.showCountryState && (
+                        <div className="space-y-2">
+                          <Label>Country / State</Label>
+                          <Input
+                            value={form.occupation_country_state}
+                            onChange={e => set('occupation_country_state', e.target.value)}
+                            placeholder="e.g. Nigeria, Lagos"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label>Marital Status *</Label>
                     <Select value={form.marital_status} onValueChange={v => set('marital_status', v as MaritalStatus)}>
@@ -328,8 +436,78 @@ export function RegisterPage() {
                 </>
               )}
 
-              {/* STEP 3: Passport */}
+              {/* ─── STEP 3: Additional Details ─── */}
               {step === 2 && (
+                <>
+                  {/* Next of Kin */}
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Next of Kin Details</p>
+                    <p className="text-xs text-muted-foreground">Emergency contact information</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Full Name</Label>
+                      <Input value={form.next_of_kin_name} onChange={e => set('next_of_kin_name', e.target.value)} placeholder="Full name" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Relationship</Label>
+                      <Input value={form.next_of_kin_relationship} onChange={e => set('next_of_kin_relationship', e.target.value)} placeholder="e.g. Spouse, Parent, Sibling" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <Input value={form.next_of_kin_phone} onChange={e => set('next_of_kin_phone', e.target.value)} placeholder="+234..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Address</Label>
+                      <Input value={form.next_of_kin_address} onChange={e => set('next_of_kin_address', e.target.value)} placeholder="Street address" />
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Qualification */}
+                  <div className="space-y-2">
+                    <Label>Highest Qualification</Label>
+                    <Select value={form.highest_qualification} onValueChange={v => set('highest_qualification', v as QualificationType)}>
+                      <SelectTrigger><SelectValue placeholder="Select qualification" /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(QUALIFICATION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Religion */}
+                  <div className="space-y-2">
+                    <Label>Religion</Label>
+                    <Select value={form.religion} onValueChange={v => set('religion', v as ReligionType)}>
+                      <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(RELIGION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Purpose of Visit */}
+                  <div className="space-y-2">
+                    <Label>Purpose of Visiting Vietnam</Label>
+                    <Select value={form.purpose_of_visit} onValueChange={v => set('purpose_of_visit', v as PurposeOfVisitType)}>
+                      <SelectTrigger><SelectValue placeholder="Select purpose of visit" /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PURPOSE_OF_VISIT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* ─── STEP 4: Passport ─── */}
+              {step === 3 && (
                 <>
                   <div className="p-4 bg-muted/50 rounded-lg border border-border text-sm text-muted-foreground">
                     <p className="font-medium text-foreground mb-1">Passport information is optional</p>

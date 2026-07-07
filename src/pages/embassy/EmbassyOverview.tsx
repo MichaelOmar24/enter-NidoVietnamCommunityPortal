@@ -11,7 +11,7 @@ import {
   Building2, FileText, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock, Download
 } from 'lucide-react';
 import { differenceInDays, parseISO, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { OCCUPATION_LABELS } from '@/lib/types';
+import { OCCUPATION_LABELS, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import * as XLSX from 'xlsx';
 
 const CHART_COLORS = ['#00b359', '#FFD700', '#DA251D', '#3b82f6', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'];
@@ -50,6 +50,9 @@ export function EmbassyOverview() {
   const [cityData, setCityData] = useState<{ city: string; count: number }[]>([]);
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
+  const [religionData, setReligionData] = useState<{ name: string; value: number }[]>([]);
+  const [purposeData, setPurposeData] = useState<{ name: string; count: number }[]>([]);
+  const [qualificationData, setQualificationData] = useState<{ name: string; count: number }[]>([]);
   const [companyIntel, setCompanyIntel] = useState<{ company: { id: string; company_name: string; industry: string | null; business_type: string | null; is_approved: boolean }; priv: { annual_revenue_vnd: number | null; monthly_revenue_vnd: number | null; tax_code: string | null; registration_number: string | null; is_verified: boolean; registration_doc_url: string | null; tax_code_doc_url: string | null } | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +79,7 @@ export function EmbassyOverview() {
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_approved', true),
       supabase.from('activities').select('*', { count: 'exact', head: true }),
       supabase.from('documents').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type'),
+      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type, religion, purpose_of_visit, highest_qualification'),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
     ]);
 
@@ -170,6 +173,27 @@ export function EmbassyOverview() {
       if (p.gender) genMap[p.gender] = (genMap[p.gender] || 0) + 1;
     });
     setGenderData(Object.entries(genMap).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })));
+
+    // Religion
+    const relMap: Record<string, number> = {};
+    (allProfiles || []).forEach((p: { religion: string | null }) => {
+      if (p.religion) relMap[p.religion] = (relMap[p.religion] || 0) + 1;
+    });
+    setReligionData(Object.entries(relMap).map(([k, v]) => ({ name: RELIGION_LABELS[k as keyof typeof RELIGION_LABELS] || k, value: v })));
+
+    // Purpose of visit
+    const pvMap: Record<string, number> = {};
+    (allProfiles || []).forEach((p: { purpose_of_visit: string | null }) => {
+      if (p.purpose_of_visit) pvMap[p.purpose_of_visit] = (pvMap[p.purpose_of_visit] || 0) + 1;
+    });
+    setPurposeData(Object.entries(pvMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: PURPOSE_OF_VISIT_LABELS[k as keyof typeof PURPOSE_OF_VISIT_LABELS] || k, count: v })));
+
+    // Qualification
+    const qualMap: Record<string, number> = {};
+    (allProfiles || []).forEach((p: { highest_qualification: string | null }) => {
+      if (p.highest_qualification) qualMap[p.highest_qualification] = (qualMap[p.highest_qualification] || 0) + 1;
+    });
+    setQualificationData(Object.entries(qualMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: QUALIFICATION_LABELS[k as keyof typeof QUALIFICATION_LABELS] || k, count: v })));
 
     setLoading(false);
   };
@@ -449,6 +473,71 @@ export function EmbassyOverview() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Purpose of Visit & Religion */}
+      <div className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="embassy-chart-card p-4">
+          <p className="text-sm font-semibold text-white mb-1">Purpose of Visit to Vietnam</p>
+          <p className="text-xs text-gray-500 mb-3">Why members are in Vietnam</p>
+          {purposeData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={purposeData} layout="vertical" margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#8b949e', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fill: '#8b949e', fontSize: 10 }} axisLine={false} tickLine={false} width={130} />
+                <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
+                <Bar dataKey="count" name="Members" radius={[0, 4, 4, 0]}>
+                  {purposeData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div className="h-40 flex items-center justify-center text-gray-600 text-sm">No data yet</div>}
+        </div>
+
+        <div className="embassy-chart-card p-4">
+          <p className="text-sm font-semibold text-white mb-1">Religion Distribution</p>
+          <p className="text-xs text-gray-500 mb-3">Faith demographics of the community</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <PieChart>
+              <Pie data={religionData} cx="50%" cy="50%" outerRadius={65} dataKey="value" paddingAngle={2}>
+                {religionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="space-y-1 mt-1">
+            {religionData.map((d, i) => (
+              <div key={d.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                  <span className="text-gray-400 truncate">{d.name}</span>
+                </div>
+                <span className="text-white font-semibold ml-2">{d.value}</span>
+              </div>
+            ))}
+            {religionData.length === 0 && <p className="text-gray-600 text-xs text-center py-2">No data yet</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Education / Qualification */}
+      <div className="embassy-chart-card p-4 mb-4">
+        <p className="text-sm font-semibold text-white mb-1">Education / Qualification Level</p>
+        <p className="text-xs text-gray-500 mb-3">Academic achievement of members</p>
+        {qualificationData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={qualificationData} layout="vertical" margin={{ left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: '#8b949e', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fill: '#8b949e', fontSize: 10 }} axisLine={false} tickLine={false} width={175} />
+              <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
+              <Bar dataKey="count" name="Members" radius={[0, 4, 4, 0]}>
+                {qualificationData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <div className="h-32 flex items-center justify-center text-gray-600 text-sm">No data yet</div>}
       </div>
 
       {/* Company Trade Intelligence */}
