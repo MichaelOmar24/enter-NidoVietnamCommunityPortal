@@ -3430,6 +3430,73 @@ export type Database = {
           },
         ]
       }
+      case_reports: {
+        Row: {
+          admin_notes: string | null
+          case_type: string
+          created_at: string | null
+          description: string
+          evidence_urls: string[] | null
+          id: string
+          reported_email: string | null
+          reported_name: string
+          reported_phone: string | null
+          reported_relationship: string | null
+          reporter_email: string
+          reporter_name: string
+          reporter_phone: string | null
+          reporter_user_id: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          case_type?: string
+          created_at?: string | null
+          description: string
+          evidence_urls?: string[] | null
+          id?: string
+          reported_email?: string | null
+          reported_name: string
+          reported_phone?: string | null
+          reported_relationship?: string | null
+          reporter_email: string
+          reporter_name: string
+          reporter_phone?: string | null
+          reporter_user_id?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          case_type?: string
+          created_at?: string | null
+          description?: string
+          evidence_urls?: string[] | null
+          id?: string
+          reported_email?: string | null
+          reported_name?: string
+          reported_phone?: string | null
+          reported_relationship?: string | null
+          reporter_email?: string
+          reporter_name?: string
+          reporter_phone?: string | null
+          reporter_user_id?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_reports_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address_in_vietnam: string | null
@@ -4009,6 +4076,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          image_url: string | null
           is_published: boolean
           profile_id: string
           updated_at: string
@@ -4021,6 +4089,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          image_url?: string | null
           is_published?: boolean
           profile_id: string
           updated_at?: string
@@ -4033,6 +4102,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          image_url?: string | null
           is_published?: boolean
           profile_id?: string
           updated_at?: string

@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Award, Eye, EyeOff, Search, Star } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { ImageUploadButton } from '@/components/common/ImageUploadButton';
 
 interface MemberOption { id: string; first_name: string; last_name: string; email: string; }
 
@@ -24,6 +25,7 @@ interface Recognition {
   description: string;
   awarded_date: string;
   is_published: boolean;
+  image_url?: string;
   profiles?: { first_name: string; last_name: string; email: string; profile_picture_url?: string };
 }
 
@@ -53,7 +55,7 @@ export function AdminRecognitions() {
 
   const [form, setForm] = useState({
     profile_id: '', award_title: '', category: 'community_service',
-    description: '', awarded_date: format(new Date(), 'yyyy-MM-dd'), is_published: false,
+    description: '', awarded_date: format(new Date(), 'yyyy-MM-dd'), is_published: false, image_url: '',
   });
 
   useEffect(() => { load(); loadMembers(); }, []);
@@ -74,7 +76,7 @@ export function AdminRecognitions() {
   };
 
   const openAdd = () => {
-    setForm({ profile_id: '', award_title: '', category: 'community_service', description: '', awarded_date: format(new Date(), 'yyyy-MM-dd'), is_published: false });
+    setForm({ profile_id: '', award_title: '', category: 'community_service', description: '', awarded_date: format(new Date(), 'yyyy-MM-dd'), is_published: false, image_url: '' });
     setEditingId(null);
     setMemberSearch('');
     setDialogOpen(true);
@@ -88,6 +90,7 @@ export function AdminRecognitions() {
       description: r.description,
       awarded_date: r.awarded_date,
       is_published: r.is_published,
+      image_url: r.image_url || '',
     });
     setEditingId(r.id);
     const m = members.find(m => m.id === r.profile_id);
@@ -291,6 +294,17 @@ export function AdminRecognitions() {
             <div className="space-y-1.5">
               <Label className="text-sm">Description / Citation *</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4} className="text-sm" placeholder="Describe the member's outstanding contribution..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Award Photo / Certificate (optional)</Label>
+              <ImageUploadButton
+                value={form.image_url}
+                onChange={url => setForm(f => ({ ...f, image_url: url }))}
+                folder="recognition-photos"
+                label="Upload award photo or certificate"
+                previewHeight="h-40"
+              />
             </div>
 
             <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">

@@ -27,6 +27,8 @@ import { AdminRecognitions } from "./pages/admin/AdminRecognitions";
 import { AdminDonations } from "./pages/admin/AdminDonations";
 import { RecognitionsPage } from "./pages/RecognitionsPage";
 import { DonationsPage } from "./pages/DonationsPage";
+import { ReportCasePage } from "./pages/ReportCasePage";
+import { AdminCaseReports } from "./pages/admin/AdminCaseReports";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
 import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
@@ -173,6 +175,16 @@ export const routers = [
     path: "/embassy/welfare",
     name: "embassy-welfare",
     element: <ProtectedRoute embassyOnly><EmbassyWelfare /></ProtectedRoute>
+  },
+  {
+    path: "/report-case",
+    name: "report-case",
+    element: <ProtectedRoute><ReportCasePage /></ProtectedRoute>
+  },
+  {
+    path: "/admin/case-reports",
+    name: "admin-case-reports",
+    element: <ProtectedRoute adminOnly><AdminCaseReports /></ProtectedRoute>
   },
   /* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
   { path: "*", name: "404", element: <NotFound /> },

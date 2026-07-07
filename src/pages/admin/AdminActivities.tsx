@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Activity } from '@/lib/types';
 import { Plus, Calendar, Trash2, Edit, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ImageUploadButton } from '@/components/common/ImageUploadButton';
 
 const EMPTY: Partial<Activity> = { title: '', description: '', content: '', event_date: '', location: '', cover_image_url: '', is_published: true };
 
@@ -113,7 +114,16 @@ export function AdminActivities() {
               <div className="space-y-1.5"><Label>Event Date</Label><Input type="date" value={form.event_date?.split('T')[0] || ''} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>Location</Label><Input value={form.location || ''} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
             </div>
-            <div className="space-y-1.5"><Label>Cover Image URL</Label><Input value={form.cover_image_url || ''} onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))} placeholder="https://..." /></div>
+            <div className="space-y-1.5">
+              <Label>Cover Image</Label>
+              <ImageUploadButton
+                value={form.cover_image_url || ''}
+                onChange={url => setForm(f => ({ ...f, cover_image_url: url }))}
+                folder="activity-covers"
+                label="Upload cover image"
+                previewHeight="h-40"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="pub" checked={form.is_published || false} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
               <Label htmlFor="pub" className="cursor-pointer">Published (visible to public)</Label>
