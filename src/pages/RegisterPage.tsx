@@ -400,11 +400,11 @@ export function RegisterPage() {
                       </div>
                       {occupationConfig.showCountryState && (
                         <div className="space-y-2">
-                          <Label>Country / State</Label>
+                          <Label>City / Province in Vietnam</Label>
                           <Input
                             value={form.occupation_country_state}
                             onChange={e => set('occupation_country_state', e.target.value)}
-                            placeholder="e.g. Nigeria, Lagos"
+                            placeholder="e.g. Ho Chi Minh City, Hanoi, Da Nang"
                           />
                         </div>
                       )}
