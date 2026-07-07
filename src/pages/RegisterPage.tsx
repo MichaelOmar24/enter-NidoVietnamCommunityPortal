@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   NIGERIAN_STATES, VIETNAM_CITIES, OCCUPATION_LABELS, MARITAL_STATUS_LABELS,
   QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS,
-  OccupationType, MaritalStatus, QualificationType, ReligionType, PurposeOfVisitType
+  OccupationType, MaritalStatus, QualificationType, ReligionType, PurposeOfVisitType, SpouseNationality
 } from '@/lib/types';
 import { AlertCircle, CheckCircle, Upload, User, Briefcase, FileText, ChevronRight, ChevronLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +54,11 @@ interface FormData {
   expiry_date: string;
   place_of_issue: string;
   passport_image: File | null;
+  // Spouse & family fields (shown when married)
+  spouse_nationality: SpouseNationality | '';
+  spouse_nationality_other: string;
+  number_of_kids: number | '';
+  spouse_passport_image: File | null;
 }
 
 const STEPS = [
@@ -110,6 +115,7 @@ export function RegisterPage() {
     next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
     highest_qualification: '', religion: '', purpose_of_visit: '',
     passport_number: '', issue_date: '', expiry_date: '', place_of_issue: '', passport_image: null,
+    spouse_nationality: '', spouse_nationality_other: '', number_of_kids: '', spouse_passport_image: null,
   });
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -146,6 +152,7 @@ export function RegisterPage() {
     setError(null);
 
     let passport_image_url: string | undefined;
+    let spouse_passport_url: string | undefined;
 
     // Upload passport image if provided
     if (form.passport_image) {
@@ -159,6 +166,19 @@ export function RegisterPage() {
       } else if (uploadData) {
         const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
         passport_image_url = urlData.publicUrl;
+      }
+    }
+
+    // Upload spouse passport image if provided
+    if (form.spouse_passport_image) {
+      const ext = form.spouse_passport_image.name.split('.').pop();
+      const fileName = `spouse_passport_${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('passport-images')
+        .upload(fileName, form.spouse_passport_image);
+      if (!uploadErr && uploadData) {
+        const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
+        spouse_passport_url = urlData.publicUrl;
       }
     }
 
@@ -196,6 +216,13 @@ export function RegisterPage() {
         highest_qualification: form.highest_qualification || null,
         religion: form.religion || null,
         purpose_of_visit: form.purpose_of_visit || null,
+        // Spouse & family
+        ...(form.marital_status === 'married' ? {
+          spouse_nationality: form.spouse_nationality || null,
+          spouse_nationality_other: form.spouse_nationality === 'other' ? form.spouse_nationality_other || null : null,
+          number_of_kids: form.number_of_kids !== '' ? Number(form.number_of_kids) : 0,
+          spouse_passport_url: spouse_passport_url || null,
+        } : {}),
       }).eq('id', user.id);
 
       // Insert passport data
@@ -420,6 +447,79 @@ export function RegisterPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* ── Married sub-form ── */}
+                  {form.marital_status === 'married' && (
+                    <div className="p-4 rounded-lg bg-muted/40 border border-border space-y-4">
+                      <p className="text-sm font-semibold text-foreground">Spouse &amp; Family Information</p>
+
+                      {/* Spouse nationality */}
+                      <div className="space-y-2">
+                        <Label>Spouse Nationality</Label>
+                        <Select value={form.spouse_nationality} onValueChange={v => set('spouse_nationality', v as SpouseNationality)}>
+                          <SelectTrigger><SelectValue placeholder="Select spouse nationality" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vietnamese">Vietnamese</SelectItem>
+                            <SelectItem value="nigerian">Nigerian</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Custom nationality text box */}
+                      {form.spouse_nationality === 'other' && (
+                        <div className="space-y-2">
+                          <Label>Spouse's Nationality (specify)</Label>
+                          <Input
+                            value={form.spouse_nationality_other}
+                            onChange={e => set('spouse_nationality_other', e.target.value)}
+                            placeholder="e.g. Ghanaian, Chinese, Indian..."
+                          />
+                        </div>
+                      )}
+
+                      {/* Number of kids */}
+                      <div className="space-y-2">
+                        <Label>Number of Children</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={20}
+                          value={form.number_of_kids === '' ? '' : String(form.number_of_kids)}
+                          onChange={e => setForm(prev => ({ ...prev, number_of_kids: e.target.value === '' ? '' : Number(e.target.value) }))}
+                          placeholder="0"
+                        />
+                      </div>
+
+                      {/* Spouse passport upload */}
+                      <div className="space-y-2">
+                        <Label>Spouse Passport <span className="text-muted-foreground font-normal">(optional — can be uploaded later)</span></Label>
+                        <div
+                          className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-smooth cursor-pointer"
+                          onClick={() => document.getElementById('spouse-passport-upload')?.click()}
+                        >
+                          {form.spouse_passport_image ? (
+                            <div>
+                              <img src={URL.createObjectURL(form.spouse_passport_image)} alt="Spouse Passport" className="h-24 mx-auto rounded object-cover mb-2" />
+                              <p className="text-sm text-primary">{form.spouse_passport_image.name}</p>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                              <p className="text-xs text-muted-foreground">Click to upload spouse passport image</p>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          id="spouse-passport-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => setForm(prev => ({ ...prev, spouse_passport_image: e.target.files?.[0] || null }))}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>City in Vietnam *</Label>
                     <Select value={form.vietnam_city} onValueChange={v => set('vietnam_city', v)}>

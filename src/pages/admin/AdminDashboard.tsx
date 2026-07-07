@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard, TrendingDown } from 'lucide-react';
+import { Users, Building2, AlertTriangle, CheckCircle, Clock, TrendingUp, Shield, Crown, Banknote, CreditCard, TrendingDown, Heart, Baby } from 'lucide-react';
 import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -17,6 +17,7 @@ export function AdminDashboard() {
     expiringPassports: 0, expiredPassports: 0,
     premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0,
     fundIncome: 0, fundExpense: 0, fundBalance: 0, listingIncome: 0,
+    vietnameseSpouse: 0, nigerianSpouse: 0, otherSpouse: 0, membersWithKids: 0, totalKids: 0,
   });
   const [occupationData, setOccupationData] = useState<{ name: string; value: number }[]>([]);
   const [maritalData, setMaritalData] = useState<{ name: string; value: number }[]>([]);
@@ -25,6 +26,7 @@ export function AdminDashboard() {
   const [religionData, setReligionData] = useState<{ name: string; value: number }[]>([]);
   const [purposeData, setPurposeData] = useState<{ name: string; count: number }[]>([]);
   const [qualificationData, setQualificationData] = useState<{ name: string; count: number }[]>([]);
+  const [spouseData, setSpouseData] = useState<{ name: string; value: number }[]>([]);
   const [recentMembers, setRecentMembers] = useState<{ first_name: string; last_name: string; email: string; occupation_type: string; membership_status: string; membership_type: string; created_at: string }[]>([]);
 
   useEffect(() => { loadData(); }, []);
@@ -45,7 +47,7 @@ export function AdminDashboard() {
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'pending'),
       supabase.from('companies').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city, membership_type, religion, purpose_of_visit, highest_qualification'),
+      supabase.from('profiles').select('occupation_type, marital_status, vietnam_city, membership_type, religion, purpose_of_visit, highest_qualification, spouse_nationality, number_of_kids'),
       supabase.from('passports').select('expiry_date'),
       supabase.from('profiles').select('first_name, last_name, email, occupation_type, membership_status, membership_type, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
@@ -91,6 +93,11 @@ export function AdminDashboard() {
       fundExpense: (fundTxns || []).filter((t: { transaction_type: string }) => t.transaction_type === 'expense').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
       fundBalance: (fundTxns || []).reduce((s: number, t: { transaction_type: string; amount: number }) => s + (t.transaction_type === 'income' ? Number(t.amount) : -Number(t.amount)), 0),
       listingIncome: (fundTxns || []).filter((t: { category: string }) => t.category === 'company_listing').reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0),
+      vietnameseSpouse: (profiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'vietnamese').length,
+      nigerianSpouse: (profiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'nigerian').length,
+      otherSpouse: (profiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'other').length,
+      membersWithKids: (profiles || []).filter((p: { number_of_kids: number | null }) => p.number_of_kids != null && p.number_of_kids > 0).length,
+      totalKids: (profiles || []).reduce((s: number, p: { number_of_kids: number | null }) => s + (p.number_of_kids || 0), 0),
     });
 
     // Occupation breakdown
@@ -135,6 +142,15 @@ export function AdminDashboard() {
     });
     setQualificationData(Object.entries(qualMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: QUALIFICATION_LABELS[k as keyof typeof QUALIFICATION_LABELS] || k, count: v })));
 
+    // Spouse nationality breakdown (only for married members)
+    const spouseMap: Record<string, number> = { Vietnamese: 0, Nigerian: 0, Other: 0 };
+    (profiles || []).forEach((p7: { spouse_nationality: string | null }) => {
+      if (p7.spouse_nationality === 'vietnamese') spouseMap['Vietnamese']++;
+      else if (p7.spouse_nationality === 'nigerian') spouseMap['Nigerian']++;
+      else if (p7.spouse_nationality === 'other') spouseMap['Other']++;
+    });
+    setSpouseData(Object.entries(spouseMap).filter(([, v]) => v > 0).map(([k, v]) => ({ name: k, value: v })));
+
     setRecentMembers((recent || []) as typeof recentMembers);
   };
 
@@ -147,6 +163,10 @@ export function AdminDashboard() {
     { icon: Crown, label: 'Gold Stakeholders', value: stats.goldMembers, color: 'text-amber-600', bg: 'bg-amber-500' },
     { icon: CreditCard, label: 'Pending Payments', value: stats.pendingPayments, color: 'text-gold', bg: 'gradient-gold' },
     { icon: AlertTriangle, label: 'Expiring Passports', value: stats.expiringPassports, color: 'text-orange-500', bg: 'bg-orange-500' },
+    { icon: Heart, label: 'Vietnamese Spouses', value: stats.vietnameseSpouse, color: 'text-red-500', bg: 'bg-red-500' },
+    { icon: Heart, label: 'Nigerian Spouses', value: stats.nigerianSpouse, color: 'text-primary', bg: 'gradient-primary' },
+    { icon: Baby, label: 'Members with Kids', value: stats.membersWithKids, color: 'text-purple-600', bg: 'bg-purple-500' },
+    { icon: Baby, label: 'Total Children', value: stats.totalKids, color: 'text-pink-600', bg: 'bg-pink-500' },
   ];
 
   const tierBadge = (type: string) => {
@@ -393,6 +413,62 @@ export function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Spouse Nationality & Family */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Heart className="h-4 w-4 text-red-500" /> Spouse Nationality (Married Members)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {spouseData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={spouseData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                    {spouseData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">No married members with spouse data yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Baby className="h-4 w-4 text-purple-500" /> Family Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-2">
+            {[
+              { label: 'Members with Vietnamese Spouse', value: stats.vietnameseSpouse, pct: stats.total > 0 ? Math.round((stats.vietnameseSpouse / stats.total) * 100) : 0, color: '#DA251D' },
+              { label: 'Members with Nigerian Spouse', value: stats.nigerianSpouse, pct: stats.total > 0 ? Math.round((stats.nigerianSpouse / stats.total) * 100) : 0, color: '#008751' },
+              { label: 'Members with Other Nationality Spouse', value: stats.otherSpouse, pct: stats.total > 0 ? Math.round((stats.otherSpouse / stats.total) * 100) : 0, color: '#4169E1' },
+              { label: 'Members with Children', value: stats.membersWithKids, pct: stats.total > 0 ? Math.round((stats.membersWithKids / stats.total) * 100) : 0, color: '#8b5cf6' },
+            ].map(({ label, value, pct, color }) => (
+              <div key={label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-semibold text-foreground">{value} <span className="text-muted-foreground">({pct}%)</span></span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-border flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total children across all members</span>
+              <span className="text-xl font-bold text-foreground">{stats.totalKids}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Recent Members */}
       <Card className="shadow-card">

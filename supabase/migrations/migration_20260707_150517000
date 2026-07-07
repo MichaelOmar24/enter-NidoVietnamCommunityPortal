@@ -1,0 +1,5 @@
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS spouse_nationality TEXT,
+  ADD COLUMN IF NOT EXISTS spouse_nationality_other TEXT,
+  ADD COLUMN IF NOT EXISTS number_of_kids INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS spouse_passport_url TEXT;

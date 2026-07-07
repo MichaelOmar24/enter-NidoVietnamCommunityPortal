@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   Users, ShieldCheck, Clock, XCircle, Briefcase,
-  Building2, FileText, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock, Download
+  Building2, FileText, TrendingUp, TrendingDown, Minus, Shield, Crown, Banknote, Lock, Download, Heart, Baby
 } from 'lucide-react';
 import { differenceInDays, parseISO, format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { OCCUPATION_LABELS, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
@@ -34,6 +34,11 @@ interface KpiData {
   goldMembers: number;
   pendingPayments: number;
   totalRevenue: number;
+  vietnameseSpouse: number;
+  nigerianSpouse: number;
+  otherSpouse: number;
+  membersWithKids: number;
+  totalKids: number;
 }
 
 export function EmbassyOverview() {
@@ -42,7 +47,8 @@ export function EmbassyOverview() {
     totalPassports: 0, verifiedPassports: 0, biometricPassports: 0,
     expiringPassports: 0, expiredPassports: 0,
     totalCompanies: 0, approvedCompanies: 0, totalActivities: 0, totalDocuments: 0,
-    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0
+    premiumMembers: 0, goldMembers: 0, pendingPayments: 0, totalRevenue: 0,
+    vietnameseSpouse: 0, nigerianSpouse: 0, otherSpouse: 0, membersWithKids: 0, totalKids: 0,
   });
   const [growthData, setGrowthData] = useState<{ month: string; members: number; cumulative: number }[]>([]);
   const [statusData, setStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
@@ -53,6 +59,7 @@ export function EmbassyOverview() {
   const [religionData, setReligionData] = useState<{ name: string; value: number }[]>([]);
   const [purposeData, setPurposeData] = useState<{ name: string; count: number }[]>([]);
   const [qualificationData, setQualificationData] = useState<{ name: string; count: number }[]>([]);
+  const [spouseNationalityData, setSpouseNationalityData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [companyIntel, setCompanyIntel] = useState<{ company: { id: string; company_name: string; industry: string | null; business_type: string | null; is_approved: boolean }; priv: { annual_revenue_vnd: number | null; monthly_revenue_vnd: number | null; tax_code: string | null; registration_number: string | null; is_verified: boolean; registration_doc_url: string | null; tax_code_doc_url: string | null } | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,7 +86,7 @@ export function EmbassyOverview() {
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_approved', true),
       supabase.from('activities').select('*', { count: 'exact', head: true }),
       supabase.from('documents').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type, religion, purpose_of_visit, highest_qualification'),
+      supabase.from('profiles').select('created_at, membership_status, vietnam_city, occupation_type, gender, membership_type, religion, purpose_of_visit, highest_qualification, spouse_nationality, number_of_kids'),
       supabase.from('memberships').select('plan_type, payment_status, amount, currency'),
     ]);
 
@@ -120,6 +127,11 @@ export function EmbassyOverview() {
       totalCompanies: totalComp || 0, approvedCompanies: approvedComp || 0,
       totalActivities: totalAct || 0, totalDocuments: totalDoc || 0,
       premiumMembers, goldMembers, pendingPayments, totalRevenue,
+      vietnameseSpouse: (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'vietnamese').length,
+      nigerianSpouse: (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'nigerian').length,
+      otherSpouse: (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'other').length,
+      membersWithKids: (allProfiles || []).filter((p: { number_of_kids: number | null }) => p.number_of_kids != null && p.number_of_kids > 0).length,
+      totalKids: (allProfiles || []).reduce((s: number, p: { number_of_kids: number | null }) => s + (p.number_of_kids || 0), 0),
     });
 
     // Tier distribution
@@ -195,6 +207,16 @@ export function EmbassyOverview() {
     });
     setQualificationData(Object.entries(qualMap).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: QUALIFICATION_LABELS[k as keyof typeof QUALIFICATION_LABELS] || k, count: v })));
 
+    // Spouse nationality
+    const spouseVN = (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'vietnamese').length;
+    const spouseNG = (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'nigerian').length;
+    const spouseOT = (allProfiles || []).filter((p: { spouse_nationality: string | null }) => p.spouse_nationality === 'other').length;
+    setSpouseNationalityData([
+      { name: 'Vietnamese', value: spouseVN, color: '#DA251D' },
+      { name: 'Nigerian', value: spouseNG, color: '#008751' },
+      { name: 'Other', value: spouseOT, color: '#3b82f6' },
+    ].filter(d => d.value > 0));
+
     setLoading(false);
   };
 
@@ -253,6 +275,10 @@ export function EmbassyOverview() {
     { label: 'Expiring (≤1yr)', value: kpi.expiringPassports, icon: Clock, color: '#f97316', trend: null },
     { label: 'Companies', value: kpi.totalCompanies, icon: Building2, color: '#06b6d4', trend: null },
     { label: 'Documents', value: kpi.totalDocuments, icon: FileText, color: '#8b5cf6', trend: null },
+    { label: 'Vietnamese Spouses', value: kpi.vietnameseSpouse, icon: Heart, color: '#DA251D', trend: null },
+    { label: 'Nigerian Spouses', value: kpi.nigerianSpouse, icon: Heart, color: '#00b359', trend: null },
+    { label: 'Members with Kids', value: kpi.membersWithKids, icon: Baby, color: '#8b5cf6', trend: null },
+    { label: 'Total Children', value: kpi.totalKids, icon: Baby, color: '#ec4899', trend: null },
   ];
 
   const TrendIcon = ({ trend }: { trend: string | null }) => {
@@ -538,6 +564,75 @@ export function EmbassyOverview() {
             </BarChart>
           </ResponsiveContainer>
         ) : <div className="h-32 flex items-center justify-center text-gray-600 text-sm">No data yet</div>}
+      </div>
+
+      {/* Spouse & Family Intelligence */}
+      <div className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="embassy-chart-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Heart className="h-4 w-4 text-red-400" />
+            <p className="text-sm font-semibold text-white">Spouse Nationality</p>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">Married members by spouse's nationality</p>
+          {spouseNationalityData.length > 0 ? (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="55%" height={140}>
+                <PieChart>
+                  <Pie data={spouseNationalityData} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" paddingAngle={3}>
+                    {spouseNationalityData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2">
+                {spouseNationalityData.map(d => (
+                  <div key={d.name} className="flex items-center justify-between gap-6 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="text-gray-400">{d.name}</span>
+                    </div>
+                    <span className="text-white font-semibold">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="h-32 flex items-center justify-center text-gray-600 text-sm">No spouse data yet</div>
+          )}
+        </div>
+
+        <div className="embassy-chart-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Baby className="h-4 w-4 text-purple-400" />
+            <p className="text-sm font-semibold text-white">Family Demographics</p>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">Children and cross-cultural family statistics</p>
+          <div className="space-y-3">
+            {[
+              { label: 'Vietnamese Spouses', value: kpi.vietnameseSpouse, total: kpi.totalMembers, color: '#DA251D' },
+              { label: 'Nigerian Spouses', value: kpi.nigerianSpouse, total: kpi.totalMembers, color: '#00b359' },
+              { label: 'Other Nationality Spouses', value: kpi.otherSpouse, total: kpi.totalMembers, color: '#3b82f6' },
+              { label: 'Members with Children', value: kpi.membersWithKids, total: kpi.totalMembers, color: '#8b5cf6' },
+            ].map(({ label, value, total, color }) => {
+              const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+              return (
+                <div key={label}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">{label}</span>
+                    <span className="text-white font-semibold">{value} <span className="text-gray-500">({pct}%)</span></span>
+                  </div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+              <span className="text-xs text-gray-500">Total children across community</span>
+              <span className="text-lg font-bold text-white">{kpi.totalKids}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Company Trade Intelligence */}

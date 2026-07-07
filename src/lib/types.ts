@@ -1,5 +1,6 @@
 export type OccupationType = 'student' | 'teacher' | 'self_employed' | 'business' | 'employee' | 'other';
 export type MaritalStatus = 'single' | 'married' | 'divorced' | 'widowed';
+export type SpouseNationality = 'vietnamese' | 'nigerian' | 'other';
 export type MembershipType = 'regular' | 'premium';
 export type MembershipStatus = 'active' | 'pending' | 'expired';
 export type Gender = 'male' | 'female' | 'other';
@@ -37,6 +38,11 @@ export interface Profile {
   is_embassy_staff: boolean;
   created_at: string;
   updated_at: string;
+  // Spouse & family fields
+  spouse_nationality?: SpouseNationality;
+  spouse_nationality_other?: string;
+  number_of_kids?: number;
+  spouse_passport_url?: string;
   // Extended profile fields
   occupation_institution_name?: string;
   occupation_institution_address?: string;

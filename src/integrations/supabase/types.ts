@@ -4312,6 +4312,7 @@ export type Database = {
           next_of_kin_phone: string | null
           next_of_kin_relationship: string | null
           nigerian_state_of_origin: string | null
+          number_of_kids: number | null
           occupation_country_state: string | null
           occupation_institution_address: string | null
           occupation_institution_name: string | null
@@ -4321,6 +4322,9 @@ export type Database = {
           purpose_of_visit: string | null
           qualification: string | null
           religion: string | null
+          spouse_nationality: string | null
+          spouse_nationality_other: string | null
+          spouse_passport_url: string | null
           updated_at: string | null
           vietnam_address: string | null
           vietnam_city: string | null
@@ -4353,6 +4357,7 @@ export type Database = {
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           nigerian_state_of_origin?: string | null
+          number_of_kids?: number | null
           occupation_country_state?: string | null
           occupation_institution_address?: string | null
           occupation_institution_name?: string | null
@@ -4362,6 +4367,9 @@ export type Database = {
           purpose_of_visit?: string | null
           qualification?: string | null
           religion?: string | null
+          spouse_nationality?: string | null
+          spouse_nationality_other?: string | null
+          spouse_passport_url?: string | null
           updated_at?: string | null
           vietnam_address?: string | null
           vietnam_city?: string | null
@@ -4394,6 +4402,7 @@ export type Database = {
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           nigerian_state_of_origin?: string | null
+          number_of_kids?: number | null
           occupation_country_state?: string | null
           occupation_institution_address?: string | null
           occupation_institution_name?: string | null
@@ -4403,6 +4412,9 @@ export type Database = {
           purpose_of_visit?: string | null
           qualification?: string | null
           religion?: string | null
+          spouse_nationality?: string | null
+          spouse_nationality_other?: string | null
+          spouse_passport_url?: string | null
           updated_at?: string | null
           vietnam_address?: string | null
           vietnam_city?: string | null
