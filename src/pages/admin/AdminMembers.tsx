@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, OccupationType, MaritalStatus, Gender } from '@/lib/types';
+import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, RELIGION_LABELS, OccupationType, MaritalStatus, Gender, ReligionType } from '@/lib/types';
 import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -36,8 +36,11 @@ export function AdminMembers() {
     email: '', first_name: '', last_name: '', phone: '',
     date_of_birth: '', gender: '' as Gender | '',
     occupation_type: '' as OccupationType | '',
+    occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '',
     marital_status: '' as MaritalStatus | '',
     vietnam_city: '', nigerian_state_of_origin: '',
+    next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
+    religion: '' as ReligionType | '',
   });
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -150,6 +153,20 @@ export function AdminMembers() {
 
     const userId = data.user_id;
 
+    // Update profile with extended fields
+    if (userId) {
+      await (supabase.from('profiles') as unknown as { update: (d: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> } }).update({
+        occupation_institution_name: createForm.occupation_institution_name || null,
+        occupation_institution_address: createForm.occupation_institution_address || null,
+        occupation_country_state: createForm.occupation_country_state || null,
+        next_of_kin_name: createForm.next_of_kin_name || null,
+        next_of_kin_relationship: createForm.next_of_kin_relationship || null,
+        next_of_kin_phone: createForm.next_of_kin_phone || null,
+        next_of_kin_address: createForm.next_of_kin_address || null,
+        religion: createForm.religion || null,
+      }).eq('id', userId);
+    }
+
     // Handle passport creation if any passport data was provided
     const hasPassportData = passportForm.passport_number || passportForm.issue_date ||
       passportForm.expiry_date || passportForm.place_of_issue || passportFile;
@@ -188,7 +205,10 @@ export function AdminMembers() {
     setCreateForm({
       email: '', first_name: '', last_name: '', phone: '',
       date_of_birth: '', gender: '', occupation_type: '',
+      occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '',
       marital_status: '', vietnam_city: '', nigerian_state_of_origin: '',
+      next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
+      religion: '',
     });
     setPassportForm({ passport_number: '', place_of_issue: '', issue_date: '', expiry_date: '', is_biometric: false, verified: false, admin_notes: '' });
     setPassportFile(null);
@@ -304,7 +324,7 @@ export function AdminMembers() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Occupation</Label>
-                <Select value={createForm.occupation_type} onValueChange={v => setCreateForm(f => ({ ...f, occupation_type: v as OccupationType }))}>
+                <Select value={createForm.occupation_type} onValueChange={v => setCreateForm(f => ({ ...f, occupation_type: v as OccupationType, occupation_institution_name: '', occupation_institution_address: '', occupation_country_state: '' }))}>
                   <SelectTrigger><SelectValue placeholder="Select occupation" /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(OCCUPATION_LABELS).map(([val, label]) => (
@@ -325,6 +345,36 @@ export function AdminMembers() {
                 </Select>
               </div>
             </div>
+
+            {/* Dynamic Occupation Sub-Fields */}
+            {(['student', 'business', 'employee', 'teacher'] as OccupationType[]).includes(createForm.occupation_type as OccupationType) && (() => {
+              const cfg: Record<string, { title: string; nameLabel: string; addressLabel: string; showCity: boolean }> = {
+                student: { title: 'Institution Details', nameLabel: 'Name of Institution', addressLabel: 'Institution Address', showCity: true },
+                business: { title: 'Business Details', nameLabel: 'Business Name', addressLabel: 'Business Address', showCity: false },
+                employee: { title: 'Employer Details', nameLabel: 'Employer / Company Name', addressLabel: 'Company Address', showCity: false },
+                teacher: { title: 'Workplace Details', nameLabel: 'School / Academy / Training Centre Name', addressLabel: 'Workplace Address', showCity: false },
+              };
+              const c = cfg[createForm.occupation_type];
+              return (
+                <div className="p-3 rounded-lg bg-muted/40 border border-border space-y-3">
+                  <p className="text-xs font-semibold text-foreground">{c.title}</p>
+                  <div className="space-y-1.5">
+                    <Label>{c.nameLabel}</Label>
+                    <Input value={createForm.occupation_institution_name} onChange={e => setCreateForm(f => ({ ...f, occupation_institution_name: e.target.value }))} placeholder={c.nameLabel} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{c.addressLabel}</Label>
+                    <Input value={createForm.occupation_institution_address} onChange={e => setCreateForm(f => ({ ...f, occupation_institution_address: e.target.value }))} placeholder="Street address, district..." />
+                  </div>
+                  {c.showCity && (
+                    <div className="space-y-1.5">
+                      <Label>City / Province in Vietnam</Label>
+                      <Input value={createForm.occupation_country_state} onChange={e => setCreateForm(f => ({ ...f, occupation_country_state: e.target.value }))} placeholder="e.g. Ho Chi Minh City, Hanoi, Da Nang" />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Vietnam City & State of Origin */}
             <div className="grid grid-cols-2 gap-3">
@@ -349,6 +399,44 @@ export function AdminMembers() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Religion */}
+            <div className="space-y-1.5">
+              <Label>Religion</Label>
+              <Select value={createForm.religion} onValueChange={v => setCreateForm(f => ({ ...f, religion: v as ReligionType }))}>
+                <SelectTrigger><SelectValue placeholder="Select religion" /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(RELIGION_LABELS).map(([val, label]) => (
+                    <SelectItem key={val} value={val}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Next of Kin */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-sm font-semibold text-foreground">Next of Kin Details</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Full Name</Label>
+                  <Input value={createForm.next_of_kin_name} onChange={e => setCreateForm(f => ({ ...f, next_of_kin_name: e.target.value }))} placeholder="Full name" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Relationship</Label>
+                  <Input value={createForm.next_of_kin_relationship} onChange={e => setCreateForm(f => ({ ...f, next_of_kin_relationship: e.target.value }))} placeholder="e.g. Spouse, Parent" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Phone Number</Label>
+                  <Input value={createForm.next_of_kin_phone} onChange={e => setCreateForm(f => ({ ...f, next_of_kin_phone: e.target.value }))} placeholder="+234..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Address</Label>
+                  <Input value={createForm.next_of_kin_address} onChange={e => setCreateForm(f => ({ ...f, next_of_kin_address: e.target.value }))} placeholder="Street address" />
+                </div>
               </div>
             </div>
 
