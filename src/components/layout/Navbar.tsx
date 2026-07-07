@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, HeartHandshake } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, HeartHandshake, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { SpouseFamilyDialog } from '@/components/SpouseFamilyDialog';
 
 const navLinks = [
   { label: 'Home', href: '/' },
@@ -28,6 +29,7 @@ const navLinks = [
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [spouseDialogOpen, setSpouseDialogOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +113,10 @@ export function Navbar() {
                     <HeartHandshake className="h-4 w-4 mr-2" />
                     Welfare Support
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSpouseDialogOpen(true)}>
+                    <Heart className="h-4 w-4 mr-2 text-red-500" />
+                    Spouse &amp; Family
+                  </DropdownMenuItem>
                   {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
@@ -192,6 +198,7 @@ export function Navbar() {
           </div>
         </div>
       )}
+      <SpouseFamilyDialog open={spouseDialogOpen} onOpenChange={setSpouseDialogOpen} />
     </nav>
   );
 }
