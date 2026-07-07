@@ -44,11 +44,12 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   }, []);
 
   const loadBadgeCounts = async () => {
-    const [messages, welfare, caseReports, memberships] = await Promise.all([
+    const [messages, welfare, caseReports, memberships, newMembers] = await Promise.all([
       supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'unread'),
       supabase.from('welfare_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'under_review']),
       supabase.from('case_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('payment_status', 'pending'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('membership_status', 'pending'),
     ]);
 
     setBadges({
@@ -56,6 +57,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       Welfare: welfare.count || 0,
       'Case Reports': caseReports.count || 0,
       Memberships: memberships.count || 0,
+      Members: newMembers.count || 0,
     });
   };
 
@@ -111,14 +113,14 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                     <Icon className="h-4 w-4" />
                     {/* Collapsed dot badge */}
                     {collapsed && count > 0 && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                      <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${label === 'Members' ? 'bg-green-500' : 'bg-primary'}`} />
                     )}
                   </span>
                   {!collapsed && (
                     <>
                       <span className="flex-1">{label}</span>
                       {count > 0 && (
-                        <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-primary text-primary-foreground rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 leading-none">
+                        <span className={`ml-auto min-w-[18px] h-[18px] px-1 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 leading-none ${label === 'Members' ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'}`}>
                           {count > 99 ? '99+' : count}
                         </span>
                       )}

@@ -58,7 +58,6 @@ interface FormData {
   spouse_nationality: SpouseNationality | '';
   spouse_nationality_other: string;
   number_of_kids: number | '';
-  spouse_passport_image: File | null;
 }
 
 const STEPS = [
@@ -115,7 +114,7 @@ export function RegisterPage() {
     next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
     highest_qualification: '', religion: '', purpose_of_visit: '',
     passport_number: '', issue_date: '', expiry_date: '', place_of_issue: '', passport_image: null,
-    spouse_nationality: '', spouse_nationality_other: '', number_of_kids: '', spouse_passport_image: null,
+    spouse_nationality: '', spouse_nationality_other: '', number_of_kids: '',
   });
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -174,61 +173,50 @@ export function RegisterPage() {
     // Now authenticated — get the user
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      let passport_image_url: string | undefined;
-      let spouse_passport_url: string | undefined;
+      // Run passport image upload and profile update in parallel to save time
+      const [passportUploadResult] = await Promise.all([
+        // Upload passport image (authenticated session now active)
+        (async () => {
+          if (!form.passport_image) return undefined;
+          const ext = form.passport_image.name.split('.').pop();
+          const fileName = `passport_${user.id}_${Date.now()}.${ext}`;
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('passport-images')
+            .upload(fileName, form.passport_image);
+          if (uploadErr) {
+            console.warn('Passport upload error:', uploadErr.message);
+            return undefined;
+          }
+          if (uploadData) {
+            const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
+            return urlData.publicUrl;
+          }
+          return undefined;
+        })(),
 
-      // Upload passport image (authenticated session now active)
-      if (form.passport_image) {
-        const ext = form.passport_image.name.split('.').pop();
-        const fileName = `passport_${user.id}_${Date.now()}.${ext}`;
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('passport-images')
-          .upload(fileName, form.passport_image);
-        if (uploadErr) {
-          console.warn('Passport upload error:', uploadErr.message);
-        } else if (uploadData) {
-          const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
-          passport_image_url = urlData.publicUrl;
-        }
-      }
+        // Update profile with extended fields (independent of image upload)
+        (supabase.from('profiles') as unknown as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } }).update({
+          occupation_institution_name: form.occupation_institution_name || null,
+          occupation_institution_address: form.occupation_institution_address || null,
+          occupation_country_state: form.occupation_country_state || null,
+          next_of_kin_name: form.next_of_kin_name || null,
+          next_of_kin_relationship: form.next_of_kin_relationship || null,
+          next_of_kin_phone: form.next_of_kin_phone || null,
+          next_of_kin_address: form.next_of_kin_address || null,
+          highest_qualification: form.highest_qualification || null,
+          religion: form.religion || null,
+          purpose_of_visit: form.purpose_of_visit || null,
+          ...(form.marital_status === 'married' ? {
+            spouse_nationality: form.spouse_nationality || null,
+            spouse_nationality_other: form.spouse_nationality === 'other' ? form.spouse_nationality_other || null : null,
+            number_of_kids: form.number_of_kids !== '' ? Number(form.number_of_kids) : 0,
+          } : {}),
+        }).eq('id', user.id),
+      ]);
 
-      // Upload spouse passport image
-      if (form.spouse_passport_image) {
-        const ext = form.spouse_passport_image.name.split('.').pop();
-        const fileName = `spouse_passport_${user.id}_${Date.now()}.${ext}`;
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('passport-images')
-          .upload(fileName, form.spouse_passport_image);
-        if (uploadErr) {
-          console.warn('Spouse passport upload error:', uploadErr.message);
-        } else if (uploadData) {
-          const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
-          spouse_passport_url = urlData.publicUrl;
-        }
-      }
+      const passport_image_url = passportUploadResult;
 
-      // Update profile with extended fields
-      await (supabase.from('profiles') as unknown as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } }).update({
-        occupation_institution_name: form.occupation_institution_name || null,
-        occupation_institution_address: form.occupation_institution_address || null,
-        occupation_country_state: form.occupation_country_state || null,
-        next_of_kin_name: form.next_of_kin_name || null,
-        next_of_kin_relationship: form.next_of_kin_relationship || null,
-        next_of_kin_phone: form.next_of_kin_phone || null,
-        next_of_kin_address: form.next_of_kin_address || null,
-        highest_qualification: form.highest_qualification || null,
-        religion: form.religion || null,
-        purpose_of_visit: form.purpose_of_visit || null,
-        // Spouse & family
-        ...(form.marital_status === 'married' ? {
-          spouse_nationality: form.spouse_nationality || null,
-          spouse_nationality_other: form.spouse_nationality === 'other' ? form.spouse_nationality_other || null : null,
-          number_of_kids: form.number_of_kids !== '' ? Number(form.number_of_kids) : 0,
-          spouse_passport_url: spouse_passport_url || null,
-        } : {}),
-      }).eq('id', user.id);
-
-      // Insert passport record
+      // Insert passport record after upload completes
       if (form.passport_number || passport_image_url) {
         await supabase.from('passports').insert({
           user_id: user.id,
@@ -493,34 +481,6 @@ export function RegisterPage() {
                           placeholder="0"
                         />
                       </div>
-
-                      {/* Spouse passport upload */}
-                      <div className="space-y-2">
-                        <Label>Spouse Passport <span className="text-muted-foreground font-normal">(optional — can be uploaded later)</span></Label>
-                        <div
-                          className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-smooth cursor-pointer"
-                          onClick={() => document.getElementById('spouse-passport-upload')?.click()}
-                        >
-                          {form.spouse_passport_image ? (
-                            <div>
-                              <img src={URL.createObjectURL(form.spouse_passport_image)} alt="Spouse Passport" className="h-24 mx-auto rounded object-cover mb-2" />
-                              <p className="text-sm text-primary">{form.spouse_passport_image.name}</p>
-                            </div>
-                          ) : (
-                            <>
-                              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                              <p className="text-xs text-muted-foreground">Click to upload spouse passport image</p>
-                            </>
-                          )}
-                        </div>
-                        <input
-                          id="spouse-passport-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={e => setForm(prev => ({ ...prev, spouse_passport_image: e.target.files?.[0] || null }))}
-                        />
-                      </div>
                     </div>
                   )}
                   <div className="space-y-2">
@@ -612,9 +572,9 @@ export function RegisterPage() {
               {/* ─── STEP 4: Passport ─── */}
               {step === 3 && (
                 <>
-                  <div className="p-4 bg-muted/50 rounded-lg border border-border text-sm text-muted-foreground">
-                    <p className="font-medium text-foreground mb-1">Passport information is optional</p>
-                    <p>You can add or update your passport details later from your dashboard.</p>
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/30 text-sm">
+                    <p className="font-semibold text-foreground mb-1">Passport information is required</p>
+                    <p className="text-muted-foreground">Your passport details are mandatory for membership. You can update them later from your dashboard if needed.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
