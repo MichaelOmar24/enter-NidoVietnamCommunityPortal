@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, Banknote, ArrowUpRight, ArrowDownRight,
-  Search, Plus, BookOpen, RefreshCw, Calendar, User
+  Search, Plus, BookOpen, RefreshCw, Calendar, User, HeartHandshake, CheckCircle
 } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -49,6 +49,21 @@ interface Transaction {
 
 const CHART_COLORS = ['#00b359','#DA251D','#FFD700','#3b82f6','#8b5cf6','#f97316'];
 
+const SUPPORT_TYPE_LABELS: Record<string, string> = {
+  medical: 'Medical Support',
+  housing: 'Housing Support',
+  accident: 'Accident Support',
+  employer_resolution: 'Employer Resolution',
+  immigration: 'Immigration Support',
+};
+
+interface ApprovedWelfareRequest {
+  id: string;
+  support_type: string;
+  title: string;
+  profiles?: { first_name: string; last_name: string };
+}
+
 export function AdminTreasury() {
   const { profile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -61,6 +76,10 @@ export function AdminTreasury() {
   const [catData, setCatData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  // Welfare-specific: approved welfare requests dropdown
+  const [approvedWelfare, setApprovedWelfare] = useState<ApprovedWelfareRequest[]>([]);
+  const [selectedWelfare, setSelectedWelfare] = useState<ApprovedWelfareRequest | null>(null);
+  // Generic member search (non-welfare categories)
   const [memberSearch, setMemberSearch] = useState('');
   const [memberResults, setMemberResults] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
   const [selectedMember, setSelectedMember] = useState<{ id: string; first_name: string; last_name: string } | null>(null);
@@ -115,7 +134,26 @@ export function AdminTreasury() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadApprovedWelfare(); }, [load]);
+
+  const loadApprovedWelfare = async () => {
+    const { data } = await supabase
+      .from('welfare_requests')
+      .select('id, support_type, title, profiles!welfare_requests_user_id_fkey(first_name, last_name)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+    setApprovedWelfare((data || []) as ApprovedWelfareRequest[]);
+  };
+
+  const selectWelfareRequest = (req: ApprovedWelfareRequest) => {
+    setSelectedWelfare(req);
+    const memberName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim();
+    const supportLabel = SUPPORT_TYPE_LABELS[req.support_type] || req.support_type;
+    setForm(f => ({
+      ...f,
+      description: `Welfare Support — ${memberName} (${supportLabel}: ${req.title})`,
+    }));
+  };
 
   const searchMembers = async (q: string) => {
     if (!q.trim()) { setMemberResults([]); setShowMemberDropdown(false); return; }
@@ -168,6 +206,7 @@ export function AdminTreasury() {
       setForm({ category: 'welfare_support', amount: '', description: '', notes: '' });
       setSelectedMember(null);
       setMemberSearch('');
+      setSelectedWelfare(null);
       setTimeout(() => setSuccessMsg(''), 3000);
       load();
     }
@@ -374,6 +413,7 @@ export function AdminTreasury() {
                     setForm(f => ({ ...f, category: v, description: '' }));
                     setSelectedMember(null);
                     setMemberSearch('');
+                    setSelectedWelfare(null);
                   }}>
                     <SelectTrigger>
                       <SelectValue />
@@ -386,47 +426,96 @@ export function AdminTreasury() {
                   </Select>
                 </div>
 
-                {/* Member Name (especially for welfare, but available for all) */}
-                <div className="relative">
-                  <Label className="text-sm mb-1.5 block flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" /> Member Name
-                    {form.category === 'welfare_support' && <span className="text-destructive ml-0.5">*</span>}
-                    {form.category !== 'welfare_support' && <span className="text-muted-foreground text-xs">(optional — appended to description)</span>}
-                  </Label>
-                  <Input
-                    placeholder="Search member by name..."
-                    value={memberSearch}
-                    onChange={e => {
-                      setMemberSearch(e.target.value);
-                      setSelectedMember(null);
-                      searchMembers(e.target.value);
-                    }}
-                    onFocus={() => memberSearch && setShowMemberDropdown(true)}
-                    className="h-9 text-sm"
-                  />
-                  {showMemberDropdown && memberResults.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 mt-1 rounded-lg border border-border bg-card shadow-card overflow-hidden">
-                      {memberResults.map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => selectMember(m)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-smooth border-b border-border/50 last:border-0 flex items-center gap-2"
-                        >
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-bold text-primary">{m.first_name[0]}{m.last_name[0]}</span>
-                          </div>
-                          <span className="font-medium text-foreground">{m.first_name} {m.last_name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {selectedMember && (
-                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
-                      <User className="h-3 w-3" /> {selectedMember.first_name} {selectedMember.last_name} selected — name will be appended to description
-                    </p>
-                  )}
-                </div>
+                {/* WELFARE: show approved welfare requests */}
+                {form.category === 'welfare_support' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm flex items-center gap-1.5">
+                      <HeartHandshake className="h-3.5 w-3.5 text-destructive" />
+                      Approved Welfare Request <span className="text-destructive">*</span>
+                    </Label>
+                    {approvedWelfare.length === 0 ? (
+                      <div className="p-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground text-center">
+                        No approved welfare requests found
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-lg border border-border bg-card">
+                        {approvedWelfare.map(req => {
+                          const memberName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim();
+                          const supportLabel = SUPPORT_TYPE_LABELS[req.support_type] || req.support_type;
+                          const isSelected = selectedWelfare?.id === req.id;
+                          return (
+                            <button
+                              key={req.id}
+                              type="button"
+                              onClick={() => selectWelfareRequest(req)}
+                              className={`w-full text-left px-3 py-2.5 text-sm transition-smooth border-b border-border/50 last:border-0 flex items-start gap-3 ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/40'}`}
+                            >
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'bg-primary/20' : 'bg-muted'}`}>
+                                {isSelected
+                                  ? <CheckCircle className="h-4 w-4 text-primary" />
+                                  : <HeartHandshake className="h-3.5 w-3.5 text-muted-foreground" />
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-semibold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>{memberName}</p>
+                                <p className="text-xs text-muted-foreground truncate">{supportLabel} — {req.title}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {selectedWelfare && (
+                      <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary flex items-center gap-2">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                        Description auto-filled from welfare case
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* NON-WELFARE: generic member name search */}
+                {form.category !== 'welfare_support' && (
+                  <div className="relative">
+                    <Label className="text-sm mb-1.5 block flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" /> Member Name
+                      <span className="text-muted-foreground text-xs ml-1">(optional — appended to description)</span>
+                    </Label>
+                    <Input
+                      placeholder="Search member by name..."
+                      value={memberSearch}
+                      onChange={e => {
+                        setMemberSearch(e.target.value);
+                        setSelectedMember(null);
+                        searchMembers(e.target.value);
+                      }}
+                      onFocus={() => memberSearch && setShowMemberDropdown(true)}
+                      className="h-9 text-sm"
+                    />
+                    {showMemberDropdown && memberResults.length > 0 && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 rounded-lg border border-border bg-card shadow-card overflow-hidden">
+                        {memberResults.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => selectMember(m)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-smooth border-b border-border/50 last:border-0 flex items-center gap-2"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              <span className="text-[10px] font-bold text-primary">{m.first_name[0]}{m.last_name[0]}</span>
+                            </div>
+                            <span className="font-medium text-foreground">{m.first_name} {m.last_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedMember && (
+                      <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                        <User className="h-3 w-3" /> {selectedMember.first_name} {selectedMember.last_name} — name will be appended to description
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <Label className="text-sm mb-1.5 block">Amount (VND) <span className="text-destructive">*</span></Label>
