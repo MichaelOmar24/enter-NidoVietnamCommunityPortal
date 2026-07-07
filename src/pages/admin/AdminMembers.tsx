@@ -521,6 +521,9 @@ export function AdminMembers() {
                     <Input value={createForm.spouse_nationality_other} onChange={e => setCreateForm(f => ({ ...f, spouse_nationality_other: e.target.value }))} placeholder="e.g. Ghanaian, Chinese, Indian..." />
                   </div>
                 )}
+              </div>
+            )}
+
             {/* Next of Kin */}
             <div className="border-t border-border pt-4 space-y-3">
               <p className="text-sm font-semibold text-foreground">Next of Kin Details</p>
