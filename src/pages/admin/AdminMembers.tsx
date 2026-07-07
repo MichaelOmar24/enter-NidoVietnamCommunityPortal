@@ -877,7 +877,7 @@ export function AdminMembers() {
                                       </div>
                                     </div>
                                     {/* Spouse Passport */}
-                                    {(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url ? (
+                                    {(selected as Profile & { spouse_passport_url?: string }).spouse_passport_url && (
                                       <div>
                                         <p className="text-xs text-muted-foreground mb-1.5">Spouse Passport</p>
                                         <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
@@ -899,11 +899,6 @@ export function AdminMembers() {
                                             </Badge>
                                           </div>
                                         </div>
-                                      </div>
-                                    ) : (
-                                      <div className="h-20 rounded-lg border-2 border-dashed border-border bg-muted/10 flex flex-col items-center justify-center text-muted-foreground">
-                                        <FileImage className="h-5 w-5 mb-1 opacity-40" />
-                                        <span className="text-xs">No spouse passport uploaded</span>
                                       </div>
                                     )}
                                   </div>
