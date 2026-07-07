@@ -34,19 +34,30 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [badges, setBadges] = useState<Record<string, number>>({});
   const { profile, signOut, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Load unread message count
-    supabase
-      .from('contact_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'unread')
-      .then(({ count }) => setUnreadCount(count || 0));
+    loadBadgeCounts();
   }, []);
+
+  const loadBadgeCounts = async () => {
+    const [messages, welfare, caseReports, memberships] = await Promise.all([
+      supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'unread'),
+      supabase.from('welfare_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'under_review']),
+      supabase.from('case_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('payment_status', 'pending'),
+    ]);
+
+    setBadges({
+      Messages: messages.count || 0,
+      Welfare: welfare.count || 0,
+      'Case Reports': caseReports.count || 0,
+      Memberships: memberships.count || 0,
+    });
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -81,32 +92,41 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
           {/* Nav Items */}
           <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-            {adminLinks.map(({ icon: Icon, label, href }) => (
-              <Link
-                key={href}
-                to={href}
-                title={collapsed ? label : undefined}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-smooth",
-                  location.pathname === href
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && (
-                  <span className="flex-1">{label}</span>
-                )}
-                {!collapsed && label === 'Messages' && unreadCount > 0 && (
-                  <span className="ml-auto text-[10px] bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center font-bold shrink-0">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+            {adminLinks.map(({ icon: Icon, label, href }) => {
+              const count = badges[label] || 0;
+              const isActive = location.pathname === href;
+              return (
+                <Link
+                  key={href}
+                  to={href}
+                  title={collapsed ? label : undefined}
+                  className={cn(
+                    "relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-smooth",
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <span className="relative shrink-0">
+                    <Icon className="h-4 w-4" />
+                    {/* Collapsed dot badge */}
+                    {collapsed && count > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                    )}
                   </span>
-                )}
-                {collapsed && label === 'Messages' && unreadCount > 0 && (
-                  <span className="absolute left-8 top-1 w-2 h-2 bg-primary rounded-full" />
-                )}
-              </Link>
-            ))}
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1">{label}</span>
+                      {count > 0 && (
+                        <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-primary text-primary-foreground rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 leading-none">
+                          {count > 99 ? '99+' : count}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+              );
+            })}
             {/* Embassy Portal Link for Super Admins */}
             {isSuperAdmin && (
               <Link
@@ -157,3 +177,4 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     </div>
   );
 }
+
