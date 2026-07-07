@@ -3438,11 +3438,12 @@ export type Database = {
           description: string
           evidence_urls: string[] | null
           id: string
+          is_anonymous: boolean
           reported_email: string | null
           reported_name: string
           reported_phone: string | null
           reported_relationship: string | null
-          reporter_email: string
+          reporter_email: string | null
           reporter_name: string
           reporter_phone: string | null
           reporter_user_id: string | null
@@ -3457,11 +3458,12 @@ export type Database = {
           description: string
           evidence_urls?: string[] | null
           id?: string
+          is_anonymous?: boolean
           reported_email?: string | null
           reported_name: string
           reported_phone?: string | null
           reported_relationship?: string | null
-          reporter_email: string
+          reporter_email?: string | null
           reporter_name: string
           reporter_phone?: string | null
           reporter_user_id?: string | null
@@ -3476,11 +3478,12 @@ export type Database = {
           description?: string
           evidence_urls?: string[] | null
           id?: string
+          is_anonymous?: boolean
           reported_email?: string | null
           reported_name?: string
           reported_phone?: string | null
           reported_relationship?: string | null
-          reporter_email?: string
+          reporter_email?: string | null
           reporter_name?: string
           reporter_phone?: string | null
           reporter_user_id?: string | null

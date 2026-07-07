@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface CaseReport {
   id: string;
   reporter_name: string;
-  reporter_email: string;
+  reporter_email?: string | null;
   reporter_phone?: string;
   reported_name: string;
   reported_email?: string;
@@ -27,6 +27,7 @@ interface CaseReport {
   status: string;
   admin_notes?: string;
   created_at: string;
+  is_anonymous?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -119,9 +120,14 @@ export function AdminCaseReports() {
                         <Badge className="text-[10px] border bg-muted text-muted-foreground">
                           {CASE_LABELS[r.case_type] || r.case_type}
                         </Badge>
+                        {r.is_anonymous && (
+                          <Badge className="text-[10px] border bg-green-500/10 text-green-700 dark:text-green-400 border-green-400/30 gap-1">
+                            <Lock className="h-2.5 w-2.5" /> Anonymous
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mb-1">
-                        <span className="font-medium text-foreground">{r.reporter_name}</span> reports against <span className="font-medium text-foreground">{r.reported_name}</span>
+                        <span className="font-medium text-foreground">{r.is_anonymous ? 'Anonymous Reporter' : r.reporter_name}</span> reports against <span className="font-medium text-foreground">{r.reported_name}</span>
                         {' · '}{format(parseISO(r.created_at), 'dd MMM yyyy')}
                       </p>
                       <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
@@ -158,9 +164,19 @@ export function AdminCaseReports() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
                   <p className="text-xs font-semibold text-primary uppercase tracking-wide flex items-center gap-1"><User className="h-3 w-3" /> Reporter</p>
-                  <p className="text-sm font-semibold text-foreground">{selected.reporter_name}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{selected.reporter_email}</p>
-                  {selected.reporter_phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{selected.reporter_phone}</p>}
+                  {selected.is_anonymous ? (
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-400/30 gap-1 text-xs">
+                        <Lock className="h-3 w-3" /> Anonymous Report
+                      </Badge>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-foreground">{selected.reporter_name}</p>
+                      {selected.reporter_email && <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{selected.reporter_email}</p>}
+                      {selected.reporter_phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{selected.reporter_phone}</p>}
+                    </>
+                  )}
                 </div>
                 <div className="p-3 rounded-xl border border-destructive/20 bg-destructive/5 space-y-2">
                   <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1"><User className="h-3 w-3" /> Reported</p>

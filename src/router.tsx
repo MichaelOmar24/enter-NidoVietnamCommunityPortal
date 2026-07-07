@@ -28,6 +28,7 @@ import { AdminDonations } from "./pages/admin/AdminDonations";
 import { RecognitionsPage } from "./pages/RecognitionsPage";
 import { DonationsPage } from "./pages/DonationsPage";
 import { ReportCasePage } from "./pages/ReportCasePage";
+import { AnonymousReportPage } from "./pages/AnonymousReportPage";
 import { AdminCaseReports } from "./pages/admin/AdminCaseReports";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
@@ -181,6 +182,7 @@ export const routers = [
     name: "report-case",
     element: <ProtectedRoute><ReportCasePage /></ProtectedRoute>
   },
+  { path: "/report-anonymous", name: "report-anonymous", element: <AnonymousReportPage /> },
   {
     path: "/admin/case-reports",
     name: "admin-case-reports",

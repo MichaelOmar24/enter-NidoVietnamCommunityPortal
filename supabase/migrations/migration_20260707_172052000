@@ -1,0 +1,19 @@
+-- Add anonymous flag to case_reports
+ALTER TABLE case_reports
+  ADD COLUMN IF NOT EXISTS is_anonymous boolean NOT NULL DEFAULT false;
+
+-- Make reporter_email nullable (anonymous reports don't require it)
+ALTER TABLE case_reports
+  ALTER COLUMN reporter_email DROP NOT NULL;
+
+-- Allow unauthenticated inserts for anonymous reports via the edge function
+-- The edge function uses service role so RLS isn't the blocker,
+-- but we still add a permissive policy for direct anon inserts if needed.
+ALTER TABLE case_reports ENABLE ROW LEVEL SECURITY;
+
+-- Update existing policy to also allow anonymous inserts (no auth required for anonymous)
+DROP POLICY IF EXISTS "authenticated_can_insert_case_reports" ON case_reports;
+
+CREATE POLICY "anyone_can_insert_case_reports"
+  ON case_reports FOR INSERT
+  WITH CHECK (true);

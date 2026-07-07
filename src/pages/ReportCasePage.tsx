@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -176,6 +177,31 @@ export function ReportCasePage() {
             <Shield className="h-4 w-4 shrink-0" />
             All reports are strictly confidential and will only be seen by NIDO leadership. False reports may result in membership consequences.
           </p>
+        </div>
+      </div>
+
+      {/* Anonymous Report Banner */}
+      <div className="bg-card border-b border-border py-4 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-muted/50 border border-border">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                <Shield className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">Prefer to remain completely anonymous?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Report a crime or incident without creating an account or revealing your identity.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/report-anonymous"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm font-medium hover:bg-green-500/20 transition-colors"
+            >
+              <Shield className="h-4 w-4" /> Report Anonymously
+            </Link>
+          </div>
         </div>
       </div>
 
