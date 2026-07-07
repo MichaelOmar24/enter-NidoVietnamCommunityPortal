@@ -57,10 +57,20 @@ const SUPPORT_TYPE_LABELS: Record<string, string> = {
   immigration: 'Immigration Support',
 };
 
+const URGENCY_COLORS: Record<string, string> = {
+  low: '#00b359',
+  medium: '#f97316',
+  high: '#DA251D',
+  critical: '#7c3aed',
+};
+
 interface ApprovedWelfareRequest {
   id: string;
   support_type: string;
   title: string;
+  description?: string;
+  urgency?: string;
+  created_at?: string;
   profiles?: { first_name: string; last_name: string };
 }
 
@@ -76,9 +86,12 @@ export function AdminTreasury() {
   const [catData, setCatData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  // Welfare-specific: approved welfare requests dropdown
-  const [approvedWelfare, setApprovedWelfare] = useState<ApprovedWelfareRequest[]>([]);
+  // Welfare searchable combobox state
+  const [welfareSearch, setWelfareSearch] = useState('');
+  const [welfareResults, setWelfareResults] = useState<ApprovedWelfareRequest[]>([]);
   const [selectedWelfare, setSelectedWelfare] = useState<ApprovedWelfareRequest | null>(null);
+  const [showWelfareDropdown, setShowWelfareDropdown] = useState(false);
+  const [welfareSearching, setWelfareSearching] = useState(false);
   // Generic member search (non-welfare categories)
   const [memberSearch, setMemberSearch] = useState('');
   const [memberResults, setMemberResults] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
@@ -134,21 +147,37 @@ export function AdminTreasury() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); loadApprovedWelfare(); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const loadApprovedWelfare = async () => {
+  // Server-side search: fires on every keystroke, only queries DB
+  const searchWelfareRequests = async (q: string) => {
+    setWelfareSearch(q);
+    setSelectedWelfare(null);
+    if (!q.trim()) {
+      setWelfareResults([]);
+      setShowWelfareDropdown(false);
+      return;
+    }
+    setWelfareSearching(true);
+    setShowWelfareDropdown(true);
+    // Search by member name (first/last) OR title — server-side, scales to 100K
     const { data } = await supabase
       .from('welfare_requests')
-      .select('id, support_type, title, profiles!welfare_requests_user_id_fkey(first_name, last_name)')
+      .select('id, support_type, title, description, urgency, created_at, profiles!welfare_requests_user_id_fkey(first_name, last_name)')
       .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-    setApprovedWelfare((data || []) as ApprovedWelfareRequest[]);
+      .or(`title.ilike.%${q}%,profiles.first_name.ilike.%${q}%,profiles.last_name.ilike.%${q}%`)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    setWelfareResults((data || []) as ApprovedWelfareRequest[]);
+    setWelfareSearching(false);
   };
 
   const selectWelfareRequest = (req: ApprovedWelfareRequest) => {
     setSelectedWelfare(req);
+    setShowWelfareDropdown(false);
     const memberName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim();
     const supportLabel = SUPPORT_TYPE_LABELS[req.support_type] || req.support_type;
+    setWelfareSearch(`${memberName} — ${supportLabel}`);
     setForm(f => ({
       ...f,
       description: `Welfare Support — ${memberName} (${supportLabel}: ${req.title})`,
@@ -207,6 +236,8 @@ export function AdminTreasury() {
       setSelectedMember(null);
       setMemberSearch('');
       setSelectedWelfare(null);
+      setWelfareSearch('');
+      setWelfareResults([]);
       setTimeout(() => setSuccessMsg(''), 3000);
       load();
     }
@@ -414,6 +445,8 @@ export function AdminTreasury() {
                     setSelectedMember(null);
                     setMemberSearch('');
                     setSelectedWelfare(null);
+                    setWelfareSearch('');
+                    setWelfareResults([]);
                   }}>
                     <SelectTrigger>
                       <SelectValue />
@@ -426,51 +459,134 @@ export function AdminTreasury() {
                   </Select>
                 </div>
 
-                {/* WELFARE: show approved welfare requests */}
+                {/* WELFARE: searchable combobox + selected card + details preview */}
                 {form.category === 'welfare_support' && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label className="text-sm flex items-center gap-1.5">
                       <HeartHandshake className="h-3.5 w-3.5 text-destructive" />
                       Approved Welfare Request <span className="text-destructive">*</span>
                     </Label>
-                    {approvedWelfare.length === 0 ? (
-                      <div className="p-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground text-center">
-                        No approved welfare requests found
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-lg border border-border bg-card">
-                        {approvedWelfare.map(req => {
-                          const memberName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim();
-                          const supportLabel = SUPPORT_TYPE_LABELS[req.support_type] || req.support_type;
-                          const isSelected = selectedWelfare?.id === req.id;
-                          return (
+
+                    {/* Searchable input */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        className="pl-9 pr-9"
+                        placeholder="Search by member name or case title..."
+                        value={welfareSearch}
+                        onChange={e => searchWelfareRequests(e.target.value)}
+                        onFocus={() => welfareSearch && setShowWelfareDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowWelfareDropdown(false), 150)}
+                      />
+                      {welfareSearch && (
+                        <button
+                          type="button"
+                          onClick={() => { setWelfareSearch(''); setWelfareResults([]); setSelectedWelfare(null); setShowWelfareDropdown(false); setForm(f => ({ ...f, description: '' })); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-smooth"
+                        >
+                          ×
+                        </button>
+                      )}
+
+                      {/* Dropdown results */}
+                      {showWelfareDropdown && (
+                        <div className="absolute z-50 left-0 right-0 mt-1 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                          {welfareSearching ? (
+                            <div className="px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Searching...
+                            </div>
+                          ) : welfareResults.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-muted-foreground">No approved requests found</div>
+                          ) : (
+                            welfareResults.map(req => {
+                              const memberName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim();
+                              const supportLabel = SUPPORT_TYPE_LABELS[req.support_type] || req.support_type;
+                              return (
+                                <button
+                                  key={req.id}
+                                  type="button"
+                                  onMouseDown={() => selectWelfareRequest(req)}
+                                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/40 transition-smooth border-b border-border/50 last:border-0 flex items-start gap-3"
+                                >
+                                  <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
+                                    <HeartHandshake className="h-3.5 w-3.5 text-destructive" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-foreground truncate uppercase tracking-wide text-xs">{memberName}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{supportLabel} — {req.title}</p>
+                                  </div>
+                                  {req.urgency && (
+                                    <span
+                                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                                      style={{ backgroundColor: (URGENCY_COLORS[req.urgency] || '#6b7280') + '20', color: URGENCY_COLORS[req.urgency] || '#6b7280' }}
+                                    >
+                                      {req.urgency}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selected card */}
+                    {selectedWelfare && (() => {
+                      const memberName = `${selectedWelfare.profiles?.first_name || ''} ${selectedWelfare.profiles?.last_name || ''}`.trim();
+                      const supportLabel = SUPPORT_TYPE_LABELS[selectedWelfare.support_type] || selectedWelfare.support_type;
+                      const urgencyColor = URGENCY_COLORS[selectedWelfare.urgency || ''] || '#6b7280';
+                      return (
+                        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 overflow-hidden">
+                          {/* Card header */}
+                          <div className="flex items-start gap-3 p-3 border-b border-primary/20">
+                            <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                              <CheckCircle className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-foreground uppercase tracking-wide text-sm">{memberName}</p>
+                              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                <span className="text-xs text-muted-foreground">{supportLabel}</span>
+                                {selectedWelfare.urgency && (
+                                  <span
+                                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                    style={{ backgroundColor: urgencyColor + '20', color: urgencyColor }}
+                                  >
+                                    {selectedWelfare.urgency}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                             <button
-                              key={req.id}
                               type="button"
-                              onClick={() => selectWelfareRequest(req)}
-                              className={`w-full text-left px-3 py-2.5 text-sm transition-smooth border-b border-border/50 last:border-0 flex items-start gap-3 ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/40'}`}
-                            >
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'bg-primary/20' : 'bg-muted'}`}>
-                                {isSelected
-                                  ? <CheckCircle className="h-4 w-4 text-primary" />
-                                  : <HeartHandshake className="h-3.5 w-3.5 text-muted-foreground" />
-                                }
+                              onClick={() => { setSelectedWelfare(null); setWelfareSearch(''); setWelfareResults([]); setForm(f => ({ ...f, description: '' })); }}
+                              className="text-muted-foreground hover:text-foreground text-lg leading-none shrink-0"
+                              title="Remove selection"
+                            >×</button>
+                          </div>
+
+                          {/* Request details preview */}
+                          <div className="p-3 space-y-2">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Case Title</p>
+                              <p className="text-sm font-medium text-foreground">{selectedWelfare.title}</p>
+                            </div>
+                            {selectedWelfare.description && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Description</p>
+                                <p className="text-xs text-foreground/80 leading-relaxed line-clamp-3">{selectedWelfare.description}</p>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`font-semibold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>{memberName}</p>
-                                <p className="text-xs text-muted-foreground truncate">{supportLabel} — {req.title}</p>
+                            )}
+                            {selectedWelfare.created_at && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-primary/10">
+                                <Calendar className="h-3 w-3" />
+                                Submitted {new Date(selectedWelfare.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                               </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {selectedWelfare && (
-                      <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary flex items-center gap-2">
-                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                        Description auto-filled from welfare case
-                      </div>
-                    )}
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
