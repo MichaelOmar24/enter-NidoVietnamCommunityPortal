@@ -13,6 +13,7 @@ import {
   User, FileText, Shield, Calendar, AlertTriangle, CheckCircle,
   CreditCard, ChevronRight, Bell, Users, Building2, ImageIcon,
   Crown, Clock, ArrowRight, Banknote, TrendingUp, TrendingDown, Lock, Award, Star, Heart,
+  AlertCircle, Search, RotateCcw, XCircle,
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -28,6 +29,16 @@ interface MembershipRecord {
   created_at: string;
 }
 
+interface CaseReport {
+  id: string;
+  title: string;
+  case_type: string;
+  status: string;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const VND = (n: number) => n.toLocaleString('vi-VN') + ' ₫';
 
 const TIER_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
@@ -37,6 +48,25 @@ const TIER_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
   gold: { label: 'Gold Stakeholder', icon: Crown, color: 'text-amber-600', bg: 'bg-amber-500/10' },
 };
 
+const CASE_STATUS_STEPS = [
+  { key: 'pending', label: 'Submitted', icon: Clock },
+  { key: 'under_review', label: 'Under Review', icon: Search },
+  { key: 'resolved', label: 'Resolved', icon: CheckCircle },
+];
+
+const CASE_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+  pending:      { label: 'Pending Review', color: 'text-gold',        bg: 'bg-gold/10 border-gold/30',            icon: Clock },
+  under_review: { label: 'Under Review',  color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-200',           icon: Search },
+  resolved:     { label: 'Resolved',      color: 'text-primary',     bg: 'bg-primary/10 border-primary/30',      icon: CheckCircle },
+  closed:       { label: 'Closed',        color: 'text-muted-foreground', bg: 'bg-muted border-border',          icon: XCircle },
+  rejected:     { label: 'Rejected',      color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30', icon: XCircle },
+};
+
+const CASE_TYPE_LABELS: Record<string, string> = {
+  dispute: 'General Dispute', misconduct: 'Misconduct', fraud: 'Fraud / Financial Scam',
+  harassment: 'Harassment / Bullying', impersonation: 'Impersonation', other: 'Other',
+};
+
 export function UserDashboard() {
   const { profile } = useAuth();
   const [passport, setPassport] = useState<Passport | null>(null);
@@ -44,6 +74,7 @@ export function UserDashboard() {
   const [paymentHistory, setPaymentHistory] = useState<MembershipRecord[]>([]);
   const [fundBalance, setFundBalance] = useState<{ income: number; expense: number; net: number } | null>(null);
   const [myRecognitions, setMyRecognitions] = useState<{ award_title: string; category: string; awarded_date: string }[]>([]);
+  const [myCaseReports, setMyCaseReports] = useState<CaseReport[]>([]);
   const navigate = useNavigate();
 
   const isPaidMember = profile?.membership_type === 'premium' || profile?.membership_type === 'gold';
@@ -53,6 +84,7 @@ export function UserDashboard() {
       fetchPassport();
       fetchPaymentHistory();
       fetchMyRecognitions();
+      fetchMyCaseReports();
       if (isPaidMember) fetchFundBalance();
     }
     fetchMemberCount();
@@ -92,6 +124,16 @@ export function UserDashboard() {
       .eq('is_published', true)
       .order('awarded_date', { ascending: false });
     setMyRecognitions((data || []) as { award_title: string; category: string; awarded_date: string }[]);
+  };
+
+  const fetchMyCaseReports = async () => {
+    if (!profile) return;
+    const { data } = await supabase
+      .from('case_reports')
+      .select('id, title, case_type, status, admin_notes, created_at, updated_at')
+      .eq('reporter_user_id', profile.id)
+      .order('created_at', { ascending: false });
+    setMyCaseReports((data || []) as CaseReport[]);
   };
 
   const daysToExpiry = passport?.expiry_date ? differenceInDays(parseISO(passport.expiry_date), new Date()) : null;
@@ -180,6 +222,17 @@ export function UserDashboard() {
               <Bell className="h-4 w-4 text-gold" />
               <AlertTitle className="text-gold">Passport Expiring Soon</AlertTitle>
               <AlertDescription>Your passport expires in <strong>{daysToExpiry} days</strong>.</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Case report status alert — show if any under_review */}
+          {myCaseReports.some(c => c.status === 'under_review') && (
+            <Alert className="mb-4 border-blue-300 bg-blue-50 dark:bg-blue-950/30">
+              <RotateCcw className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-700 dark:text-blue-400">Case Under Review</AlertTitle>
+              <AlertDescription className="text-blue-600 dark:text-blue-300">
+                Admin is currently reviewing your case report. You can track the progress below.
+              </AlertDescription>
             </Alert>
           )}
 
@@ -393,6 +446,94 @@ export function UserDashboard() {
               </Card>
             )}
 
+            {/* My Case Reports */}
+            {myCaseReports.length > 0 && (
+              <Card className="shadow-card md:col-span-2">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" /> My Case Reports
+                    </CardTitle>
+                    <Button size="sm" variant="outline" onClick={() => navigate('/report-case')} className="text-xs gap-1.5 text-primary border-primary hover:bg-primary/10">
+                      <AlertTriangle className="h-3.5 w-3.5" /> New Report
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {myCaseReports.map(report => {
+                    const cfg = CASE_STATUS_CONFIG[report.status] || CASE_STATUS_CONFIG.pending;
+                    const StatusIcon = cfg.icon;
+                    const stepIndex = CASE_STATUS_STEPS.findIndex(s => s.key === report.status);
+                    const effectiveStep = stepIndex === -1 ? 0 : stepIndex;
+
+                    return (
+                      <div key={report.id} className="rounded-xl border border-border bg-card/50 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-start gap-3 p-4 border-b border-border/50">
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${cfg.bg.split(' ')[0]} border ${cfg.bg.split(' ')[1] || 'border-border'}`}>
+                            <StatusIcon className={`h-4 w-4 ${cfg.color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">{report.title}</p>
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                              <span className="text-xs text-muted-foreground">{CASE_TYPE_LABELS[report.case_type] || report.case_type}</span>
+                              <span className="text-muted-foreground/40">·</span>
+                              <span className="text-xs text-muted-foreground">{new Date(report.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                          </div>
+                          <Badge className={`text-[10px] border shrink-0 ${cfg.bg} ${cfg.color}`}>
+                            {cfg.label}
+                          </Badge>
+                        </div>
+
+                        {/* Progress tracker */}
+                        {!['closed', 'rejected'].includes(report.status) && (
+                          <div className="px-4 py-3 bg-muted/20">
+                            <div className="flex items-center gap-0">
+                              {CASE_STATUS_STEPS.map((step, i) => {
+                                const StepIcon = step.icon;
+                                const done = i <= effectiveStep;
+                                const active = i === effectiveStep;
+                                return (
+                                  <div key={step.key} className="flex items-center flex-1 last:flex-none">
+                                    <div className="flex flex-col items-center gap-1">
+                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-smooth ${
+                                        active ? 'bg-primary border-primary text-primary-foreground' :
+                                        done ? 'bg-primary/20 border-primary/40 text-primary' :
+                                        'bg-muted border-border text-muted-foreground'
+                                      }`}>
+                                        <StepIcon className="h-3.5 w-3.5" />
+                                      </div>
+                                      <span className={`text-[10px] font-medium whitespace-nowrap ${active ? 'text-primary' : done ? 'text-primary/60' : 'text-muted-foreground'}`}>
+                                        {step.label}
+                                      </span>
+                                    </div>
+                                    {i < CASE_STATUS_STEPS.length - 1 && (
+                                      <div className={`flex-1 h-0.5 mb-4 mx-1 ${i < effectiveStep ? 'bg-primary/40' : 'bg-border'}`} />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Admin notes */}
+                        {report.admin_notes && (
+                          <div className="px-4 py-3 border-t border-border/50 bg-blue-50/50 dark:bg-blue-950/10">
+                            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <Shield className="h-3 w-3" /> Admin Note
+                            </p>
+                            <p className="text-xs text-foreground/80 leading-relaxed">{report.admin_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Payment History */}
             {paymentHistory.length > 0 && (
               <Card className="shadow-card md:col-span-2">
@@ -437,3 +578,5 @@ export function UserDashboard() {
     </div>
   );
 }
+
+

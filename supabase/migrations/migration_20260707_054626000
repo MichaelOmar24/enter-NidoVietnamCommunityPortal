@@ -1,0 +1,13 @@
+-- Allow premium and gold active members to view fund transactions
+CREATE POLICY "Premium and gold members can view fund transactions"
+ON fund_transactions
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.membership_type IN ('premium', 'gold')
+    AND profiles.membership_status = 'active'
+  )
+);
