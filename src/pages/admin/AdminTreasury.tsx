@@ -87,6 +87,7 @@ export function AdminTreasury() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   // Welfare searchable combobox state
+  const [allApprovedWelfare, setAllApprovedWelfare] = useState<ApprovedWelfareRequest[]>([]);
   const [welfareSearch, setWelfareSearch] = useState('');
   const [welfareResults, setWelfareResults] = useState<ApprovedWelfareRequest[]>([]);
   const [selectedWelfare, setSelectedWelfare] = useState<ApprovedWelfareRequest | null>(null);
@@ -147,29 +148,41 @@ export function AdminTreasury() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadApprovedWelfare(); }, [load]);
 
-  // Server-side search: fires on every keystroke, only queries DB
-  const searchWelfareRequests = async (q: string) => {
+  // Load all approved welfare requests once (client-side filter for reliability)
+  const loadApprovedWelfare = async () => {
+    setWelfareSearching(true);
+    const { data } = await supabase
+      .from('welfare_requests')
+      .select('id, support_type, title, description, urgency, created_at, profiles!welfare_requests_user_id_fkey(first_name, last_name)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+    setAllApprovedWelfare((data || []) as ApprovedWelfareRequest[]);
+    setWelfareSearching(false);
+  };
+
+  // Client-side filter — instant, no network latency, works with joined profile names
+  const searchWelfareRequests = (q: string) => {
     setWelfareSearch(q);
     setSelectedWelfare(null);
+    setForm(f => ({ ...f, description: '' }));
     if (!q.trim()) {
       setWelfareResults([]);
       setShowWelfareDropdown(false);
       return;
     }
-    setWelfareSearching(true);
+    const lower = q.toLowerCase();
+    const matched = allApprovedWelfare.filter(req => {
+      const fullName = `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.toLowerCase();
+      return (
+        fullName.includes(lower) ||
+        req.title.toLowerCase().includes(lower) ||
+        (SUPPORT_TYPE_LABELS[req.support_type] || req.support_type).toLowerCase().includes(lower)
+      );
+    });
+    setWelfareResults(matched.slice(0, 10));
     setShowWelfareDropdown(true);
-    // Search by member name (first/last) OR title — server-side, scales to 100K
-    const { data } = await supabase
-      .from('welfare_requests')
-      .select('id, support_type, title, description, urgency, created_at, profiles!welfare_requests_user_id_fkey(first_name, last_name)')
-      .eq('status', 'approved')
-      .or(`title.ilike.%${q}%,profiles.first_name.ilike.%${q}%,profiles.last_name.ilike.%${q}%`)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setWelfareResults((data || []) as ApprovedWelfareRequest[]);
-    setWelfareSearching(false);
   };
 
   const selectWelfareRequest = (req: ApprovedWelfareRequest) => {
@@ -240,6 +253,7 @@ export function AdminTreasury() {
       setWelfareResults([]);
       setTimeout(() => setSuccessMsg(''), 3000);
       load();
+      loadApprovedWelfare();
     }
   };
 
