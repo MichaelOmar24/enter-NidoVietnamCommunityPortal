@@ -151,38 +151,7 @@ export function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    let passport_image_url: string | undefined;
-    let spouse_passport_url: string | undefined;
-
-    // Upload passport image if provided
-    if (form.passport_image) {
-      const ext = form.passport_image.name.split('.').pop();
-      const fileName = `passport_${Date.now()}.${ext}`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('passport-images')
-        .upload(fileName, form.passport_image);
-      if (uploadErr) {
-        console.warn('Upload error:', uploadErr.message);
-      } else if (uploadData) {
-        const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
-        passport_image_url = urlData.publicUrl;
-      }
-    }
-
-    // Upload spouse passport image if provided
-    if (form.spouse_passport_image) {
-      const ext = form.spouse_passport_image.name.split('.').pop();
-      const fileName = `spouse_passport_${Date.now()}.${ext}`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('passport-images')
-        .upload(fileName, form.spouse_passport_image);
-      if (!uploadErr && uploadData) {
-        const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
-        spouse_passport_url = urlData.publicUrl;
-      }
-    }
-
-    // Create user + basic profile
+    // Create user + basic profile FIRST (need auth session before uploading to storage)
     const { error: signUpErr } = await signUp(form.email, form.password, {
       first_name: form.first_name,
       last_name: form.last_name,
@@ -202,9 +171,43 @@ export function RegisterPage() {
       return;
     }
 
-    // Update profile with extended fields
+    // Now authenticated — get the user
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      let passport_image_url: string | undefined;
+      let spouse_passport_url: string | undefined;
+
+      // Upload passport image (authenticated session now active)
+      if (form.passport_image) {
+        const ext = form.passport_image.name.split('.').pop();
+        const fileName = `passport_${user.id}_${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('passport-images')
+          .upload(fileName, form.passport_image);
+        if (uploadErr) {
+          console.warn('Passport upload error:', uploadErr.message);
+        } else if (uploadData) {
+          const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
+          passport_image_url = urlData.publicUrl;
+        }
+      }
+
+      // Upload spouse passport image
+      if (form.spouse_passport_image) {
+        const ext = form.spouse_passport_image.name.split('.').pop();
+        const fileName = `spouse_passport_${user.id}_${Date.now()}.${ext}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('passport-images')
+          .upload(fileName, form.spouse_passport_image);
+        if (uploadErr) {
+          console.warn('Spouse passport upload error:', uploadErr.message);
+        } else if (uploadData) {
+          const { data: urlData } = supabase.storage.from('passport-images').getPublicUrl(fileName);
+          spouse_passport_url = urlData.publicUrl;
+        }
+      }
+
+      // Update profile with extended fields
       await (supabase.from('profiles') as unknown as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } }).update({
         occupation_institution_name: form.occupation_institution_name || null,
         occupation_institution_address: form.occupation_institution_address || null,
@@ -225,7 +228,7 @@ export function RegisterPage() {
         } : {}),
       }).eq('id', user.id);
 
-      // Insert passport data
+      // Insert passport record
       if (form.passport_number || passport_image_url) {
         await supabase.from('passports').insert({
           user_id: user.id,
