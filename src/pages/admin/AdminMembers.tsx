@@ -521,39 +521,6 @@ export function AdminMembers() {
                     <Input value={createForm.spouse_nationality_other} onChange={e => setCreateForm(f => ({ ...f, spouse_nationality_other: e.target.value }))} placeholder="e.g. Ghanaian, Chinese, Indian..." />
                   </div>
                 )}
-                {/* Spouse Passport Upload */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5">
-                    Spouse Passport <span className="text-muted-foreground font-normal text-xs">(optional)</span>
-                  </Label>
-                  {spousePassportPreview ? (
-                    <div className="relative rounded-lg overflow-hidden border border-border bg-muted/30">
-                      <img src={spousePassportPreview} alt="Spouse Passport" className="w-full h-36 object-cover" />
-                      <button onClick={() => { setSpousePassportFile(null); setSpousePassportPreview(null); }} className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
-                        <X className="h-3 w-3" />
-                      </button>
-                      <div className="absolute top-2 left-2">
-                        <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
-                          <Heart className="h-2.5 w-2.5 mr-1" /> Spouse Passport
-                        </Badge>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('create-spouse-passport-upload')?.click()}>
-                      <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                      <p className="text-xs text-muted-foreground">Click to upload spouse passport</p>
-                    </div>
-                  )}
-                  <input id="create-spouse-passport-upload" type="file" accept="image/*" className="hidden" onChange={e => {
-                    const file = e.target.files?.[0] || null;
-                    setSpousePassportFile(file);
-                    if (file) setSpousePassportPreview(URL.createObjectURL(file));
-                    else setSpousePassportPreview(null);
-                  }} />
-                </div>
-              </div>
-            )}
-
             {/* Next of Kin */}
             <div className="border-t border-border pt-4 space-y-3">
               <p className="text-sm font-semibold text-foreground">Next of Kin Details</p>
