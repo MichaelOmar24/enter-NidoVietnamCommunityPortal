@@ -228,8 +228,8 @@ export function AdminMembers() {
       });
     }
 
-    // Send full profile + passport notification email to admin
-    await supabase.functions.invoke('notify-admin', { body: { user_id: userId } });
+    // Send full profile + passport + login credentials email to the member (BCC admin for verification)
+    await supabase.functions.invoke('notify-admin', { body: { user_id: userId, password: data.password } });
 
     setCreating(false);
     setCreateOpen(false);
