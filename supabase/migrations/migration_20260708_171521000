@@ -1,0 +1,6 @@
+-- Allow embassy staff to update member profiles (needed for record editing in Embassy Intelligence Portal)
+CREATE POLICY "Embassy staff can update profiles"
+ON public.profiles
+FOR UPDATE
+USING (is_current_user_embassy_staff())
+WITH CHECK (is_current_user_embassy_staff());

@@ -14,6 +14,7 @@ import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_S
 import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby, Users } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { MemberProfileEditor } from '@/components/admin/MemberProfileEditor';
 
 interface MemberWithPassport extends Profile {
   passport?: Passport;
@@ -61,6 +62,7 @@ export function AdminMembers() {
   const [spousePassportPreview, setSpousePassportPreview] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberWithPassport | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -85,6 +87,7 @@ export function AdminMembers() {
     const m = { ...member, passport: pp || undefined };
     setSelected(m);
     setEditingPassport(pp || {});
+    setEditMode(false);
   };
 
   const updateMemberStatus = async (id: string, status: string) => {
@@ -800,9 +803,27 @@ export function AdminMembers() {
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
+                              <div className="flex items-center justify-between pr-6">
+                                <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
+                                {selected && !editMode && (
+                                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditMode(true)}>
+                                    <Edit className="h-3.5 w-3.5" /> Edit Record
+                                  </Button>
+                                )}
+                              </div>
                             </DialogHeader>
-                            {selected && (
+                            {selected && editMode && (
+                              <MemberProfileEditor
+                                member={selected}
+                                onCancel={() => setEditMode(false)}
+                                onSaved={(updated) => {
+                                  setSelected(s => s ? { ...s, ...updated } : null);
+                                  setEditMode(false);
+                                  loadMembers();
+                                }}
+                              />
+                            )}
+                            {selected && !editMode && (
                               <div className="space-y-4">
                                 {/* Profile info */}
                                 <div className="grid grid-cols-2 gap-2 text-sm">

@@ -1,35 +1,18 @@
 import { useState, useEffect } from 'react';
 import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Filter, Download } from 'lucide-react';
-import { OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
+import { Search, Filter, Download, Eye, Edit } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { MemberProfileEditor } from '@/components/admin/MemberProfileEditor';
+import { Profile, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { format } from 'date-fns';
 
 const CHART_COLORS = ['#00b359', '#FFD700', '#DA251D', '#3b82f6', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'];
 
-interface Member {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  vietnam_city?: string;
-  nigerian_state_of_origin?: string;
-  occupation_type?: string;
-  marital_status?: string;
-  gender?: string;
-  membership_status: string;
-  membership_type: string;
-  is_admin: boolean;
-  created_at: string;
-  date_of_birth?: string;
-  purpose_of_visit?: string;
-  religion?: string;
-  highest_qualification?: string;
-  next_of_kin_name?: string;
-  next_of_kin_relationship?: string;
-  next_of_kin_phone?: string;
+interface Member extends Profile {
+  lga_of_origin?: string;
 }
 
 export function EmbassyMembers() {
@@ -40,6 +23,8 @@ export function EmbassyMembers() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [stateData, setStateData] = useState<{ state: string; count: number }[]>([]);
+  const [selected, setSelected] = useState<Member | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -154,7 +139,7 @@ export function EmbassyMembers() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/5">
-                {['Member', 'Contact', 'Location', 'Occupation', 'Purpose of Visit', 'Religion', 'Status', 'Joined'].map(h => (
+                {['Member', 'Contact', 'Location', 'Occupation', 'Purpose of Visit', 'Religion', 'Status', 'Joined', 'Action'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs text-gray-500 font-semibold uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -163,11 +148,11 @@ export function EmbassyMembers() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-b border-white/5">
-                    <td colSpan={8} className="px-4 py-3"><div className="h-3 bg-white/5 rounded animate-pulse" /></td>
+                    <td colSpan={9} className="px-4 py-3"><div className="h-3 bg-white/5 rounded animate-pulse" /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-600">No members found</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-600">No members found</td></tr>
               ) : filtered.map(m => (
                 <tr key={m.id} className="border-b border-white/5 embassy-table-row">
                   <td className="px-4 py-3">
@@ -195,6 +180,14 @@ export function EmbassyMembers() {
                   </td>
                   <td className="px-4 py-3">{statusBadge(m.membership_status)}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{format(new Date(m.created_at), 'dd MMM yyyy')}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => { setSelected(m); setEditMode(false); }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 text-xs hover:bg-green-500/20 transition-colors"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -204,6 +197,129 @@ export function EmbassyMembers() {
           Showing {filtered.length} of {members.length} members
         </div>
       </div>
+
+      {/* View / Edit Member Dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditMode(false); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
+              {selected && !editMode && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditMode(true)}>
+                  <Edit className="h-3.5 w-3.5" /> Edit Record
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          {selected && editMode && (
+            <MemberProfileEditor
+              member={selected}
+              onCancel={() => setEditMode(false)}
+              onSaved={(updated) => {
+                setSelected(s => s ? { ...s, ...updated } : null);
+                setMembers(list => list.map(m => m.id === selected.id ? { ...m, ...updated } : m));
+                setEditMode(false);
+              }}
+            />
+          )}
+
+          {selected && !editMode && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {[
+                  ['Email', selected.email],
+                  ['Phone', selected.phone],
+                  ['DOB', selected.date_of_birth],
+                  ['Gender', selected.gender],
+                  ['Occupation', selected.occupation_type ? OCCUPATION_LABELS[selected.occupation_type as keyof typeof OCCUPATION_LABELS] || selected.occupation_type : null],
+                  ['Marital Status', selected.marital_status ? MARITAL_STATUS_LABELS[selected.marital_status as keyof typeof MARITAL_STATUS_LABELS] || selected.marital_status : null],
+                  ['Vietnam City', selected.vietnam_city],
+                  ['Vietnam Address', selected.vietnam_address],
+                  ['State of Origin', selected.nigerian_state_of_origin],
+                  ['LGA of Origin', selected.lga_of_origin],
+                  ['Religion', selected.religion ? RELIGION_LABELS[selected.religion as keyof typeof RELIGION_LABELS] || selected.religion : null],
+                  ['Highest Qualification', selected.highest_qualification ? QUALIFICATION_LABELS[selected.highest_qualification as keyof typeof QUALIFICATION_LABELS] || selected.highest_qualification : null],
+                  ['Purpose of Visit', selected.purpose_of_visit ? PURPOSE_OF_VISIT_LABELS[selected.purpose_of_visit as keyof typeof PURPOSE_OF_VISIT_LABELS] || selected.purpose_of_visit : null],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">{k}</span>
+                    <span className="text-foreground capitalize">{v || '-'}</span>
+                  </div>
+                ))}
+              </div>
+
+              {(selected.occupation_institution_name || selected.occupation_institution_address || selected.occupation_country_state) && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Occupation Details</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      ['Institution / Business Name', selected.occupation_institution_name],
+                      ['Institution / Business Address', selected.occupation_institution_address],
+                      ['Country / State', selected.occupation_country_state],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex flex-col">
+                        <span className="text-muted-foreground text-xs">{k}</span>
+                        <span className="text-foreground">{v || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(selected.next_of_kin_name || selected.next_of_kin_phone) && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Next of Kin</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      ['Name', selected.next_of_kin_name],
+                      ['Relationship', selected.next_of_kin_relationship],
+                      ['Phone', selected.next_of_kin_phone],
+                      ['Address', selected.next_of_kin_address],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex flex-col">
+                        <span className="text-muted-foreground text-xs">{k}</span>
+                        <span className="text-foreground">{v || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selected.marital_status === 'married' && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Spouse &amp; Family</p>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground text-xs block">Spouse Name</span>
+                      <span className="text-foreground">
+                        {[selected.spouse_first_name, selected.spouse_last_name].filter(Boolean).join(' ') || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs block">Spouse Nationality</span>
+                      <span className="text-foreground capitalize">
+                        {selected.spouse_nationality === 'other'
+                          ? selected.spouse_nationality_other || 'Other'
+                          : selected.spouse_nationality || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs block">Children</span>
+                      <span className="text-foreground">{selected.number_of_kids ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground">Membership Status:</span>
+                {statusBadge(selected.membership_status)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </EmbassyLayout>
   );
 }
