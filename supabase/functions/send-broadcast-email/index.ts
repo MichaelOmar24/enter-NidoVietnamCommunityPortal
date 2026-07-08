@@ -44,13 +44,14 @@ Deno.serve(async (req) => {
     }
 
     const from = senderName
-      ? `${senderName} via NIDO Vietnam <onboarding@resend.dev>`
-      : 'NIDO Vietnam <onboarding@resend.dev>';
+      ? `${senderName} <info@nidovietnam.com>`
+      : 'NIDO Vietnam <info@nidovietnam.com>';
 
     // Build batch payload — one email per recipient for privacy
     const batch = profiles.map((p: { first_name: string; last_name: string; email: string }) => ({
       from,
       to: [p.email],
+      reply_to: 'info@nidovietnam.com',
       subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
