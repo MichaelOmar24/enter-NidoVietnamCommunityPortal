@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Filter, Download, Eye, Edit } from 'lucide-react';
+import { Search, Filter, Download, Eye, Edit, Fingerprint, ShieldCheck, ShieldX, FileImage, ZoomIn } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { MemberProfileEditor } from '@/components/admin/MemberProfileEditor';
-import { Profile, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
+import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { format } from 'date-fns';
 
@@ -23,6 +24,8 @@ export function EmbassyMembers() {
   const [cityFilter, setCityFilter] = useState('all');
   const [stateData, setStateData] = useState<{ state: string; count: number }[]>([]);
   const [selected, setSelected] = useState<Member | null>(null);
+  const [selectedPassport, setSelectedPassport] = useState<Passport | null>(null);
+  const [passportImageOpen, setPassportImageOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Member | null>(null);
 
   useEffect(() => { load(); }, []);
@@ -46,6 +49,12 @@ export function EmbassyMembers() {
     mems.forEach(m => { if (m.nigerian_state_of_origin) stateMap[m.nigerian_state_of_origin] = (stateMap[m.nigerian_state_of_origin] || 0) + 1; });
     setStateData(Object.entries(stateMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => ({ state: k, count: v })));
     setLoading(false);
+  };
+
+  const viewMember = async (member: Member) => {
+    setSelected(member);
+    const { data } = await supabase.from('passports').select('*').eq('user_id', member.id).maybeSingle();
+    setSelectedPassport((data as Passport | null) || null);
   };
 
   const exportCSV = () => {
@@ -182,7 +191,7 @@ export function EmbassyMembers() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => setSelected(m)}
+                        onClick={() => viewMember(m)}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 text-xs hover:bg-green-500/20 transition-colors"
                         title="View Record"
                       >
@@ -229,7 +238,7 @@ export function EmbassyMembers() {
       </Dialog>
 
       {/* View Member Dialog */}
-      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setSelectedPassport(null); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
@@ -323,9 +332,112 @@ export function EmbassyMembers() {
                 </div>
               )}
 
+              {selectedPassport && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-3">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <FileImage className="h-3.5 w-3.5 text-primary" /> Passport Information
+                  </p>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      {selectedPassport.passport_image_url ? (
+                        <div
+                          className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
+                          onClick={() => setPassportImageOpen(true)}
+                        >
+                          <img
+                            src={selectedPassport.passport_image_url}
+                            alt="Passport"
+                            className="w-full h-36 object-cover transition-transform group-hover:scale-105"
+                            onContextMenu={e => e.preventDefault()}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 px-3 py-1.5 rounded-full">
+                              <ZoomIn className="h-3.5 w-3.5" /> View Full Size
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-36 rounded-lg border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center text-muted-foreground">
+                          <FileImage className="h-8 w-8 mb-1 opacity-40" />
+                          <span className="text-xs">No passport image uploaded</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="w-32 flex flex-col gap-2">
+                      <div className={`flex-1 rounded-lg border flex flex-col items-center justify-center p-2.5 text-center ${
+                        selectedPassport.is_biometric ? 'border-primary/30 bg-primary/5' : 'border-muted bg-muted/20'
+                      }`}>
+                        <Fingerprint className={`h-6 w-6 mb-1 ${selectedPassport.is_biometric ? 'text-primary' : 'text-muted-foreground/40'}`} />
+                        <span className="text-[11px] font-semibold leading-tight">
+                          {selectedPassport.is_biometric ? 'Biometric' : 'Non-Biometric'}
+                        </span>
+                      </div>
+                      <div className={`rounded-lg border flex flex-col items-center justify-center p-2 text-center ${
+                        selectedPassport.verified ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'
+                      }`}>
+                        {selectedPassport.verified
+                          ? <ShieldCheck className="h-4 w-4 mb-0.5 text-emerald-500" />
+                          : <ShieldX className="h-4 w-4 mb-0.5 text-amber-500" />}
+                        <span className={`text-[10px] font-semibold ${selectedPassport.verified ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {selectedPassport.verified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      ['Passport Number', selectedPassport.passport_number],
+                      ['Place of Issue', selectedPassport.place_of_issue],
+                      ['Issue Date', selectedPassport.issue_date],
+                      ['Expiry Date', selectedPassport.expiry_date],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex flex-col">
+                        <span className="text-muted-foreground text-xs">{k}</span>
+                        <span className="text-foreground">{v || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2 border-t border-border">
                 <span className="text-xs text-muted-foreground">Membership Status:</span>
                 {statusBadge(selected.membership_status)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Passport Image Lightbox */}
+      <Dialog open={passportImageOpen} onOpenChange={setPassportImageOpen}>
+        <DialogContent className="max-w-3xl p-2 bg-black/95 border-border/20">
+          <DialogHeader className="px-4 pt-3 pb-1">
+            <DialogTitle className="text-white text-sm flex items-center gap-2">
+              <FileImage className="h-4 w-4" />
+              Passport Image — {selected?.first_name} {selected?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPassport?.passport_image_url && (
+            <div className="flex flex-col items-center gap-3 p-2">
+              <img
+                src={selectedPassport.passport_image_url}
+                alt="Passport full view"
+                className="w-full max-h-[70vh] object-contain rounded"
+                onContextMenu={e => e.preventDefault()}
+              />
+              <div className="flex items-center gap-3">
+                <Badge className={`gap-1 ${selectedPassport.is_biometric ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  <Fingerprint className="h-3 w-3" />
+                  {selectedPassport.is_biometric ? 'Biometric' : 'Non-Biometric'}
+                </Badge>
+                <Badge className={`gap-1 ${selectedPassport.verified ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  {selectedPassport.verified ? <ShieldCheck className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
+                  {selectedPassport.verified ? 'Verified' : 'Unverified'}
+                </Badge>
+                {selectedPassport.passport_number && (
+                  <span className="text-xs text-white/60">#{selectedPassport.passport_number}</span>
+                )}
               </div>
             </div>
           )}
