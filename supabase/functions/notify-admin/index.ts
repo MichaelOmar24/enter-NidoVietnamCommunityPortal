@@ -78,6 +78,20 @@ Deno.serve(async (req) => {
       </div>
     ` : '';
 
+    // Spouse & family section (only for married members)
+    const spouseSection = profile.marital_status === 'married' ? `
+      <div style="padding:0 32px 24px;">
+        <h2 style="margin:24px 0 16px;color:#1a4d2e;font-size:16px;text-transform:uppercase;letter-spacing:0.5px;border-top:2px solid #e5e7eb;padding-top:20px;">
+          Spouse &amp; Family
+        </h2>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+          ${row('Spouse Name', [profile.spouse_first_name, profile.spouse_last_name].filter(Boolean).join(' '))}
+          ${row('Spouse Nationality', profile.spouse_nationality === 'other' ? (profile.spouse_nationality_other || 'Other') : (profile.spouse_nationality || ''))}
+          ${row('Number of Children', String(profile.number_of_kids ?? 0))}
+        </table>
+      </div>
+    ` : '';
+
     // Build passport section HTML
     const passportSection = passport ? `
       <div style="padding:0 32px 24px;">
@@ -142,15 +156,41 @@ Deno.serve(async (req) => {
         ${row('Date of Birth', profile.date_of_birth || '')}
         ${row('Gender', profile.gender || '')}
         ${row('Occupation', (profile.occupation_type || '').replace(/_/g, ' '))}
+        ${profile.occupation_institution_name ? row('Institution / Business Name', profile.occupation_institution_name) : ''}
+        ${profile.occupation_institution_address ? row('Institution / Business Address', profile.occupation_institution_address) : ''}
+        ${profile.occupation_country_state ? row('Occupation Country / State', profile.occupation_country_state) : ''}
         ${row('Marital Status', profile.marital_status || '')}
+        ${row('Religion', profile.religion || '')}
+        ${row('Highest Qualification', (profile.highest_qualification || '').replace(/_/g, ' '))}
+        ${row('Purpose of Visit', (profile.purpose_of_visit || '').replace(/_/g, ' '))}
         ${row('Vietnam City', profile.vietnam_city || '')}
+        ${row('Vietnam Address', profile.vietnam_address || '')}
         ${row('State of Origin', profile.nigerian_state_of_origin || '')}
+        ${row('LGA of Origin', profile.lga_of_origin || '')}
         ${row('Membership Status', profile.membership_status || '')}
       </table>
     </div>
 
+    <!-- Next of Kin Section -->
+    ${(profile.next_of_kin_name || profile.next_of_kin_phone) ? `
+    <div style="padding:0 32px 24px;">
+      <h2 style="margin:24px 0 16px;color:#1a4d2e;font-size:16px;text-transform:uppercase;letter-spacing:0.5px;border-top:2px solid #e5e7eb;padding-top:20px;">
+        Next of Kin
+      </h2>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        ${row('Name', profile.next_of_kin_name || '')}
+        ${row('Relationship', profile.next_of_kin_relationship || '')}
+        ${row('Phone', profile.next_of_kin_phone || '')}
+        ${row('Address', profile.next_of_kin_address || '')}
+      </table>
+    </div>
+    ` : ''}
+
     <!-- Credentials Section -->
     ${credentialsSection}
+
+    <!-- Spouse & Family Section -->
+    ${spouseSection}
 
     <!-- Passport Section -->
     ${passportSection}

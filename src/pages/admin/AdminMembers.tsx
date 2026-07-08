@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, RELIGION_LABELS, QUALIFICATION_LABELS, PURPOSE_OF_VISIT_LABELS, OccupationType, MaritalStatus, Gender, ReligionType, QualificationType, PurposeOfVisitType, SpouseNationality } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby, Users } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -814,7 +814,12 @@ export function AdminMembers() {
                                     ['Occupation', selected.occupation_type?.replace(/_/g, ' ')],
                                     ['Marital Status', selected.marital_status],
                                     ['Vietnam City', selected.vietnam_city],
+                                    ['Vietnam Address', selected.vietnam_address],
                                     ['State of Origin', selected.nigerian_state_of_origin],
+                                    ['LGA of Origin', selected.lga_of_origin],
+                                    ['Religion', selected.religion ? RELIGION_LABELS[selected.religion as keyof typeof RELIGION_LABELS] || selected.religion : null],
+                                    ['Highest Qualification', selected.highest_qualification ? QUALIFICATION_LABELS[selected.highest_qualification as keyof typeof QUALIFICATION_LABELS] || selected.highest_qualification : null],
+                                    ['Purpose of Visit', selected.purpose_of_visit ? PURPOSE_OF_VISIT_LABELS[selected.purpose_of_visit as keyof typeof PURPOSE_OF_VISIT_LABELS] || selected.purpose_of_visit : null],
                                   ].map(([k, v]) => (
                                     <div key={k} className="flex flex-col">
                                       <span className="text-muted-foreground text-xs">{k}</span>
@@ -822,6 +827,49 @@ export function AdminMembers() {
                                     </div>
                                   ))}
                                 </div>
+
+                                {/* Occupation Details */}
+                                {(selected.occupation_institution_name || selected.occupation_institution_address || selected.occupation_country_state) && (
+                                  <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <FileImage className="h-3.5 w-3.5 text-primary" /> Occupation Details
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      {[
+                                        ['Institution / Business Name', selected.occupation_institution_name],
+                                        ['Institution / Business Address', selected.occupation_institution_address],
+                                        ['Country / State', selected.occupation_country_state],
+                                      ].map(([k, v]) => (
+                                        <div key={k} className="flex flex-col">
+                                          <span className="text-muted-foreground text-xs">{k}</span>
+                                          <span className="text-foreground">{v || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Next of Kin */}
+                                {(selected.next_of_kin_name || selected.next_of_kin_phone) && (
+                                  <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <Users className="h-3.5 w-3.5 text-primary" /> Next of Kin
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      {[
+                                        ['Name', selected.next_of_kin_name],
+                                        ['Relationship', selected.next_of_kin_relationship],
+                                        ['Phone', selected.next_of_kin_phone],
+                                        ['Address', selected.next_of_kin_address],
+                                      ].map(([k, v]) => (
+                                        <div key={k} className="flex flex-col">
+                                          <span className="text-muted-foreground text-xs">{k}</span>
+                                          <span className="text-foreground">{v || '-'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* Spouse & Family Info */}
                                 {selected.marital_status === 'married' && (
