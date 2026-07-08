@@ -62,7 +62,10 @@ export function AdminMembers() {
   const [spousePassportPreview, setSpousePassportPreview] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberWithPassport | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editPassportFile, setEditPassportFile] = useState<File | null>(null);
+  const [editPassportPreview, setEditPassportPreview] = useState<string | null>(null);
+  const [savingPassport, setSavingPassport] = useState(false);
   const PAGE_SIZE = 15;
   const { toast } = useToast();
 
@@ -87,7 +90,8 @@ export function AdminMembers() {
     const m = { ...member, passport: pp || undefined };
     setSelected(m);
     setEditingPassport(pp || {});
-    setEditMode(false);
+    setEditPassportFile(null);
+    setEditPassportPreview(null);
   };
 
   const updateMemberStatus = async (id: string, status: string) => {
@@ -119,6 +123,23 @@ export function AdminMembers() {
 
   const savePassportEdit = async () => {
     if (!selected?.passport?.id) return;
+    setSavingPassport(true);
+
+    let passport_image_url = selected.passport.passport_image_url;
+    if (editPassportFile) {
+      const fd = new FormData();
+      fd.append('file', editPassportFile);
+      fd.append('userId', selected.id);
+      const { data: imgData, error: imgErr } = await supabase.functions.invoke('upload-passport-image', { body: fd });
+      if (!imgErr && imgData?.url) {
+        passport_image_url = imgData.url;
+      } else {
+        toast({ title: 'Image upload failed', description: imgErr?.message || 'Could not upload passport image', variant: 'destructive' });
+        setSavingPassport(false);
+        return;
+      }
+    }
+
     await supabase.from('passports').update({
       passport_number: editingPassport.passport_number,
       issue_date: editingPassport.issue_date,
@@ -127,7 +148,13 @@ export function AdminMembers() {
       admin_notes: editingPassport.admin_notes,
       verified: editingPassport.verified,
       is_biometric: editingPassport.is_biometric,
+      passport_image_url,
     }).eq('id', selected.passport.id);
+
+    setSelected(s => s && s.passport ? { ...s, passport: { ...s.passport, passport_image_url } } : s);
+    setEditPassportFile(null);
+    setEditPassportPreview(null);
+    setSavingPassport(false);
     toast({ title: 'Passport updated', description: 'Passport information has been saved.' });
   };
 
@@ -797,33 +824,15 @@ export function AdminMembers() {
                       <div className="flex items-center gap-1">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => viewMember(member)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => viewMember(member)} title="View Record">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                              <div className="flex items-center justify-between pr-6">
-                                <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
-                                {selected && !editMode && (
-                                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditMode(true)}>
-                                    <Edit className="h-3.5 w-3.5" /> Edit Record
-                                  </Button>
-                                )}
-                              </div>
+                              <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
                             </DialogHeader>
-                            {selected && editMode && (
-                              <MemberProfileEditor
-                                member={selected}
-                                onCancel={() => setEditMode(false)}
-                                onSaved={(updated) => {
-                                  setSelected(s => s ? { ...s, ...updated } : null);
-                                  setEditMode(false);
-                                  loadMembers();
-                                }}
-                              />
-                            )}
-                            {selected && !editMode && (
+                            {selected && (
                               <div className="space-y-4">
                                 {/* Profile info */}
                                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1038,16 +1047,31 @@ export function AdminMembers() {
                                     <div className="flex gap-3 mb-4">
                                       {/* Passport Image Card */}
                                       <div className="flex-1">
-                                        {selected.passport.passport_image_url ? (
-                                          <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30 cursor-pointer"
-                                            onClick={() => setPassportImageOpen(true)}>
+                                        {editPassportPreview ? (
+                                          <div className="relative rounded-lg overflow-hidden border border-border bg-muted/30">
+                                            <img src={editPassportPreview} alt="New passport" className="w-full h-36 object-cover" />
+                                            <div className="absolute top-2 left-2">
+                                              <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+                                                <FileImage className="h-2.5 w-2.5 mr-1" /> New Photo Selected
+                                              </Badge>
+                                            </div>
+                                            <button
+                                              onClick={() => { setEditPassportFile(null); setEditPassportPreview(null); }}
+                                              className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        ) : selected.passport.passport_image_url ? (
+                                          <div className="relative group rounded-lg overflow-hidden border border-border bg-muted/30">
                                             <img
                                               src={selected.passport.passport_image_url}
                                               alt="Passport"
-                                              className="w-full h-36 object-cover transition-transform group-hover:scale-105"
+                                              className="w-full h-36 object-cover transition-transform group-hover:scale-105 cursor-pointer"
+                                              onClick={() => setPassportImageOpen(true)}
                                               onContextMenu={e => e.preventDefault()}
                                             />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                                               <div className="flex items-center gap-1.5 text-white text-xs font-medium bg-black/60 px-3 py-1.5 rounded-full">
                                                 <ZoomIn className="h-3.5 w-3.5" /> View Full Size
                                               </div>
@@ -1057,13 +1081,33 @@ export function AdminMembers() {
                                                 <FileImage className="h-2.5 w-2.5 mr-1" /> Passport Photo
                                               </Badge>
                                             </div>
+                                            <button
+                                              onClick={() => document.getElementById('edit-passport-upload')?.click()}
+                                              className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 hover:bg-black/85 text-white text-[11px] font-medium px-2 py-1 rounded-full transition-colors"
+                                            >
+                                              <Upload className="h-3 w-3" /> Replace
+                                            </button>
                                           </div>
                                         ) : (
-                                          <div className="w-full h-36 rounded-lg border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center text-muted-foreground">
-                                            <FileImage className="h-8 w-8 mb-1 opacity-40" />
-                                            <span className="text-xs">No passport image uploaded</span>
+                                          <div
+                                            className="w-full h-36 rounded-lg border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:border-primary transition-colors"
+                                            onClick={() => document.getElementById('edit-passport-upload')?.click()}
+                                          >
+                                            <Upload className="h-8 w-8 mb-1 opacity-40" />
+                                            <span className="text-xs">Click to upload passport image</span>
                                           </div>
                                         )}
+                                        <input
+                                          id="edit-passport-upload"
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          onChange={e => {
+                                            const file = e.target.files?.[0] || null;
+                                            setEditPassportFile(file);
+                                            setEditPassportPreview(file ? URL.createObjectURL(file) : null);
+                                          }}
+                                        />
                                       </div>
 
                                       {/* Biometric Status Card */}
@@ -1160,8 +1204,8 @@ export function AdminMembers() {
                                         />
                                         Mark as Verified
                                       </label>
-                                      <Button size="sm" className="gradient-primary text-primary-foreground gap-1 ml-auto" onClick={savePassportEdit}>
-                                        <Edit className="h-3.5 w-3.5" /> Save Passport
+                                      <Button size="sm" className="gradient-primary text-primary-foreground gap-1 ml-auto" onClick={savePassportEdit} disabled={savingPassport}>
+                                        <Edit className="h-3.5 w-3.5" /> {savingPassport ? 'Saving...' : 'Save Passport'}
                                       </Button>
                                     </div>
                                   </div>
@@ -1202,6 +1246,33 @@ export function AdminMembers() {
                                   )}
                                 </div>
                               </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+
+                        {/* Edit Record Button + Dialog */}
+                        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => { viewMember(member); setEditDialogOpen(true); }} title="Edit Record">
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <Edit className="h-4 w-4 text-primary" /> Edit {selected?.first_name} {selected?.last_name}
+                              </DialogTitle>
+                            </DialogHeader>
+                            {selected && (
+                              <MemberProfileEditor
+                                member={selected}
+                                onCancel={() => setEditDialogOpen(false)}
+                                onSaved={(updated) => {
+                                  setSelected(s => s ? { ...s, ...updated } : null);
+                                  setEditDialogOpen(false);
+                                  loadMembers();
+                                }}
+                              />
                             )}
                           </DialogContent>
                         </Dialog>

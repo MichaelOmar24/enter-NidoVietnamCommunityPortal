@@ -3,7 +3,6 @@ import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Filter, Download, Eye, Edit } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { MemberProfileEditor } from '@/components/admin/MemberProfileEditor';
 import { Profile, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, VIETNAM_CITIES, QUALIFICATION_LABELS, RELIGION_LABELS, PURPOSE_OF_VISIT_LABELS } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
@@ -24,7 +23,7 @@ export function EmbassyMembers() {
   const [cityFilter, setCityFilter] = useState('all');
   const [stateData, setStateData] = useState<{ state: string; count: number }[]>([]);
   const [selected, setSelected] = useState<Member | null>(null);
-  const [editMode, setEditMode] = useState(false);
+  const [editTarget, setEditTarget] = useState<Member | null>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -181,12 +180,22 @@ export function EmbassyMembers() {
                   <td className="px-4 py-3">{statusBadge(m.membership_status)}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{format(new Date(m.created_at), 'dd MMM yyyy')}</td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => { setSelected(m); setEditMode(false); }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 text-xs hover:bg-green-500/20 transition-colors"
-                    >
-                      <Eye className="h-3.5 w-3.5" /> View
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelected(m)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 text-xs hover:bg-green-500/20 transition-colors"
+                        title="View Record"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </button>
+                      <button
+                        onClick={() => setEditTarget(m)}
+                        className="flex items-center justify-center h-[26px] w-[26px] rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-green-400 hover:bg-green-500/10 transition-colors"
+                        title="Edit Record"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -198,33 +207,35 @@ export function EmbassyMembers() {
         </div>
       </div>
 
-      {/* View / Edit Member Dialog */}
-      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditMode(false); } }}>
+      {/* Edit Member Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center justify-between pr-6">
-              <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
-              {selected && !editMode && (
-                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditMode(true)}>
-                  <Edit className="h-3.5 w-3.5" /> Edit Record
-                </Button>
-              )}
-            </div>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-4 w-4 text-primary" /> Edit {editTarget?.first_name} {editTarget?.last_name}
+            </DialogTitle>
           </DialogHeader>
-
-          {selected && editMode && (
+          {editTarget && (
             <MemberProfileEditor
-              member={selected}
-              onCancel={() => setEditMode(false)}
+              member={editTarget}
+              onCancel={() => setEditTarget(null)}
               onSaved={(updated) => {
-                setSelected(s => s ? { ...s, ...updated } : null);
-                setMembers(list => list.map(m => m.id === selected.id ? { ...m, ...updated } : m));
-                setEditMode(false);
+                setMembers(list => list.map(m => m.id === editTarget.id ? { ...m, ...updated } : m));
+                setEditTarget(null);
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
 
-          {selected && !editMode && (
+      {/* View Member Dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selected?.first_name} {selected?.last_name}</DialogTitle>
+          </DialogHeader>
+
+          {selected && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {[

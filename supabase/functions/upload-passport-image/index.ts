@@ -61,7 +61,12 @@ Deno.serve(async (req) => {
 
     const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(fileName);
 
-    return new Response(JSON.stringify({ url: urlData.publicUrl }), {
+    // Cache-bust: upsert reuses the same file path, so without a unique query
+    // param browsers/CDNs keep serving the previously cached image after a
+    // replacement upload, making it look like the new photo never saved.
+    const cacheBustedUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+
+    return new Response(JSON.stringify({ url: cacheBustedUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
