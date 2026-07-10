@@ -1,0 +1,3 @@
+UPDATE gallery_albums
+SET cover_image_url = 'https://spb-t4nj0o17iwx78npt.supabase.opentrust.net/storage/v1/object/public/gallery-photos/gallery_cd0da806-8f1c-4b07-8b35-c50a9066260d_1783662532551.JPG'
+WHERE id = 'cd0da806-8f1c-4b07-8b35-c50a9066260d' AND (cover_image_url IS NULL OR cover_image_url = '');
