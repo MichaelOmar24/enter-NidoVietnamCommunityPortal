@@ -97,8 +97,8 @@ export function UserDashboard() {
   };
 
   const fetchMemberCount = async () => {
-    const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    setTotalMembers(count || 0);
+    const { data } = await supabase.rpc('get_member_stats').maybeSingle();
+    setTotalMembers(data?.total_members || 0);
   };
 
   const fetchPaymentHistory = async () => {
