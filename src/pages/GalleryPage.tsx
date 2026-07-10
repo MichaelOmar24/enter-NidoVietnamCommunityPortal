@@ -3,7 +3,6 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { GalleryAlbum, GalleryPhoto } from '@/lib/types';
 import { Image, Calendar, ChevronLeft, X } from 'lucide-react';
@@ -76,24 +75,7 @@ export function GalleryPage() {
                 </div>
               </div>
 
-              {/* Inauguration photos always shown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                <div
-                  className="relative overflow-hidden rounded-xl cursor-pointer group shadow-card hover:shadow-green transition-smooth"
-                  onClick={() => setLightbox('https://cdn.enter.pro/resources/uid_100149613/8c7a13b1-1326-42.JPG')}
-                >
-                  <img
-                    src="https://cdn.enter.pro/resources/uid_100149613/8c7a13b1-1326-42.JPG"
-                    alt="NIDO Vietnam Inauguration 2016"
-                    className="w-full h-56 object-cover group-hover:scale-105 transition-smooth"
-                    onContextMenu={e => e.preventDefault()}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-smooth" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-smooth">
-                    <p className="text-white text-sm">Inauguration Ceremony — March 2016</p>
-                  </div>
-                </div>
-
                 {photos.map(photo => (
                   <div
                     key={photo.id}
@@ -118,37 +100,14 @@ export function GalleryPage() {
                 {photos.length === 0 && (
                   <div className="col-span-3 text-center py-10 text-muted-foreground">
                     <Image className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p>No additional photos in this album yet.</p>
+                    <p>No photos in this album yet.</p>
                   </div>
                 )}
               </div>
             </>
           ) : (
             <>
-              {/* Inauguration Album always shown */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card
-                  className="overflow-hidden shadow-card hover:shadow-green transition-smooth cursor-pointer group"
-                  onClick={() => openAlbum({ id: 'inauguration', title: 'NIDO Vietnam Inauguration Ceremony', description: 'Inauguration Ceremony — March 2016, Nigerian Embassy Hanoi', event_date: '2016-03-01', created_at: '2016-03-01' })}
-                >
-                  <div className="relative overflow-hidden">
-                    <img
-                      src="https://cdn.enter.pro/resources/uid_100149613/8c7a13b1-1326-42.JPG"
-                      alt="Inauguration"
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-smooth"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <Badge className="absolute top-3 left-3 gradient-primary text-primary-foreground border-0">Featured</Badge>
-                  </div>
-                  <CardContent className="p-5">
-                    <h3 className="font-bold text-foreground">NIDO Vietnam Inauguration Ceremony</h3>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" /> March 2016 — Nigerian Embassy, Hanoi
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">Historic inauguration of NIDO Vietnam at the Nigerian Embassy General, Hanoi.</p>
-                  </CardContent>
-                </Card>
-
                 {loading ? (
                   Array.from({ length: 2 }).map((_, i) => (
                     <Card key={i} className="animate-pulse">

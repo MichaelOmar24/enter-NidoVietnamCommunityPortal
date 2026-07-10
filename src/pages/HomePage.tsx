@@ -408,17 +408,7 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="relative overflow-hidden rounded-2xl shadow-card card-lift group col-span-2 md:col-span-1">
-              <img
-                src="https://cdn.enter.pro/resources/uid_100149613/8c7a13b1-1326-42.JPG"
-                alt="NIDO Vietnam Inauguration"
-                className="w-full h-52 object-cover group-hover:scale-105 transition-smooth"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-smooth flex items-end p-4">
-                <p className="text-white text-sm font-semibold">Inauguration Ceremony 2016</p>
-              </div>
-            </div>
-            {galleryPhotos.slice(0, 5).map((photo) => (
+            {galleryPhotos.slice(0, 6).map((photo) => (
               <div key={photo.id} className="relative overflow-hidden rounded-2xl shadow-card card-lift group">
                 <img src={photo.image_url} alt={photo.caption} className="w-full h-52 object-cover group-hover:scale-105 transition-smooth" />
                 {photo.caption && (
