@@ -1,0 +1,13 @@
+CREATE OR REPLACE FUNCTION public.get_member_stats()
+RETURNS TABLE(total_members bigint, active_members bigint)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    (SELECT count(*) FROM public.profiles) AS total_members,
+    (SELECT count(*) FROM public.profiles WHERE membership_status = 'active') AS active_members;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_member_stats() TO anon, authenticated;

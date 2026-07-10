@@ -4494,6 +4494,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_member_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_members: number
+          total_members: number
+        }[]
+      }
+      get_public_homepage_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_members: number
+          activities: number
+          companies: number
+          total_members: number
+        }[]
+      }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

@@ -50,13 +50,18 @@ export function HomePage() {
   }, []);
 
   const fetchStats = async () => {
-    const [{ count: total }, { count: active }, { count: companies }, { count: acts }] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('membership_status', 'active'),
+    const [{ data: memberStats }, { count: companies }, { count: acts }] = await Promise.all([
+      supabase.rpc('get_member_stats'),
       supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_approved', true),
       supabase.from('activities').select('*', { count: 'exact', head: true }).eq('is_published', true),
     ]);
-    setStats({ totalMembers: total || 0, activeMembers: active || 0, companies: companies || 0, activities: acts || 0 });
+    const memberRow = Array.isArray(memberStats) ? memberStats[0] : memberStats;
+    setStats({
+      totalMembers: memberRow?.total_members || 0,
+      activeMembers: memberRow?.active_members || 0,
+      companies: companies || 0,
+      activities: acts || 0,
+    });
   };
 
   const fetchActivities = async () => {
