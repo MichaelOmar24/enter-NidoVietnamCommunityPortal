@@ -1,0 +1,10 @@
+-- Backfill missing album covers using each album's earliest uploaded photo
+UPDATE gallery_albums a
+SET cover_image_url = sub.image_url
+FROM (
+  SELECT DISTINCT ON (album_id) album_id, image_url
+  FROM gallery_photos
+  ORDER BY album_id, created_at ASC
+) sub
+WHERE a.id = sub.album_id
+  AND (a.cover_image_url IS NULL OR a.cover_image_url = '');

@@ -101,6 +101,12 @@ export function AdminGallery() {
         image_url: imageUrl,
         caption: photoCaption,
       });
+      // Auto-set the album cover if it doesn't have one yet (first photo becomes the cover)
+      if (!selectedAlbum.cover_image_url) {
+        await supabase.from('gallery_albums').update({ cover_image_url: imageUrl }).eq('id', selectedAlbum.id);
+        setSelectedAlbum({ ...selectedAlbum, cover_image_url: imageUrl });
+        loadAlbums();
+      }
       toast({ title: 'Photo uploaded' });
       setPhotoFile(null);
       setPhotoCaption('');
