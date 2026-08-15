@@ -95,10 +95,10 @@ export function EmbassyMembers() {
         <p className="text-xs text-gray-500 mb-4">Distribution of members by home state in Nigeria</p>
         {stateData.length > 0 ? (
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={stateData} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={stateData} layout="vertical" margin={{ left: 10, right: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
               <XAxis type="number" tick={{ fill: '#8b949e', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="state" tick={{ fill: '#8b949e', fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
+              <YAxis type="category" dataKey="state" tick={{ fill: '#8b949e', fontSize: 11 }} axisLine={false} tickLine={false} width={130} />
               <Tooltip contentStyle={{ background: '#161b22', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e6edf3' }} />
               <Bar dataKey="count" name="Members" radius={[0, 4, 4, 0]}>
                 {stateData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
