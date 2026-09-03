@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { generateCaseReportPdf } from '@/lib/caseReportPdf';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText,
-  Phone, Mail, User, Lock, Scale, RefreshCw
+  Phone, Mail, User, Lock, Scale, RefreshCw, FileDown
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -267,6 +268,14 @@ export function EmbassyCaseReports() {
                 <Button size="sm" onClick={() => updateCase(selected.id, 'pending')} disabled={updating}
                   variant="outline" className="gap-1 text-amber-600 border-amber-300/40 hover:bg-amber-500/10">
                   <Clock className="h-3.5 w-3.5" /> Reopen as Pending
+                </Button>
+              </div>
+
+              {/* Document download */}
+              <div className="flex gap-2 flex-wrap pt-3 border-t border-border">
+                <Button size="sm" onClick={() => generateCaseReportPdf(selected)}
+                  className="gradient-primary text-primary-foreground gap-1.5">
+                  <FileDown className="h-3.5 w-3.5" /> Download PDF Report
                 </Button>
               </div>
             </div>

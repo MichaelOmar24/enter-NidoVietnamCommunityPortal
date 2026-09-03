@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock } from 'lucide-react';
+import { generateCaseReportPdf } from '@/lib/caseReportPdf';
+import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface CaseReport {
@@ -66,6 +67,21 @@ export function AdminCaseReports() {
     setUpdating(false);
     setSelected(null);
     setAdminNote('');
+    load();
+  };
+
+  const deleteCase = async (report: CaseReport) => {
+    if (!confirm(`Permanently delete the case "${report.title}"?\n\nThis drops the case from the system completely and cannot be undone. This is different from closing a case.`)) return;
+    setUpdating(true);
+    const { error } = await supabase.from('case_reports').delete().eq('id', report.id);
+    if (error) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Case deleted', description: 'The case has been permanently removed from the system.' });
+      setSelected(null);
+      setAdminNote('');
+    }
+    setUpdating(false);
     load();
   };
 
@@ -234,6 +250,18 @@ export function AdminCaseReports() {
                 <Button size="sm" onClick={() => updateStatus(selected.id, 'closed')} disabled={updating}
                   variant="outline" className="gap-1 text-muted-foreground">
                   <XCircle className="h-3.5 w-3.5" /> Close Case
+                </Button>
+              </div>
+
+              {/* Document & danger zone */}
+              <div className="flex gap-2 flex-wrap pt-3 border-t border-border">
+                <Button size="sm" onClick={() => generateCaseReportPdf(selected)}
+                  className="gradient-primary text-primary-foreground gap-1.5">
+                  <FileDown className="h-3.5 w-3.5" /> Download PDF Report
+                </Button>
+                <Button size="sm" onClick={() => deleteCase(selected)} disabled={updating}
+                  className="ml-auto gap-1.5 bg-destructive/10 text-destructive border border-destructive/40 hover:bg-destructive hover:text-destructive-foreground">
+                  <Trash2 className="h-3.5 w-3.5" /> Delete Case Permanently
                 </Button>
               </div>
             </div>
