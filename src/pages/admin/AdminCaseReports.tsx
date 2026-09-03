@@ -153,10 +153,17 @@ export function AdminCaseReports() {
                         </p>
                       )}
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => { setSelected(r); setAdminNote(r.admin_notes || ''); }}
-                      className="gap-1 text-xs text-primary border-primary hover:bg-primary/10 shrink-0">
-                      <Eye className="h-3 w-3" /> Review
-                    </Button>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button size="sm" variant="outline" onClick={() => { setSelected(r); setAdminNote(r.admin_notes || ''); }}
+                        className="gap-1 text-xs text-primary border-primary hover:bg-primary/10">
+                        <Eye className="h-3 w-3" /> Review
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => deleteCase(r)} disabled={updating}
+                        title="Delete case permanently"
+                        className="gap-1 text-xs text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground">
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
