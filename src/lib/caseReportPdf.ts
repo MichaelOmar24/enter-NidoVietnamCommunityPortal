@@ -33,6 +33,8 @@ const CASE_LABELS: Record<string, string> = {
   harassment: 'Harassment / Bullying', impersonation: 'Impersonation', other: 'Other',
 };
 
+const NIDO_LOGO_URL = 'https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png';
+
 interface LoadedImage {
   dataUrl: string;
   width: number;
@@ -120,16 +122,31 @@ export async function generateCaseReportPdf(report: CaseReportData) {
   };
 
   // ── Header ──
+  const logo = await loadImage(NIDO_LOGO_URL);
+  const textX = logo ? margin + 46 : margin;
+
   doc.setFillColor(0, 135, 81);
   doc.rect(0, 0, pageWidth, 34, 'F');
+
+  // White badge with the NIDO Vietnam logo (logo is dark green, needs light background)
+  if (logo) {
+    const logoH = 14;
+    const logoW = (logo.width / logo.height) * logoH;
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, 10, logoW + 6, 18, 2.5, 2.5, 'F');
+    try {
+      doc.addImage(logo.dataUrl, logo.format, margin + 3, 12, logoW, logoH);
+    } catch { /* badge alone is fine */ }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('NIDO VIETNAM — OFFICIAL CASE REPORT', margin, 14);
+  doc.text('NIDO VIETNAM — OFFICIAL CASE REPORT', textX, 16);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}   ·   Case ID: ${report.id}`, margin, 22);
-  doc.text(`Status: ${STATUS_LABELS[report.status] || report.status}   ·   Type: ${CASE_LABELS[report.case_type] || report.case_type}`, margin, 28);
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}   ·   Case ID: ${report.id}`, textX, 23);
+  doc.text(`Status: ${STATUS_LABELS[report.status] || report.status}   ·   Type: ${CASE_LABELS[report.case_type] || report.case_type}`, textX, 29);
   y = 44;
 
   // ── Case Summary ──
@@ -209,11 +226,20 @@ export async function generateCaseReportPdf(report: CaseReportData) {
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
+    let footerTextX = margin;
+    if (logo) {
+      const fh = 6;
+      const fw = (logo.width / logo.height) * fh;
+      try {
+        doc.addImage(logo.dataUrl, logo.format, margin, 285.5, fw, fh);
+        footerTextX = margin + fw + 3;
+      } catch { /* skip logo in footer */ }
+    }
     doc.setFontSize(8);
     doc.setTextColor(140, 140, 140);
     doc.text(
       'NIDO Vietnam — Nigerians in Diaspora Organization Vietnam · Confidential case document',
-      margin,
+      footerTextX,
       290
     );
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, 290, { align: 'right' });
