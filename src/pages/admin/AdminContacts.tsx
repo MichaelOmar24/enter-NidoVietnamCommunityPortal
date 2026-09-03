@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Mail, Send, Users, Phone, MapPin, Loader2, Copy, CheckCheck } from 'lucide-react';
+import { Search, Mail, Send, Users, Phone, MapPin, Loader2, Copy, CheckCheck, MailPlus } from 'lucide-react';
 
 interface MemberContact {
   id: string;
@@ -32,6 +32,9 @@ export function AdminContacts() {
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [form, setForm] = useState({ subject: '', message: '' });
+  const [directTarget, setDirectTarget] = useState<MemberContact | null>(null);
+  const [directForm, setDirectForm] = useState({ subject: '', message: '' });
+  const [directSending, setDirectSending] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadMembers(); }, []);
@@ -91,8 +94,31 @@ export function AdminContacts() {
     }
   };
 
-  const statusBadge = (status: string) => {
-    if (status === 'active') return <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">Active</Badge>;
+  const handleDirectEmail = async () => {
+    if (!directTarget || !directForm.subject.trim() || !directForm.message.trim()) {
+      toast({ title: 'Missing fields', description: 'Please enter a subject and message.', variant: 'destructive' });
+      return;
+    }
+    setDirectSending(true);
+    const { data, error } = await supabase.functions.invoke('send-member-email', {
+      body: {
+        to: directTarget.email,
+        toName: `${directTarget.first_name} ${directTarget.last_name}`,
+        subject: directForm.subject,
+        message: directForm.message,
+      },
+    });
+    setDirectSending(false);
+    if (error || data?.error) {
+      toast({ title: 'Failed to send', description: data?.error || error?.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Email sent', description: `Delivered to ${directTarget.email}` });
+    setDirectTarget(null);
+    setDirectForm({ subject: '', message: '' });
+  };
+
+  const statusBadge = (status: string) => {    if (status === 'active') return <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">Active</Badge>;
     if (status === 'pending') return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-[10px]">Pending</Badge>;
     return <Badge className="bg-muted text-muted-foreground text-[10px]">{status}</Badge>;
   };
@@ -185,6 +211,7 @@ export function AdminContacts() {
                     <th className="pb-3 pr-4 text-muted-foreground font-medium text-xs uppercase tracking-wide">Phone</th>
                     <th className="pb-3 pr-4 text-muted-foreground font-medium text-xs uppercase tracking-wide">City / Address</th>
                     <th className="pb-3 text-muted-foreground font-medium text-xs uppercase tracking-wide">Status</th>
+                    <th className="pb-3 pl-2 text-muted-foreground font-medium text-xs uppercase tracking-wide">Email</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,6 +253,17 @@ export function AdminContacts() {
                         )}
                       </td>
                       <td className="py-3">{statusBadge(m.membership_status)}</td>
+                      <td className="py-3 pl-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setDirectTarget(m); setDirectForm({ subject: '', message: '' }); }}
+                          className="gap-1 text-xs text-primary border-primary hover:bg-primary/10"
+                          title={`Send email to ${m.first_name}`}
+                        >
+                          <MailPlus className="h-3 w-3" /> Email
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -275,6 +313,51 @@ export function AdminContacts() {
               <Button className="flex-1 gap-2" onClick={handleBroadcast} disabled={sending}>
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {sending ? 'Sending...' : `Send to All ${members.length} Members`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Direct Member Email Dialog */}
+      <Dialog open={!!directTarget} onOpenChange={o => { if (!o) { setDirectTarget(null); setDirectForm({ subject: '', message: '' }); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MailPlus className="h-5 w-5 text-primary" />
+              Email {directTarget?.first_name} {directTarget?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-md bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary">
+              Sending to <strong>{directTarget?.email}</strong> from info@nidovietnam.com
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="direct-subject">Subject</Label>
+              <Input
+                id="direct-subject"
+                placeholder="e.g. Your membership renewal"
+                value={directForm.subject}
+                onChange={e => setDirectForm(f => ({ ...f, subject: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="direct-message">Message</Label>
+              <Textarea
+                id="direct-message"
+                placeholder="Type your message to this member..."
+                value={directForm.message}
+                onChange={e => setDirectForm(f => ({ ...f, message: e.target.value }))}
+                rows={8}
+                className="resize-none"
+              />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setDirectTarget(null)} disabled={directSending}>
+                Cancel
+              </Button>
+              <Button className="flex-1 gap-2" onClick={handleDirectEmail} disabled={directSending}>
+                {directSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {directSending ? 'Sending...' : 'Send Email'}
               </Button>
             </div>
           </div>

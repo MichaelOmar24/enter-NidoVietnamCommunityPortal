@@ -30,6 +30,7 @@ import { DonationsPage } from "./pages/DonationsPage";
 import { ReportCasePage } from "./pages/ReportCasePage";
 import { AnonymousReportPage } from "./pages/AnonymousReportPage";
 import { AdminCaseReports } from "./pages/admin/AdminCaseReports";
+import { AdminInbox } from "./pages/admin/AdminInbox";
 import { AdminContacts } from "./pages/admin/AdminContacts";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
@@ -199,6 +200,11 @@ export const routers = [
     path: "/admin/contacts",
     name: "admin-contacts",
     element: <ProtectedRoute adminOnly><AdminContacts /></ProtectedRoute>
+  },
+  {
+    path: "/admin/inbox",
+    name: "admin-inbox",
+    element: <ProtectedRoute adminOnly><AdminInbox /></ProtectedRoute>
   },
   /* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
   { path: "*", name: "404", element: <NotFound /> },

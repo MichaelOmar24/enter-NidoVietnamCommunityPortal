@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Image, FileText, LogOut,
-  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard, Banknote, Inbox, Award, AlertTriangle, Mail
+  ChevronLeft, ChevronRight, Activity, Shield, ShieldCheck, HeartHandshake, Heart, CreditCard, Banknote, Inbox, Award, AlertTriangle, Mail, Mails
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +25,7 @@ const adminLinks = [
   { icon: Heart, label: 'Donations', href: '/admin/donations' },
   { icon: AlertTriangle, label: 'Case Reports', href: '/admin/case-reports' },
   { icon: Mail, label: 'Contacts', href: '/admin/contacts' },
+  { icon: Mails, label: 'Email Inbox', href: '/admin/inbox' },
   { icon: Inbox, label: 'Messages', href: '/admin/messages' },
 ];
 
