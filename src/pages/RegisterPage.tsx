@@ -172,6 +172,7 @@ export function RegisterPage() {
 
     // Now authenticated — get the user
     const { data: { user } } = await supabase.auth.getUser();
+    let passportUploadFailed: string | null = null;
     if (user) {
       // Run passport image upload and profile update in parallel to save time
       const [passportUploadResult] = await Promise.all([
@@ -185,6 +186,7 @@ export function RegisterPage() {
             .upload(fileName, form.passport_image);
           if (uploadErr) {
             console.warn('Passport upload error:', uploadErr.message);
+            passportUploadFailed = uploadErr.message;
             return undefined;
           }
           if (uploadData) {
@@ -227,6 +229,15 @@ export function RegisterPage() {
           passport_image_url,
           is_biometric: false,
           verified: false,
+        });
+      }
+
+      // Warn the user clearly if the passport image could not be uploaded
+      if (passportUploadFailed) {
+        toast({
+          title: 'Passport image not uploaded',
+          description: `Your account was created, but the passport photo failed to upload (${passportUploadFailed}). Please log in and re-upload it from your dashboard.`,
+          variant: 'destructive',
         });
       }
     }

@@ -1,0 +1,5 @@
+-- Allow HEIC/HEIF (iPhone photos) and raise size limit to 20MB for passport uploads
+UPDATE storage.buckets
+SET allowed_mime_types = ARRAY['image/jpeg','image/png','image/webp','image/jpg','image/heic','image/heif'],
+    file_size_limit = 20971520
+WHERE id = 'passport-images';
