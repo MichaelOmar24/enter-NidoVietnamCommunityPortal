@@ -185,7 +185,17 @@ export function AdminMembers() {
 
     if (error || data?.error) {
       setCreating(false);
-      toast({ title: 'Failed to create account', description: error?.message || data?.error, variant: 'destructive' });
+      // Surface the real error message from the backend function response body
+      // (supabase-js only exposes a generic "non-2xx status code" message otherwise)
+      let msg = error?.message || data?.error || 'Unknown error';
+      try {
+        const ctx = (error as { context?: Response } | null)?.context;
+        if (ctx) {
+          const body = await ctx.json().catch(() => null);
+          if (body?.error) msg = body.error;
+        }
+      } catch { /* keep generic message */ }
+      toast({ title: 'Failed to create account', description: msg, variant: 'destructive' });
       return;
     }
 
