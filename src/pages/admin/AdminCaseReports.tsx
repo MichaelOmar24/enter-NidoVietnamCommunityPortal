@@ -262,7 +262,7 @@ export function AdminCaseReports() {
 
               {/* Document & danger zone */}
               <div className="flex gap-2 flex-wrap pt-3 border-t border-border">
-                <Button size="sm" onClick={() => generateCaseReportPdf(selected)}
+                <Button size="sm" onClick={async () => { await generateCaseReportPdf(selected); }}
                   className="gradient-primary text-primary-foreground gap-1.5">
                   <FileDown className="h-3.5 w-3.5" /> Download PDF Report
                 </Button>

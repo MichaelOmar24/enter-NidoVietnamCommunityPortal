@@ -33,11 +33,44 @@ const CASE_LABELS: Record<string, string> = {
   harassment: 'Harassment / Bullying', impersonation: 'Impersonation', other: 'Other',
 };
 
-export function generateCaseReportPdf(report: CaseReportData) {
+interface LoadedImage {
+  dataUrl: string;
+  width: number;
+  height: number;
+  format: 'PNG' | 'JPEG' | 'WEBP';
+}
+
+async function loadImage(url: string): Promise<LoadedImage | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const type = blob.type.toLowerCase();
+    const format: LoadedImage['format'] = type.includes('png') ? 'PNG' : type.includes('webp') ? 'WEBP' : 'JPEG';
+    return { dataUrl, ...dims, format };
+  } catch {
+    return null;
+  }
+}
+
+export async function generateCaseReportPdf(report: CaseReportData) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 16;
   const contentWidth = pageWidth - margin * 2;
+  const LABEL_COL = 34; // fixed label column width (mm) so values never touch labels
   let y = 0;
 
   const ensureSpace = (needed: number) => {
@@ -60,18 +93,18 @@ export function generateCaseReportPdf(report: CaseReportData) {
     y += 5;
   };
 
-  const field = (label: string, value: string | null | undefined, indent = 0) => {
+  const field = (label: string, value: string | null | undefined) => {
     if (!value) return;
-    ensureSpace(6);
     doc.setFontSize(10);
+    const valueLines = doc.splitTextToSize(String(value), contentWidth - LABEL_COL);
+    ensureSpace(6 * valueLines.length);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(90, 90, 90);
-    doc.text(`${label}:`, margin + indent, y);
+    doc.text(`${label}:`, margin, y);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 30, 30);
-    const labelWidth = doc.getTextWidth(`${label}: `);
-    doc.text(String(value), margin + indent + labelWidth, y);
-    y += 5.5;
+    doc.text(valueLines, margin + LABEL_COL, y);
+    y += 5.5 * valueLines.length;
   };
 
   const paragraph = (text: string) => {
@@ -128,21 +161,44 @@ export function generateCaseReportPdf(report: CaseReportData) {
   sectionTitle('Detailed Description');
   paragraph(report.description);
 
-  // ── Evidence ──
+  // ── Evidence (links + embedded images) ──
   if (report.evidence_urls?.length > 0) {
     sectionTitle(`Evidence Files (${report.evidence_urls.length})`);
-    report.evidence_urls.forEach((url, i) => {
-      ensureSpace(6);
+
+    for (let i = 0; i < report.evidence_urls.length; i++) {
+      const url = report.evidence_urls[i];
+
+      // Link line
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 90, 160);
-      const lines = doc.splitTextToSize(`${i + 1}. ${url}`, contentWidth - 4);
-      lines.forEach((line: string) => {
+      const linkLines = doc.splitTextToSize(`${i + 1}. ${url}`, contentWidth);
+      linkLines.forEach((line: string) => {
         ensureSpace(5);
-        doc.text(line, margin + 2, y);
+        doc.text(line, margin, y);
         y += 4.5;
       });
-    });
+
+      // Embedded image (when the file is an image that can be loaded)
+      if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        const img = await loadImage(url);
+        if (img) {
+          const maxW = contentWidth;
+          const maxH = 90;
+          const scale = Math.min(maxW / (img.width * 0.2646), maxH / (img.height * 0.2646), 1); // px → mm
+          const wMm = img.width * 0.2646 * scale;
+          const hMm = img.height * 0.2646 * scale;
+          ensureSpace(hMm + 6);
+          try {
+            doc.addImage(img.dataUrl, img.format, margin, y, wMm, hMm);
+            y += hMm + 4;
+          } catch {
+            // If embedding fails, the link above is already present
+          }
+        }
+      }
+      y += 2;
+    }
   }
 
   // ── Notes ──
