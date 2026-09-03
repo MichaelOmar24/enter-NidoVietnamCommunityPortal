@@ -1,6 +1,30 @@
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_AnVAMsY1_EytJw1fRxRV5U446w1p7os2t';
-const FROM_EMAIL = 'noreply@nidovietnam.com';
-const FROM_NAME = 'NIDO Vietnam';
+import nodemailer from "npm:nodemailer@6";
+
+// SMTP config — organization's domain mailbox (cPanel: mail.supremecluster.com)
+const SMTP_HOST = Deno.env.get("SMTP_HOST") || "mail.supremecluster.com";
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "465");
+const SMTP_USER = Deno.env.get("SMTP_USER") || "info@nidovietnam.com";
+const FROM_EMAIL = `NIDO Vietnam <${SMTP_USER}>`;
+
+async function sendSmtpMail(options: { to: string | string[]; subject: string; html: string }) {
+  const password = Deno.env.get("SMTP_PASSWORD");
+  if (!password) throw new Error("SMTP_PASSWORD secret is not configured");
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: { user: SMTP_USER, pass: password },
+    tls: { rejectUnauthorized: false },
+  });
+  const info = await transporter.sendMail({
+    from: FROM_EMAIL,
+    to: options.to,
+    replyTo: SMTP_USER,
+    subject: options.subject,
+    html: options.html,
+  });
+  return { id: info.messageId };
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -129,24 +153,17 @@ Deno.serve(async (req) => {
     else if (type === 'company_listing') emailPayload = buildCompanyListingReceipt(data);
     else return new Response(JSON.stringify({ error: 'Unknown receipt type' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    try {
+      const result = await sendSmtpMail({
         to: [to_email],
         subject: emailPayload.subject,
         html: emailPayload.html,
-      }),
-    });
-
-    const result = await res.json();
-    if (!res.ok) {
-      console.error('Resend error:', result);
-      return new Response(JSON.stringify({ error: result }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+      });
+      return new Response(JSON.stringify({ success: true, id: result.id }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    } catch (sendErr) {
+      console.error('SMTP error:', sendErr);
+      return new Response(JSON.stringify({ error: String(sendErr) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
-
-    return new Response(JSON.stringify({ success: true, id: result.id }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('send-receipt error:', err);
     return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });

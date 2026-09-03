@@ -1,13 +1,38 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer@6";
+
+// SMTP config — organization's domain mailbox (cPanel: mail.supremecluster.com)
+const SMTP_HOST = Deno.env.get("SMTP_HOST") || "mail.supremecluster.com";
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "465");
+const SMTP_USER = Deno.env.get("SMTP_USER") || "info@nidovietnam.com";
+const FROM_EMAIL = `NIDO Vietnam <${SMTP_USER}>`;
+const ADMIN_EMAIL = "info@nidovietnam.com";
+
+async function sendSmtpMail(options: { to: string | string[]; subject: string; html: string; bcc?: string | string[] }) {
+  const password = Deno.env.get("SMTP_PASSWORD");
+  if (!password) throw new Error("SMTP_PASSWORD secret is not configured");
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: { user: SMTP_USER, pass: password },
+    tls: { rejectUnauthorized: false },
+  });
+  const info = await transporter.sendMail({
+    from: FROM_EMAIL,
+    to: options.to,
+    bcc: options.bcc,
+    replyTo: SMTP_USER,
+    subject: options.subject,
+    html: options.html,
+  });
+  return { id: info.messageId };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_5D2Utgps_LrrWXd6cn7yhCH5LeE6esXu3';
-const ADMIN_EMAIL = 'omike95@gmail.com';
-const FROM_EMAIL = 'NIDO Vietnam <info@nidovietnam.com>';
 
 function row(label: string, value: string) {
   return `
@@ -209,28 +234,18 @@ Deno.serve(async (req) => {
 
     // Send to the member (with their credentials) and BCC the admin for verification
     const recipients = profile.email ? [profile.email] : [];
-    const emailRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
+    try {
+      await sendSmtpMail({
         to: recipients.length > 0 ? recipients : [ADMIN_EMAIL],
         bcc: recipients.length > 0 ? [ADMIN_EMAIL] : undefined,
-        reply_to: 'info@nidovietnam.com',
         subject: password
           ? `Welcome to NIDO Vietnam — Your Account & Profile Details`
           : `New Member — ${profile.first_name} ${profile.last_name} (Verification Required)`,
         html: emailHtml,
-      }),
-    });
-
-    if (!emailRes.ok) {
-      const errBody = await emailRes.text();
-      console.error('Resend error:', errBody);
-      return new Response(JSON.stringify({ error: 'Email send failed', detail: errBody }), {
+      });
+    } catch (sendErr) {
+      console.error('SMTP error:', sendErr);
+      return new Response(JSON.stringify({ error: 'Email send failed', detail: String(sendErr) }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

@@ -1,6 +1,31 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import nodemailer from "npm:nodemailer@6";
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? 're_AnVAMsY1_EytJw1fRxRV5U446w1p7os2t';
+// SMTP config — organization's domain mailbox (cPanel: mail.supremecluster.com)
+const SMTP_HOST = Deno.env.get("SMTP_HOST") || "mail.supremecluster.com";
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "465");
+const SMTP_USER = Deno.env.get("SMTP_USER") || "info@nidovietnam.com";
+const FROM_EMAIL = `NIDO Vietnam <${SMTP_USER}>`;
+
+async function sendSmtpMail(options: { to: string | string[]; subject: string; html: string; fromName?: string }) {
+  const password = Deno.env.get("SMTP_PASSWORD");
+  if (!password) throw new Error("SMTP_PASSWORD secret is not configured");
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: { user: SMTP_USER, pass: password },
+    tls: { rejectUnauthorized: false },
+  });
+  const info = await transporter.sendMail({
+    from: options.fromName ? `${options.fromName} <${SMTP_USER}>` : FROM_EMAIL,
+    to: options.to,
+    replyTo: SMTP_USER,
+    subject: options.subject,
+    html: options.html,
+  });
+  return { id: info.messageId };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,17 +68,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    const from = senderName
-      ? `${senderName} <info@nidovietnam.com>`
-      : 'NIDO Vietnam <info@nidovietnam.com>';
+    // Send one email per recipient for privacy (SMTP has no batch API)
+    let sent = 0;
+    let failed = 0;
 
-    // Build batch payload — one email per recipient for privacy
-    const batch = profiles.map((p: { first_name: string; last_name: string; email: string }) => ({
-      from,
-      to: [p.email],
-      reply_to: 'info@nidovietnam.com',
-      subject,
-      html: `
+    for (const p of profiles as { first_name: string; last_name: string; email: string }[]) {
+      try {
+        await sendSmtpMail({
+          to: [p.email],
+          fromName: senderName || undefined,
+          subject,
+          html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
           <div style="background: #008751; padding: 24px 32px; border-radius: 8px 8px 0 0;">
             <h1 style="color: #ffffff; margin: 0; font-size: 22px;">NIDO Vietnam</h1>
@@ -67,30 +92,11 @@ Deno.serve(async (req) => {
           </div>
         </div>
       `,
-    }));
-
-    // Send in batches of 100 (Resend batch limit)
-    let sent = 0;
-    let failed = 0;
-    const batchSize = 100;
-
-    for (let i = 0; i < batch.length; i += batchSize) {
-      const chunk = batch.slice(i, i + batchSize);
-      const res = await fetch('https://api.resend.com/emails/batch', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(chunk),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        sent += chunk.length;
-      } else {
-        console.error('Resend batch error:', data);
-        failed += chunk.length;
+        });
+        sent++;
+      } catch (sendErr) {
+        console.error(`SMTP send failed for ${p.email}:`, sendErr);
+        failed++;
       }
     }
 
