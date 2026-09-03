@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileSearch, Activity, LogOut,
   ChevronLeft, ChevronRight, ShieldCheck, BarChart3, ScrollText,
-  HeartHandshake, ArrowLeft
+  HeartHandshake, ArrowLeft, Scale
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const embassyLinks = [
   { icon: BarChart3, label: 'Passport Analytics', href: '/embassy/passports' },
   { icon: FileSearch, label: 'Query Explorer', href: '/embassy/query' },
   { icon: ScrollText, label: 'Activity Feed', href: '/embassy/activity' },
+  { icon: Scale, label: 'Consular Desk', href: '/embassy/cases' },
   { icon: HeartHandshake, label: 'Welfare & Memorial', href: '/embassy/welfare' },
 ];
 

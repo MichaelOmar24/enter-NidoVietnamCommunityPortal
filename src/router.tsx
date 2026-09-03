@@ -37,6 +37,7 @@ import { EmbassyPassports } from "./pages/embassy/EmbassyPassports";
 import { EmbassyQuery } from "./pages/embassy/EmbassyQuery";
 import { EmbassyActivity } from "./pages/embassy/EmbassyActivity";
 import { EmbassyWelfare } from "./pages/embassy/EmbassyWelfare";
+import { EmbassyCaseReports } from "./pages/embassy/EmbassyCaseReports";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { AboutPage } from "./pages/AboutPage";
@@ -177,6 +178,11 @@ export const routers = [
     path: "/embassy/welfare",
     name: "embassy-welfare",
     element: <ProtectedRoute embassyOnly><EmbassyWelfare /></ProtectedRoute>
+  },
+  {
+    path: "/embassy/cases",
+    name: "embassy-cases",
+    element: <ProtectedRoute embassyOnly><EmbassyCaseReports /></ProtectedRoute>
   },
   {
     path: "/report-case",

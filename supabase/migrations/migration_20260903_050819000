@@ -1,0 +1,9 @@
+-- Consular Desk: embassy staff get full control over all case reports
+CREATE POLICY "embassy_staff_view_all_case_reports"
+  ON case_reports FOR SELECT TO authenticated
+  USING (public.is_current_user_embassy_staff());
+
+CREATE POLICY "embassy_staff_update_case_reports"
+  ON case_reports FOR UPDATE TO authenticated
+  USING (public.is_current_user_embassy_staff())
+  WITH CHECK (public.is_current_user_embassy_staff());
