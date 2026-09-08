@@ -98,7 +98,10 @@ Deno.serve(async (req) => {
     const greeting = toName ? `Dear ${toName},` : "Dear Member,";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
-        <div style="background: #008751; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+        <div style="background: #008751; padding: 24px 32px; border-radius: 8px 8px 0 0; text-align: center;">
+          <div style="display: inline-block; background: #ffffff; padding: 6px 14px; border-radius: 8px; margin-bottom: 12px;">
+            <img src="https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png" alt="NIDO Vietnam" style="height: 40px; display: block;" />
+          </div>
           <h1 style="color: #ffffff; margin: 0; font-size: 22px;">NIDO Vietnam</h1>
           <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0; font-size: 13px;">Nigerians in Diaspora Organization Vietnam</p>
         </div>

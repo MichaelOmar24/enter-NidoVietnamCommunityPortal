@@ -3,13 +3,14 @@ import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { generateCaseReportPdf } from '@/lib/caseReportPdf';
+import { SendCaseToReported } from '@/components/common/SendCaseToReported';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText,
-  Phone, Mail, User, Lock, Scale, RefreshCw, FileDown
+  Phone, Mail, User, Lock, Scale, RefreshCw, FileDown, Send
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -52,6 +53,7 @@ export function EmbassyCaseReports() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState<CaseReport | null>(null);
   const [note, setNote] = useState('');
+  const [sendCaseOpen, setSendCaseOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const load = useCallback(async () => {
@@ -273,6 +275,10 @@ export function EmbassyCaseReports() {
 
               {/* Document download */}
               <div className="flex gap-2 flex-wrap pt-3 border-t border-border">
+                <Button size="sm" onClick={() => setSendCaseOpen(true)}
+                  className="gap-1.5 bg-gold/15 text-amber-700 border border-gold/50 hover:bg-gold/25">
+                  <Send className="h-3.5 w-3.5" /> Send to Reported Party
+                </Button>
                 <Button size="sm" onClick={async () => { await generateCaseReportPdf(selected); }}
                   className="gradient-primary text-primary-foreground gap-1.5">
                   <FileDown className="h-3.5 w-3.5" /> Download PDF Report
@@ -282,6 +288,13 @@ export function EmbassyCaseReports() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Send case notice to reported party */}
+      <SendCaseToReported
+        report={selected}
+        open={sendCaseOpen}
+        onClose={() => setSendCaseOpen(false)}
+      />
     </EmbassyLayout>
   );
 }
