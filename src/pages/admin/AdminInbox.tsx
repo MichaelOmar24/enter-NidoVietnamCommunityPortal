@@ -3,10 +3,11 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MailOpen, Mail, RefreshCw, Reply, Send, Loader2, Inbox as InboxIcon, User } from 'lucide-react';
+import { MailOpen, Mail, RefreshCw, Reply, Send, Loader2, Inbox as InboxIcon, User, Forward } from 'lucide-react';
 
 interface InboxMessage {
   uid: number;
@@ -43,6 +44,9 @@ export function AdminInbox() {
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [mode, setMode] = useState<'reply' | 'forward'>('reply');
+  const [forwardTo, setForwardTo] = useState('');
+  const [forwardNote, setForwardNote] = useState('');
   const { toast } = useToast();
 
   const load = useCallback(async () => {
@@ -73,6 +77,9 @@ export function AdminInbox() {
     setLoadingMessage(true);
     setSelected(null);
     setReplyText('');
+    setMode('reply');
+    setForwardTo('');
+    setForwardNote('');
     const { data, error: err } = await supabase.functions.invoke('fetch-inbox', { body: { uid: msg.uid } });
     setLoadingMessage(false);
     if (err || data?.error) {
@@ -104,6 +111,41 @@ export function AdminInbox() {
     }
     toast({ title: 'Reply sent', description: `Sent to ${selected.fromAddress}` });
     setReplyText('');
+    setSelected(null);
+  };
+
+  const sendForward = async () => {
+    if (!selected || !forwardTo.trim()) return;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forwardTo.trim());
+    if (!emailOk) {
+      toast({ title: 'Invalid email', description: 'Please enter a valid email address to forward to.', variant: 'destructive' });
+      return;
+    }
+    setSending(true);
+    const originalBody = selected.text || (selected.html ? selected.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '');
+    const forwardedContent = `${forwardNote.trim() ? forwardNote.trim() + '\n\n' : ''}---------- Forwarded message ----------
+From: ${selected.fromName ? `${selected.fromName} <${selected.fromAddress}>` : selected.fromAddress}
+Date: ${selected.date || ''}
+Subject: ${selected.subject}
+To: info@nidovietnam.com
+
+${originalBody}`;
+    const fwdSubject = selected.subject.replace(/^(fwd?:\s*)+/i, '');
+    const { data, error: err } = await supabase.functions.invoke('send-member-email', {
+      body: {
+        to: forwardTo.trim(),
+        subject: `Fwd: ${fwdSubject}`,
+        message: forwardedContent,
+      },
+    });
+    setSending(false);
+    if (err || data?.error) {
+      toast({ title: 'Forward failed', description: data?.error || err?.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Email forwarded', description: `Sent to ${forwardTo.trim()}` });
+    setForwardTo('');
+    setForwardNote('');
     setSelected(null);
   };
 
@@ -196,25 +238,74 @@ export function AdminInbox() {
                   {selected.text || (selected.html ? selected.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '(empty message)')}
                 </div>
 
-                {/* Reply box */}
+                {/* Reply / Forward */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Reply className="h-4 w-4 text-primary" /> Reply to {selected.fromName || selected.fromAddress}
-                  </p>
-                  <Textarea
-                    rows={5}
-                    value={replyText}
-                    onChange={e => setReplyText(e.target.value)}
-                    placeholder="Type your reply... It will be sent from info@nidovietnam.com and threaded with this conversation."
-                    className="resize-none"
-                  />
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1" onClick={() => setSelected(null)} disabled={sending}>Close</Button>
-                    <Button className="flex-1 gap-2 gradient-primary text-primary-foreground" onClick={sendReply} disabled={sending || !replyText.trim()}>
-                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      {sending ? 'Sending...' : 'Send Reply'}
-                    </Button>
+                  {/* Mode toggle */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setMode('reply')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${mode === 'reply' ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                    >
+                      <Reply className="h-3.5 w-3.5" /> Reply
+                    </button>
+                    <button
+                      onClick={() => setMode('forward')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${mode === 'forward' ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                    >
+                      <Forward className="h-3.5 w-3.5" /> Forward
+                    </button>
                   </div>
+
+                  {mode === 'reply' ? (
+                    <>
+                      <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Reply className="h-4 w-4 text-primary" /> Reply to {selected.fromName || selected.fromAddress}
+                      </p>
+                      <Textarea
+                        rows={5}
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Type your reply... It will be sent from info@nidovietnam.com and threaded with this conversation."
+                        className="resize-none"
+                      />
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1" onClick={() => setSelected(null)} disabled={sending}>Close</Button>
+                        <Button className="flex-1 gap-2 gradient-primary text-primary-foreground" onClick={sendReply} disabled={sending || !replyText.trim()}>
+                          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          {sending ? 'Sending...' : 'Send Reply'}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Forward className="h-4 w-4 text-primary" /> Forward this email
+                      </p>
+                      <Input
+                        type="email"
+                        value={forwardTo}
+                        onChange={e => setForwardTo(e.target.value)}
+                        placeholder="Forward to email address (e.g. someone@example.com)"
+                      />
+                      <Textarea
+                        rows={3}
+                        value={forwardNote}
+                        onChange={e => setForwardNote(e.target.value)}
+                        placeholder="Optional note to add above the forwarded message..."
+                        className="resize-none"
+                      />
+                      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs text-muted-foreground">
+                        The full original message will be included below your note, sent from info@nidovietnam.com.
+                      </div>
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1" onClick={() => setSelected(null)} disabled={sending}>Close</Button>
+                        <Button className="flex-1 gap-2 gradient-primary text-primary-foreground" onClick={sendForward} disabled={sending || !forwardTo.trim()}>
+                          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Forward className="h-4 w-4" />}
+                          {sending ? 'Sending...' : 'Forward Email'}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </>
