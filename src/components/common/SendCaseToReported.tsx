@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { buildCoverNote, generateCasePresentationPdf } from '@/lib/casePresentation';
 import type { CaseReportData } from '@/lib/caseReportPdf';
-import { filesToAttachments, type EmailAttachment } from '@/lib/emailAttachments';
 import { Mail, Phone, Send, Loader2, FileDown, FileText, AlertTriangle, MessageCircle, User } from 'lucide-react';
 
 interface SendCaseToReportedProps {
@@ -17,28 +16,12 @@ interface SendCaseToReportedProps {
   onClose: () => void;
 }
 
-const MAX_EVIDENCE_ATTACH = 5;
-
-async function urlToAttachment(url: string, index: number): Promise<EmailAttachment | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    if (blob.size > 8 * 1024 * 1024) return null; // skip files over 8MB
-    const ext = url.split('.').pop()?.split('?')[0] || 'bin';
-    const file = new File([blob], `evidence-${index + 1}.${ext}`, { type: blob.type });
-    const [attachment] = await filesToAttachments([file]);
-    return attachment;
-  } catch {
-    return null;
-  }
-}
+// Keep the function request payload small — PDF only, no raw evidence attachments
+const MAX_PDF_BASE64 = 8 * 1024 * 1024;
 
 export function SendCaseToReported({ report, open, onClose }: SendCaseToReportedProps) {
   const [coverNote, setCoverNote] = useState('');
   const [subject, setSubject] = useState('');
-  const [evidence, setEvidence] = useState<EmailAttachment[]>([]);
-  const [loadingEvidence, setLoadingEvidence] = useState(false);
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const { toast } = useToast();
@@ -46,21 +29,13 @@ export function SendCaseToReported({ report, open, onClose }: SendCaseToReported
   const hasEmail = !!report?.reported_email;
   const hasPhone = !!report?.reported_phone;
   const whatsappNumber = (report?.reported_phone || '').replace(/[^0-9]/g, '');
+  const evidenceUrls = report?.evidence_urls || [];
 
   // Reset form when a new report is opened
   useEffect(() => {
     if (open && report) {
       setCoverNote(buildCoverNote(report));
       setSubject(`Request for Urgent Meeting and Resolution Regarding Official Case Report — ${report.title}`);
-      setEvidence([]);
-      // Pre-load evidence files so they're ready to attach
-      const urls = (report.evidence_urls || []).slice(0, MAX_EVIDENCE_ATTACH);
-      if (urls.length > 0) {
-        setLoadingEvidence(true);
-        Promise.all(urls.map((u, i) => urlToAttachment(u, i)))
-          .then(results => setEvidence(results.filter((a): a is EmailAttachment => a !== null)))
-          .finally(() => setLoadingEvidence(false));
-      }
     }
   }, [open, report]);
 
@@ -70,26 +45,51 @@ export function SendCaseToReported({ report, open, onClose }: SendCaseToReported
     if (!hasEmail) return;
     setSending(true);
     try {
-      // Generate the official case-notice PDF and attach it alongside the evidence files
-      const pdfBase64 = (await generateCasePresentationPdf(report, coverNote, 'base64')) as string;
-      const attachments: EmailAttachment[] = [
-        { filename: `official-case-notice-${report.id.slice(0, 8)}.pdf`, content: pdfBase64, contentType: 'application/pdf' },
-        ...evidence,
-      ];
+      // Attach the official case-notice PDF (evidence images are embedded inside it).
+      // Raw evidence files are NOT attached — that made the request exceed the
+      // backend function's payload limit. Links are included in the email instead.
+      let attachments: { filename: string; content: string; contentType: string }[] = [];
+      let pdfAttached = true;
+      try {
+        const pdfBase64 = (await generateCasePresentationPdf(report, coverNote, 'base64')) as string;
+        if (pdfBase64.length <= MAX_PDF_BASE64) {
+          attachments = [{ filename: `official-case-notice-${report.id.slice(0, 8)}.pdf`, content: pdfBase64, contentType: 'application/pdf' }];
+        } else {
+          pdfAttached = false;
+        }
+      } catch {
+        pdfAttached = false; // send without attachment rather than failing entirely
+      }
+
+      const evidenceSection = evidenceUrls.length > 0
+        ? `\n\nEvidence files submitted with this report:\n${evidenceUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
+        : '';
+
       const { data, error } = await supabase.functions.invoke('send-member-email', {
         body: {
           to: report.reported_email,
           toName: report.reported_name,
           subject,
-          message: coverNote,
+          message: coverNote + evidenceSection,
           attachments,
         },
       });
       if (error || data?.error) {
-        toast({ title: 'Failed to send', description: data?.error || error?.message, variant: 'destructive' });
+        let msg = data?.error || error?.message || 'Failed to send';
+        try {
+          const ctx = (error as { context?: Response } | null)?.context;
+          if (ctx) {
+            const bodyErr = await ctx.json().catch(() => null);
+            if (bodyErr?.error) msg = bodyErr.error;
+          }
+        } catch { /* keep */ }
+        toast({ title: 'Failed to send', description: msg, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Case notice sent', description: `Delivered to ${report.reported_email}` });
+      toast({
+        title: 'Case notice sent',
+        description: `Delivered to ${report.reported_email}${pdfAttached ? '' : ' (without PDF attachment — it was too large; use Download instead)'}`,
+      });
       onClose();
     } finally {
       setSending(false);
@@ -132,7 +132,7 @@ export function SendCaseToReported({ report, open, onClose }: SendCaseToReported
           {/* Delivery mode notice */}
           {hasEmail ? (
             <div className="rounded-md bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary">
-              The cover letter, official case-notice PDF and {evidence.length} evidence file(s) will be emailed to <strong>{report.reported_email}</strong> from info@nidovietnam.com.
+              The cover letter and official case-notice PDF (with evidence embedded) will be emailed to <strong>{report.reported_email}</strong> from info@nidovietnam.com.
             </div>
           ) : (
             <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
@@ -163,45 +163,40 @@ export function SendCaseToReported({ report, open, onClose }: SendCaseToReported
           {/* Evidence status */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <FileText className="h-3.5 w-3.5" />
-            {loadingEvidence
-              ? 'Preparing evidence attachments...'
-              : report.evidence_urls?.length
-                ? `${evidence.length} of ${Math.min(report.evidence_urls.length, MAX_EVIDENCE_ATTACH)} evidence file(s) ready to attach${report.evidence_urls.length > MAX_EVIDENCE_ATTACH ? ` (first ${MAX_EVIDENCE_ATTACH} only)` : ''}`
-                : 'No evidence files attached to this case'}
-            {loadingEvidence && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {evidenceUrls.length > 0
+              ? `${evidenceUrls.length} evidence file(s) — embedded in the PDF and linked in the email`
+              : 'No evidence files attached to this case'}
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 flex-wrap pt-2 border-t border-border">
-            {hasEmail ? (
+            {hasEmail && (
               <Button
                 className="flex-1 gap-2 gradient-primary text-primary-foreground"
                 onClick={handleSendEmail}
-                disabled={sending || loadingEvidence || !coverNote.trim() || !subject.trim()}
+                disabled={sending || downloading || !coverNote.trim() || !subject.trim()}
               >
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {sending ? 'Sending...' : 'Send Case Notice Email'}
               </Button>
-            ) : (
-              <>
-                <Button
-                  className="flex-1 gap-2 gradient-primary text-primary-foreground"
-                  onClick={handleDownload}
-                  disabled={downloading || !coverNote.trim()}
-                >
-                  {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                  {downloading ? 'Preparing PDF...' : 'Download Letter (PDF)'}
-                </Button>
-                {whatsappNumber && (
-                  <Button
-                    variant="outline"
-                    className="gap-2 text-green-700 border-green-600/40 hover:bg-green-600/10"
-                    onClick={() => window.open(`https://wa.me/${whatsappNumber}`, '_blank', 'noopener,noreferrer')}
-                  >
-                    <MessageCircle className="h-4 w-4" /> Open WhatsApp
-                  </Button>
-                )}
-              </>
+            )}
+            <Button
+              variant={hasEmail ? 'outline' : 'default'}
+              className={hasEmail ? 'gap-2' : 'flex-1 gap-2 gradient-primary text-primary-foreground'}
+              onClick={handleDownload}
+              disabled={downloading || sending || !coverNote.trim()}
+            >
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {downloading ? 'Preparing PDF...' : 'Download Letter (PDF)'}
+            </Button>
+            {whatsappNumber && (
+              <Button
+                variant="outline"
+                className="gap-2 text-green-700 border-green-600/40 hover:bg-green-600/10"
+                onClick={() => window.open(`https://wa.me/${whatsappNumber}`, '_blank', 'noopener,noreferrer')}
+              >
+                <MessageCircle className="h-4 w-4" /> WhatsApp
+              </Button>
             )}
             <Button variant="outline" onClick={onClose} disabled={sending || downloading}>Cancel</Button>
           </div>
