@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AttachmentPicker } from '@/components/common/AttachmentPicker';
+import { filesToAttachments } from '@/lib/emailAttachments';
 import { Search, Mail, Send, Users, Phone, MapPin, Loader2, Copy, CheckCheck, MailPlus } from 'lucide-react';
 
 interface MemberContact {
@@ -35,6 +37,8 @@ export function AdminContacts() {
   const [directTarget, setDirectTarget] = useState<MemberContact | null>(null);
   const [directForm, setDirectForm] = useState({ subject: '', message: '' });
   const [directSending, setDirectSending] = useState(false);
+  const [directFiles, setDirectFiles] = useState<File[]>([]);
+  const [broadcastFiles, setBroadcastFiles] = useState<File[]>([]);
   const { toast } = useToast();
 
   useEffect(() => { loadMembers(); }, []);
@@ -77,8 +81,9 @@ export function AdminContacts() {
     }
     setSending(true);
     try {
+      const attachments = broadcastFiles.length > 0 ? await filesToAttachments(broadcastFiles) : undefined;
       const { data, error } = await supabase.functions.invoke('send-broadcast-email', {
-        body: { subject: form.subject, message: form.message, senderName: 'NIDO Vietnam Admin' },
+        body: { subject: form.subject, message: form.message, senderName: 'NIDO Vietnam Admin', attachments },
       });
       if (error) throw error;
       toast({
@@ -87,6 +92,7 @@ export function AdminContacts() {
       });
       setBroadcastOpen(false);
       setForm({ subject: '', message: '' });
+      setBroadcastFiles([]);
     } catch (err) {
       toast({ title: 'Error', description: 'Failed to send broadcast. Please try again.', variant: 'destructive' });
     } finally {
@@ -100,12 +106,14 @@ export function AdminContacts() {
       return;
     }
     setDirectSending(true);
+    const attachments = directFiles.length > 0 ? await filesToAttachments(directFiles) : undefined;
     const { data, error } = await supabase.functions.invoke('send-member-email', {
       body: {
         to: directTarget.email,
         toName: `${directTarget.first_name} ${directTarget.last_name}`,
         subject: directForm.subject,
         message: directForm.message,
+        attachments,
       },
     });
     setDirectSending(false);
@@ -116,6 +124,7 @@ export function AdminContacts() {
     toast({ title: 'Email sent', description: `Delivered to ${directTarget.email}` });
     setDirectTarget(null);
     setDirectForm({ subject: '', message: '' });
+    setDirectFiles([]);
   };
 
   const statusBadge = (status: string) => {    if (status === 'active') return <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">Active</Badge>;
@@ -306,6 +315,7 @@ export function AdminContacts() {
                 className="resize-none"
               />
             </div>
+            <AttachmentPicker files={broadcastFiles} onChange={setBroadcastFiles} />
             <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setBroadcastOpen(false)} disabled={sending}>
                 Cancel
@@ -319,7 +329,7 @@ export function AdminContacts() {
         </DialogContent>
       </Dialog>
       {/* Direct Member Email Dialog */}
-      <Dialog open={!!directTarget} onOpenChange={o => { if (!o) { setDirectTarget(null); setDirectForm({ subject: '', message: '' }); } }}>
+      <Dialog open={!!directTarget} onOpenChange={o => { if (!o) { setDirectTarget(null); setDirectForm({ subject: '', message: '' }); setDirectFiles([]); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -351,6 +361,7 @@ export function AdminContacts() {
                 className="resize-none"
               />
             </div>
+            <AttachmentPicker files={directFiles} onChange={setDirectFiles} />
             <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setDirectTarget(null)} disabled={directSending}>
                 Cancel

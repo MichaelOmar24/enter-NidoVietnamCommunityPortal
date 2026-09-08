@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AttachmentPicker } from '@/components/common/AttachmentPicker';
+import { filesToAttachments } from '@/lib/emailAttachments';
 import { MailOpen, Mail, RefreshCw, Reply, Send, Loader2, Inbox as InboxIcon, User, Forward } from 'lucide-react';
 
 interface InboxMessage {
@@ -47,6 +49,8 @@ export function AdminInbox() {
   const [mode, setMode] = useState<'reply' | 'forward'>('reply');
   const [forwardTo, setForwardTo] = useState('');
   const [forwardNote, setForwardNote] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
+  const [forwardFiles, setForwardFiles] = useState<File[]>([]);
   const { toast } = useToast();
 
   const load = useCallback(async () => {
@@ -80,6 +84,8 @@ export function AdminInbox() {
     setMode('reply');
     setForwardTo('');
     setForwardNote('');
+    setReplyFiles([]);
+    setForwardFiles([]);
     const { data, error: err } = await supabase.functions.invoke('fetch-inbox', { body: { uid: msg.uid } });
     setLoadingMessage(false);
     if (err || data?.error) {
@@ -94,6 +100,7 @@ export function AdminInbox() {
   const sendReply = async () => {
     if (!selected || !replyText.trim()) return;
     setSending(true);
+    const attachments = replyFiles.length > 0 ? await filesToAttachments(replyFiles) : undefined;
     const { data, error: err } = await supabase.functions.invoke('send-member-email', {
       body: {
         to: selected.fromAddress,
@@ -102,6 +109,7 @@ export function AdminInbox() {
         message: replyText,
         inReplyTo: selected.messageId || undefined,
         references: selected.messageId || undefined,
+        attachments,
       },
     });
     setSending(false);
@@ -111,6 +119,7 @@ export function AdminInbox() {
     }
     toast({ title: 'Reply sent', description: `Sent to ${selected.fromAddress}` });
     setReplyText('');
+    setReplyFiles([]);
     setSelected(null);
   };
 
@@ -131,11 +140,13 @@ To: info@nidovietnam.com
 
 ${originalBody}`;
     const fwdSubject = selected.subject.replace(/^(fwd?:\s*)+/i, '');
+    const attachments = forwardFiles.length > 0 ? await filesToAttachments(forwardFiles) : undefined;
     const { data, error: err } = await supabase.functions.invoke('send-member-email', {
       body: {
         to: forwardTo.trim(),
         subject: `Fwd: ${fwdSubject}`,
         message: forwardedContent,
+        attachments,
       },
     });
     setSending(false);
@@ -146,6 +157,7 @@ ${originalBody}`;
     toast({ title: 'Email forwarded', description: `Sent to ${forwardTo.trim()}` });
     setForwardTo('');
     setForwardNote('');
+    setForwardFiles([]);
     setSelected(null);
   };
 
@@ -268,6 +280,7 @@ ${originalBody}`;
                         placeholder="Type your reply... It will be sent from info@nidovietnam.com and threaded with this conversation."
                         className="resize-none"
                       />
+                      <AttachmentPicker files={replyFiles} onChange={setReplyFiles} />
                       <div className="flex gap-3">
                         <Button variant="outline" className="flex-1" onClick={() => setSelected(null)} disabled={sending}>Close</Button>
                         <Button className="flex-1 gap-2 gradient-primary text-primary-foreground" onClick={sendReply} disabled={sending || !replyText.trim()}>
@@ -294,6 +307,7 @@ ${originalBody}`;
                         placeholder="Optional note to add above the forwarded message..."
                         className="resize-none"
                       />
+                      <AttachmentPicker files={forwardFiles} onChange={setForwardFiles} />
                       <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-xs text-muted-foreground">
                         The full original message will be included below your note, sent from info@nidovietnam.com.
                       </div>

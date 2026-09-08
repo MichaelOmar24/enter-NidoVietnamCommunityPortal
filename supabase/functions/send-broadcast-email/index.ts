@@ -7,7 +7,7 @@ const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "465");
 const SMTP_USER = Deno.env.get("SMTP_USER") || "info@nidovietnam.com";
 const FROM_EMAIL = `NIDO Vietnam <${SMTP_USER}>`;
 
-async function sendSmtpMail(options: { to: string | string[]; subject: string; html: string; fromName?: string }) {
+async function sendSmtpMail(options: { to: string | string[]; subject: string; html: string; fromName?: string; attachments?: { filename: string; content: string; contentType?: string }[] }) {
   const password = Deno.env.get("SMTP_PASSWORD");
   if (!password) throw new Error("SMTP_PASSWORD secret is not configured");
   const transporter = nodemailer.createTransport({
@@ -23,6 +23,12 @@ async function sendSmtpMail(options: { to: string | string[]; subject: string; h
     replyTo: SMTP_USER,
     subject: options.subject,
     html: options.html,
+    attachments: (options.attachments || []).map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      encoding: "base64",
+      contentType: a.contentType || "application/octet-stream",
+    })),
   });
   return { id: info.messageId };
 }
@@ -38,7 +44,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { subject, message, senderName } = await req.json();
+    const { subject, message, senderName, attachments } = await req.json();
 
     if (!subject || !message) {
       return new Response(
@@ -78,6 +84,7 @@ Deno.serve(async (req) => {
           to: [p.email],
           fromName: senderName || undefined,
           subject,
+          attachments: attachments || undefined,
           html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a;">
           <div style="background: #008751; padding: 24px 32px; border-radius: 8px 8px 0 0;">
