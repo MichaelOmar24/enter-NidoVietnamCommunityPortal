@@ -31,6 +31,8 @@ import { ReportCasePage } from "./pages/ReportCasePage";
 import { AnonymousReportPage } from "./pages/AnonymousReportPage";
 import { AdminCaseReports } from "./pages/admin/AdminCaseReports";
 import { AdminInbox } from "./pages/admin/AdminInbox";
+import { AdminCriminalRecords } from "./pages/admin/AdminCriminalRecords";
+import { EmbassyCriminalRecords } from "./pages/embassy/EmbassyCriminalRecords";
 import { AdminContacts } from "./pages/admin/AdminContacts";
 import { EmbassyOverview } from "./pages/embassy/EmbassyOverview";
 import { EmbassyMembers } from "./pages/embassy/EmbassyMembers";
@@ -186,6 +188,11 @@ export const routers = [
     element: <ProtectedRoute embassyOnly><EmbassyCaseReports /></ProtectedRoute>
   },
   {
+    path: "/embassy/criminal-records",
+    name: "embassy-criminal-records",
+    element: <ProtectedRoute embassyOnly><EmbassyCriminalRecords /></ProtectedRoute>
+  },
+  {
     path: "/report-case",
     name: "report-case",
     element: <ProtectedRoute><ReportCasePage /></ProtectedRoute>
@@ -205,6 +212,11 @@ export const routers = [
     path: "/admin/inbox",
     name: "admin-inbox",
     element: <ProtectedRoute adminOnly><AdminInbox /></ProtectedRoute>
+  },
+  {
+    path: "/admin/criminal-records",
+    name: "admin-criminal-records",
+    element: <ProtectedRoute adminOnly><AdminCriminalRecords /></ProtectedRoute>
   },
   /* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
   { path: "*", name: "404", element: <NotFound /> },

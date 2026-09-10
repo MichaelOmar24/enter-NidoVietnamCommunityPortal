@@ -1,0 +1,69 @@
+-- Criminal Record Management Module
+-- Secure table for managing criminal cases of Nigerian citizens convicted in Vietnam
+CREATE TABLE IF NOT EXISTS criminal_records (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Citizen identity
+  full_name text NOT NULL,
+  passport_number text,
+  date_of_birth date,
+  nigerian_state_of_origin text,
+
+  -- Crime details
+  crime_category text NOT NULL DEFAULT 'other' CHECK (crime_category IN ('drug_trafficking','fraud','theft','assault','murder','immigration_offense','cybercrime','smuggling','other')),
+  crime_description text,
+  crime_date date,
+  arrest_date date,
+
+  -- Court information
+  court_name text,
+  court_city text,
+  case_number text,
+  conviction_date date,
+
+  -- Conviction period
+  sentence_years numeric,
+  sentence_start date,
+  sentence_end date,
+
+  -- Prison location
+  prison_name text,
+  prison_city text,
+
+  -- Financial penalties
+  fine_amount numeric,
+  fine_currency text DEFAULT 'VND' CHECK (fine_currency IN ('VND','USD','NGN')),
+  fine_paid boolean DEFAULT false,
+  fine_paid_date date,
+
+  -- Legal documents (storage URLs)
+  legal_documents text[] DEFAULT '{}',
+
+  -- Release status
+  release_status text NOT NULL DEFAULT 'in_custody' CHECK (release_status IN ('in_custody','released','paroled','deported','transferred','deceased')),
+  release_date date,
+
+  -- Clemency records
+  clemency_status text NOT NULL DEFAULT 'none' CHECK (clemency_status IN ('none','applied','under_review','granted','denied')),
+  clemency_date date,
+  clemency_details text,
+
+  notes text,
+  created_by uuid REFERENCES profiles(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE criminal_records ENABLE ROW LEVEL SECURITY;
+
+-- Admins: full management
+CREATE POLICY "admins_manage_criminal_records"
+  ON criminal_records FOR ALL TO authenticated
+  USING (public.is_current_user_admin())
+  WITH CHECK (public.is_current_user_admin());
+
+-- Embassy officials: full management (consular responsibility)
+CREATE POLICY "embassy_staff_manage_criminal_records"
+  ON criminal_records FOR ALL TO authenticated
+  USING (public.is_current_user_embassy_staff())
+  WITH CHECK (public.is_current_user_embassy_staff());

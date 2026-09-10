@@ -3714,6 +3714,118 @@ export type Database = {
           },
         ]
       }
+      criminal_records: {
+        Row: {
+          arrest_date: string | null
+          case_number: string | null
+          clemency_date: string | null
+          clemency_details: string | null
+          clemency_status: string
+          conviction_date: string | null
+          court_city: string | null
+          court_name: string | null
+          created_at: string | null
+          created_by: string | null
+          crime_category: string
+          crime_date: string | null
+          crime_description: string | null
+          date_of_birth: string | null
+          fine_amount: number | null
+          fine_currency: string | null
+          fine_paid: boolean | null
+          fine_paid_date: string | null
+          full_name: string
+          id: string
+          legal_documents: string[] | null
+          nigerian_state_of_origin: string | null
+          notes: string | null
+          passport_number: string | null
+          prison_city: string | null
+          prison_name: string | null
+          release_date: string | null
+          release_status: string
+          sentence_end: string | null
+          sentence_start: string | null
+          sentence_years: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          arrest_date?: string | null
+          case_number?: string | null
+          clemency_date?: string | null
+          clemency_details?: string | null
+          clemency_status?: string
+          conviction_date?: string | null
+          court_city?: string | null
+          court_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crime_category?: string
+          crime_date?: string | null
+          crime_description?: string | null
+          date_of_birth?: string | null
+          fine_amount?: number | null
+          fine_currency?: string | null
+          fine_paid?: boolean | null
+          fine_paid_date?: string | null
+          full_name: string
+          id?: string
+          legal_documents?: string[] | null
+          nigerian_state_of_origin?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          prison_city?: string | null
+          prison_name?: string | null
+          release_date?: string | null
+          release_status?: string
+          sentence_end?: string | null
+          sentence_start?: string | null
+          sentence_years?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          arrest_date?: string | null
+          case_number?: string | null
+          clemency_date?: string | null
+          clemency_details?: string | null
+          clemency_status?: string
+          conviction_date?: string | null
+          court_city?: string | null
+          court_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crime_category?: string
+          crime_date?: string | null
+          crime_description?: string | null
+          date_of_birth?: string | null
+          fine_amount?: number | null
+          fine_currency?: string | null
+          fine_paid?: boolean | null
+          fine_paid_date?: string | null
+          full_name?: string
+          id?: string
+          legal_documents?: string[] | null
+          nigerian_state_of_origin?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          prison_city?: string | null
+          prison_name?: string | null
+          release_date?: string | null
+          release_status?: string
+          sentence_end?: string | null
+          sentence_start?: string | null
+          sentence_years?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criminal_records_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deceased_members: {
         Row: {
           cause_of_death: string
