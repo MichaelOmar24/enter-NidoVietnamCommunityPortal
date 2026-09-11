@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Profile, Passport, OCCUPATION_LABELS, MARITAL_STATUS_LABELS, NIGERIAN_STATES, VIETNAM_CITIES, RELIGION_LABELS, QUALIFICATION_LABELS, PURPOSE_OF_VISIT_LABELS, OccupationType, MaritalStatus, Gender, ReligionType, QualificationType, PurposeOfVisitType, SpouseNationality } from '@/lib/types';
-import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby, Users } from 'lucide-react';
+import { Search, Eye, Edit, Check, AlertTriangle, X, ChevronLeft, ChevronRight, ZoomIn, Fingerprint, FileImage, ShieldCheck, ShieldX, UserPlus, Copy, CheckCheck, Upload, Trash2, Shield, ShieldOff, Heart, Baby, Users, Banknote, Megaphone } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { MemberProfileEditor } from '@/components/admin/MemberProfileEditor';
@@ -119,6 +119,26 @@ export function AdminMembers() {
     });
     loadMembers();
     if (selected?.id === memberId) setSelected(s => s ? { ...s, is_embassy_staff: grant } : null);
+  };
+
+  const toggleTreasurerRole = async (memberId: string, grant: boolean) => {
+    await supabase.from('profiles').update({ is_treasurer: grant }).eq('id', memberId);
+    toast({
+      title: grant ? 'Treasurer role granted' : 'Treasurer role revoked',
+      description: grant ? 'This member can now manage memberships, treasury and donations.' : 'Treasurer access has been removed.',
+    });
+    loadMembers();
+    if (selected?.id === memberId) setSelected(s => s ? { ...s, is_treasurer: grant } : null);
+  };
+
+  const toggleMediaDirectorRole = async (memberId: string, grant: boolean) => {
+    await supabase.from('profiles').update({ is_media_director: grant }).eq('id', memberId);
+    toast({
+      title: grant ? 'Media Director role granted' : 'Media Director role revoked',
+      description: grant ? 'This member can now manage gallery, activities, recognitions and documents.' : 'Media Director access has been removed.',
+    });
+    loadMembers();
+    if (selected?.id === memberId) setSelected(s => s ? { ...s, is_media_director: grant } : null);
   };
 
   const savePassportEdit = async () => {
@@ -815,6 +835,8 @@ export function AdminMembers() {
                         <p className="font-medium text-foreground flex items-center gap-1.5">
                           {member.first_name} {member.last_name}
                           {member.is_admin && <Shield className="h-3 w-3 text-primary" title="Admin" />}
+                          {member.is_treasurer && <Banknote className="h-3 w-3 text-green-600" title="Treasurer" />}
+                          {member.is_media_director && <Megaphone className="h-3 w-3 text-purple-600" title="Media Director" />}
                         </p>
                         <p className="text-xs text-muted-foreground">{member.email}</p>
                       </div>
@@ -1042,6 +1064,64 @@ export function AdminMembers() {
                                           className="gap-1.5 bg-yellow-500/20 text-yellow-700 border border-yellow-500/40 hover:bg-yellow-500/30 text-xs"
                                           onClick={() => toggleEmbassyRole(selected.id, true)}>
                                           <ShieldCheck className="h-3.5 w-3.5" /> Grant Embassy Access
+                                        </Button>
+                                      )}
+                                    </div>
+
+                                    {/* Treasurer Role */}
+                                    <div className="flex items-center gap-3 border-t border-border pt-3">
+                                      <div className="flex-1">
+                                        {selected.is_treasurer ? (
+                                          <div className="flex items-center gap-2">
+                                            <Badge className="bg-green-500/20 text-green-700 gap-1 text-xs border border-green-500/30">
+                                              <Banknote className="h-3 w-3" /> Treasurer
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">Manages memberships, treasury & donations</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">No treasurer access</span>
+                                        )}
+                                      </div>
+                                      {selected.is_treasurer ? (
+                                        <Button size="sm" variant="outline"
+                                          className="gap-1.5 text-destructive border-destructive hover:bg-destructive/10 text-xs"
+                                          onClick={() => toggleTreasurerRole(selected.id, false)}>
+                                          <ShieldOff className="h-3.5 w-3.5" /> Revoke Treasurer
+                                        </Button>
+                                      ) : (
+                                        <Button size="sm"
+                                          className="gap-1.5 bg-green-500/15 text-green-700 border border-green-600/40 hover:bg-green-500/25 text-xs"
+                                          onClick={() => toggleTreasurerRole(selected.id, true)}>
+                                          <Banknote className="h-3.5 w-3.5" /> Grant Treasurer
+                                        </Button>
+                                      )}
+                                    </div>
+
+                                    {/* Media Director Role */}
+                                    <div className="flex items-center gap-3 border-t border-border pt-3">
+                                      <div className="flex-1">
+                                        {selected.is_media_director ? (
+                                          <div className="flex items-center gap-2">
+                                            <Badge className="bg-purple-500/20 text-purple-600 gap-1 text-xs border border-purple-500/30">
+                                              <Megaphone className="h-3 w-3" /> Media Director
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">Manages gallery, activities, recognitions & documents</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground">No media director access</span>
+                                        )}
+                                      </div>
+                                      {selected.is_media_director ? (
+                                        <Button size="sm" variant="outline"
+                                          className="gap-1.5 text-destructive border-destructive hover:bg-destructive/10 text-xs"
+                                          onClick={() => toggleMediaDirectorRole(selected.id, false)}>
+                                          <ShieldOff className="h-3.5 w-3.5" /> Revoke Media Director
+                                        </Button>
+                                      ) : (
+                                        <Button size="sm"
+                                          className="gap-1.5 bg-purple-500/15 text-purple-700 border border-purple-500/40 hover:bg-purple-500/25 text-xs"
+                                          onClick={() => toggleMediaDirectorRole(selected.id, true)}>
+                                          <Megaphone className="h-3.5 w-3.5" /> Grant Media Director
                                         </Button>
                                       )}
                                     </div>

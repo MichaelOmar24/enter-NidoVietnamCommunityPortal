@@ -4416,7 +4416,9 @@ export type Database = {
           institution_name: string | null
           is_admin: boolean | null
           is_embassy_staff: boolean | null
+          is_media_director: boolean | null
           is_super_admin: boolean | null
+          is_treasurer: boolean | null
           last_name: string
           lga_of_origin: string | null
           marital_status: string | null
@@ -4463,7 +4465,9 @@ export type Database = {
           institution_name?: string | null
           is_admin?: boolean | null
           is_embassy_staff?: boolean | null
+          is_media_director?: boolean | null
           is_super_admin?: boolean | null
+          is_treasurer?: boolean | null
           last_name: string
           lga_of_origin?: string | null
           marital_status?: string | null
@@ -4510,7 +4514,9 @@ export type Database = {
           institution_name?: string | null
           is_admin?: boolean | null
           is_embassy_staff?: boolean | null
+          is_media_director?: boolean | null
           is_super_admin?: boolean | null
+          is_treasurer?: boolean | null
           last_name?: string
           lga_of_origin?: string | null
           marital_status?: string | null
@@ -4627,6 +4633,14 @@ export type Database = {
         Returns: boolean
       }
       is_current_user_embassy_staff: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user_media_director: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user_treasurer: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

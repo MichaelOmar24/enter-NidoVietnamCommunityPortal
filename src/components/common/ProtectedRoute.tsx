@@ -5,10 +5,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
   embassyOnly?: boolean;
+  /** Allow treasurers into this admin route (finance sections) */
+  treasurerAllowed?: boolean;
+  /** Allow media directors into this admin route (media/activities sections) */
+  mediaAllowed?: boolean;
 }
 
-export function ProtectedRoute({ children, adminOnly = false, embassyOnly = false }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, isEmbassyStaff } = useAuth();
+export function ProtectedRoute({ children, adminOnly = false, embassyOnly = false, treasurerAllowed = false, mediaAllowed = false }: ProtectedRouteProps) {
+  const { user, loading, isAdmin, isSuperAdmin, isEmbassyStaff, isTreasurer, isMediaDirector } = useAuth();
 
   if (loading) {
     return (
@@ -26,8 +30,13 @@ export function ProtectedRoute({ children, adminOnly = false, embassyOnly = fals
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
-  if (embassyOnly && !isEmbassyStaff && !isAdmin) return <Navigate to="/dashboard" replace />;
+
+  const hasFullAdmin = isAdmin || isSuperAdmin;
+  if (adminOnly && !hasFullAdmin) {
+    const roleAllowed = (treasurerAllowed && isTreasurer) || (mediaAllowed && isMediaDirector);
+    if (!roleAllowed) return <Navigate to="/dashboard" replace />;
+  }
+  if (embassyOnly && !isEmbassyStaff && !hasFullAdmin) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }

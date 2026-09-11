@@ -37,8 +37,8 @@ export function LoginPage() {
       // Fetch profile to determine where to redirect
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from('profiles').select('is_admin, is_super_admin, is_embassy_staff').eq('id', user.id).maybeSingle();
-        if (profile?.is_admin || profile?.is_super_admin) {
+        const { data: profile } = await supabase.from('profiles').select('is_admin, is_super_admin, is_embassy_staff, is_treasurer, is_media_director').eq('id', user.id).maybeSingle();
+        if (profile?.is_admin || profile?.is_super_admin || profile?.is_treasurer || profile?.is_media_director) {
           navigate('/admin');
         } else if (profile?.is_embassy_staff) {
           navigate('/embassy');

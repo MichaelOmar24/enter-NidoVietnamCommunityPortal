@@ -36,6 +36,8 @@ export interface Profile {
   is_admin: boolean;
   is_super_admin: boolean;
   is_embassy_staff: boolean;
+  is_treasurer?: boolean;
+  is_media_director?: boolean;
   created_at: string;
   updated_at: string;
   // Spouse & family fields

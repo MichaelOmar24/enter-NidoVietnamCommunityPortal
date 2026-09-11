@@ -1,0 +1,72 @@
+-- Add Treasurer and Media Director roles to profiles
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS is_treasurer boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_media_director boolean DEFAULT false;
+
+-- SECURITY DEFINER helpers (bypass RLS recursion, same pattern as is_current_user_embassy_staff)
+CREATE OR REPLACE FUNCTION public.is_current_user_treasurer()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT is_treasurer FROM public.profiles WHERE id = auth.uid() LIMIT 1), false)
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_current_user_media_director()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT is_media_director FROM public.profiles WHERE id = auth.uid() LIMIT 1), false)
+$$;
+
+-- Treasurer: full management of all finance-related tables
+CREATE POLICY "treasurers_manage_fund_transactions" ON fund_transactions
+  FOR ALL TO authenticated
+  USING (public.is_current_user_treasurer())
+  WITH CHECK (public.is_current_user_treasurer());
+
+CREATE POLICY "treasurers_manage_memberships" ON memberships
+  FOR ALL TO authenticated
+  USING (public.is_current_user_treasurer())
+  WITH CHECK (public.is_current_user_treasurer());
+
+CREATE POLICY "treasurers_manage_donations" ON donations
+  FOR ALL TO authenticated
+  USING (public.is_current_user_treasurer())
+  WITH CHECK (public.is_current_user_treasurer());
+
+CREATE POLICY "treasurers_manage_donation_campaigns" ON donation_campaigns
+  FOR ALL TO authenticated
+  USING (public.is_current_user_treasurer())
+  WITH CHECK (public.is_current_user_treasurer());
+
+-- Media Director: full management of media/content tables
+CREATE POLICY "media_directors_manage_gallery_albums" ON gallery_albums
+  FOR ALL TO authenticated
+  USING (public.is_current_user_media_director())
+  WITH CHECK (public.is_current_user_media_director());
+
+CREATE POLICY "media_directors_manage_gallery_photos" ON gallery_photos
+  FOR ALL TO authenticated
+  USING (public.is_current_user_media_director())
+  WITH CHECK (public.is_current_user_media_director());
+
+CREATE POLICY "media_directors_manage_activities" ON activities
+  FOR ALL TO authenticated
+  USING (public.is_current_user_media_director())
+  WITH CHECK (public.is_current_user_media_director());
+
+CREATE POLICY "media_directors_manage_recognitions" ON member_recognitions
+  FOR ALL TO authenticated
+  USING (public.is_current_user_media_director())
+  WITH CHECK (public.is_current_user_media_director());
+
+CREATE POLICY "media_directors_manage_documents" ON documents
+  FOR ALL TO authenticated
+  USING (public.is_current_user_media_director())
+  WITH CHECK (public.is_current_user_media_director());

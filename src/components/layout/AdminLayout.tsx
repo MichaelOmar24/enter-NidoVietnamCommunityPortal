@@ -30,6 +30,10 @@ const adminLinks = [
   { icon: Inbox, label: 'Messages', href: '/admin/messages' },
 ];
 
+/** Sections each limited role is allowed to manage */
+const TREASURER_LINKS = ['Dashboard', 'Memberships', 'Treasury', 'Donations'];
+const MEDIA_LINKS = ['Dashboard', 'Gallery', 'Activities', 'Recognitions', 'Documents'];
+
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
@@ -38,9 +42,18 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({});
-  const { profile, signOut, isSuperAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin, isTreasurer, isMediaDirector } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const hasFullAdmin = isAdmin || isSuperAdmin;
+  const visibleLinks = hasFullAdmin
+    ? adminLinks
+    : adminLinks.filter(l =>
+        (isTreasurer && TREASURER_LINKS.includes(l.label)) ||
+        (isMediaDirector && MEDIA_LINKS.includes(l.label))
+      );
+  const portalLabel = hasFullAdmin ? 'Admin Panel' : isTreasurer ? 'Treasurer Portal' : isMediaDirector ? 'Media Director Portal' : 'Admin Panel';
 
   useEffect(() => {
     loadBadgeCounts();
@@ -85,19 +98,19 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             <div className="p-4 border-b border-sidebar-border">
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-gold" />
-                <div>
-                  <p className="text-xs text-sidebar-foreground/60">Admin Panel</p>
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {profile?.first_name} {profile?.last_name}
-                  </p>
-                </div>
+              <div>
+                <p className="text-xs text-sidebar-foreground/60">{portalLabel}</p>
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {profile?.first_name} {profile?.last_name}
+                </p>
+              </div>
               </div>
             </div>
           )}
 
           {/* Nav Items */}
           <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-            {adminLinks.map(({ icon: Icon, label, href }) => {
+            {visibleLinks.map(({ icon: Icon, label, href }) => {
               const count = badges[label] || 0;
               const isActive = location.pathname === href;
               return (
@@ -173,7 +186,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           <div className="p-6">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-              <p className="text-muted-foreground text-sm mt-1">NIDO Vietnam Admin Panel</p>
+              <p className="text-muted-foreground text-sm mt-1">NIDO Vietnam {portalLabel}</p>
             </div>
             {children}
           </div>

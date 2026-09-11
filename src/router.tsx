@@ -90,7 +90,7 @@ export const routers = [
   {
     path: "/admin",
     name: "admin",
-    element: <ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly treasurerAllowed mediaAllowed><AdminDashboard /></ProtectedRoute>
   },
   {
     path: "/admin/members",
@@ -105,17 +105,17 @@ export const routers = [
   {
     path: "/admin/gallery",
     name: "admin-gallery",
-    element: <ProtectedRoute adminOnly><AdminGallery /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly mediaAllowed><AdminGallery /></ProtectedRoute>
   },
   {
     path: "/admin/documents",
     name: "admin-documents",
-    element: <ProtectedRoute adminOnly><AdminDocuments /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly mediaAllowed><AdminDocuments /></ProtectedRoute>
   },
   {
     path: "/admin/activities",
     name: "admin-activities",
-    element: <ProtectedRoute adminOnly><AdminActivities /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly mediaAllowed><AdminActivities /></ProtectedRoute>
   },
   {
     path: "/admin/welfare",
@@ -130,12 +130,12 @@ export const routers = [
   {
     path: "/admin/memberships",
     name: "admin-memberships",
-    element: <ProtectedRoute adminOnly><AdminMemberships /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly treasurerAllowed><AdminMemberships /></ProtectedRoute>
   },
   {
     path: "/admin/treasury",
     name: "admin-treasury",
-    element: <ProtectedRoute adminOnly><AdminTreasury /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly treasurerAllowed><AdminTreasury /></ProtectedRoute>
   },
   {
     path: "/admin/messages",
@@ -145,12 +145,12 @@ export const routers = [
   {
     path: "/admin/recognitions",
     name: "admin-recognitions",
-    element: <ProtectedRoute adminOnly><AdminRecognitions /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly mediaAllowed><AdminRecognitions /></ProtectedRoute>
   },
   {
     path: "/admin/donations",
     name: "admin-donations",
-    element: <ProtectedRoute adminOnly><AdminDonations /></ProtectedRoute>
+    element: <ProtectedRoute adminOnly treasurerAllowed><AdminDonations /></ProtectedRoute>
   },
   {
     path: "/embassy",
