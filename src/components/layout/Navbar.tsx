@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, HeartHandshake, Heart } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, ShieldCheck, HeartHandshake, Heart, Banknote, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,9 +30,18 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [spouseDialogOpen, setSpouseDialogOpen] = useState(false);
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, isSuperAdmin, isEmbassyStaff, isTreasurer, isMediaDirector, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Role dashboard links shown in the user menu (desktop dropdown and mobile menu)
+  const hasFullAdmin = isAdmin || isSuperAdmin;
+  const roleLinks = [
+    ...(hasFullAdmin ? [{ label: 'Admin Panel', href: '/admin', Icon: Shield }] : []),
+    ...(isTreasurer && !hasFullAdmin ? [{ label: 'Treasurer Portal', href: '/admin', Icon: Banknote }] : []),
+    ...(isMediaDirector && !hasFullAdmin ? [{ label: 'Media Director Portal', href: '/admin', Icon: Megaphone }] : []),
+    ...(isEmbassyStaff ? [{ label: 'Embassy Portal', href: '/embassy', Icon: ShieldCheck }] : []),
+  ];
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 12);
@@ -117,13 +126,15 @@ export function Navbar() {
                     <Heart className="h-4 w-4 mr-2 text-red-500" />
                     Spouse &amp; Family
                   </DropdownMenuItem>
-                  {isAdmin && (
+                  {roleLinks.length > 0 && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate('/admin')}>
-                        <Shield className="h-4 w-4 mr-2" />
-                        Admin Panel
-                      </DropdownMenuItem>
+                      {roleLinks.map(({ label, href, Icon }) => (
+                        <DropdownMenuItem key={label} onClick={() => navigate(href)}>
+                          <Icon className="h-4 w-4 mr-2" />
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
                     </>
                   )}
                   <DropdownMenuSeparator />
@@ -174,6 +185,21 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user && roleLinks.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-border">
+                <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Role</p>
+                {roleLinks.map(({ label, href, Icon }) => (
+                  <button
+                    key={label}
+                    onClick={() => { navigate(href); setMobileOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-smooth"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2 mt-2 pt-2 border-t border-border">
               {user ? (
                 <>
@@ -184,8 +210,7 @@ export function Navbar() {
                     Sign Out
                   </Button>
                 </>
-              ) : (
-                <>
+              ) : (                <>
                   <Button variant="outline" className="flex-1" onClick={() => { navigate('/login'); setMobileOpen(false); }}>
                     Sign In
                   </Button>
