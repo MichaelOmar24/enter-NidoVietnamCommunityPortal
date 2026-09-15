@@ -98,17 +98,23 @@ export async function generateRecommendationLetterPdf(
   doc.text('https://www.nidovietnam.com', centerX, y, { align: 'center' });
   y += 5.5;
 
-  // Address line
-  doc.setFontSize(9);
-  doc.setTextColor(40, 40, 40);
-  doc.text('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', centerX, y, { align: 'center' });
-  y += 4.5;
+  // Address + NIDO ASIA lines — wrapped to stay inside the text zone
+  const textZoneWidth = (pageWidth - margin) - TEXT_ZONE_START;
+  const wrappedCentered = (text: string, fontSize: number, color: [number, number, number], bold: boolean) => {
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...color);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    const lines = doc.splitTextToSize(text, textZoneWidth);
+    lines.forEach((line: string) => {
+      doc.text(line, centerX, y, { align: 'center' });
+      y += fontSize * 0.55;
+    });
+  };
 
-  // NIDO ASIA line
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(130, 130, 130);
-  doc.text('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade, Dr. Michael Omar', centerX, y, { align: 'center' });
-  y += 12;
+  wrappedCentered('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', 9, [40, 40, 40], true);
+  y += 0.5;
+  wrappedCentered('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade, Dr. Michael Omar', 8.5, [130, 130, 130], false);
+  y += 7;
 
   // Right block — contact + date
   doc.setTextColor(30, 30, 30);
