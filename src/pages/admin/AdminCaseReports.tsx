@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { generateCaseReportPdf } from '@/lib/caseReportPdf';
 import { SendCaseToReported } from '@/components/common/SendCaseToReported';
+import { ResolveCaseDialog } from '@/components/common/ResolveCaseDialog';
 import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2, Send } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -52,6 +53,7 @@ export function AdminCaseReports() {
   const [adminNote, setAdminNote] = useState('');
   const [updating, setUpdating] = useState(false);
   const [sendCaseOpen, setSendCaseOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -252,7 +254,7 @@ export function AdminCaseReports() {
                   className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 gap-1">
                   <Eye className="h-3.5 w-3.5" /> Mark Under Review
                 </Button>
-                <Button size="sm" onClick={() => updateStatus(selected.id, 'resolved')} disabled={updating}
+                <Button size="sm" onClick={() => setResolveOpen(true)} disabled={updating}
                   className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border border-green-300/40 gap-1">
                   <CheckCircle className="h-3.5 w-3.5" /> Mark Resolved
                 </Button>
@@ -287,6 +289,14 @@ export function AdminCaseReports() {
         report={selected}
         open={sendCaseOpen}
         onClose={() => setSendCaseOpen(false)}
+      />
+
+      {/* Resolve & close case with resolution feedback to all parties */}
+      <ResolveCaseDialog
+        report={selected}
+        open={resolveOpen}
+        onClose={() => setResolveOpen(false)}
+        onResolved={() => { setSelected(null); setAdminNote(''); load(); }}
       />
     </AdminLayout>
   );

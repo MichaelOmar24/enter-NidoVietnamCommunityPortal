@@ -77,7 +77,8 @@ info@nidovietnam.com · +84326189705`;
 export async function generateCasePresentationPdf(
   report: CaseReportData,
   coverNote: string,
-  output: 'save' | 'base64' = 'save'
+   output: 'save' | 'base64' = 'save',
+   subtitle?: string
 ): Promise<string | void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -160,7 +161,7 @@ export async function generateCasePresentationPdf(
   doc.text('NIDO VIETNAM — OFFICIAL NOTICE', textX, 16);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Notice to Reported Party · Case ID: ${report.id}`, textX, 23);
+   doc.text(`${subtitle || 'Notice to Reported Party'} · Case ID: ${report.id}`, textX, 23);
   doc.text(`Issued: ${format(new Date(), 'dd MMM yyyy')}   ·   Report Filed: ${format(parseISO(report.created_at), 'dd MMM yyyy')}`, textX, 29);
   y = 44;
 
