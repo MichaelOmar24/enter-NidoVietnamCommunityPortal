@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { case_report_id, welfare_request_id } = await req.json();
+    const { case_report_id, welfare_request_id, force } = await req.json();
     if (!case_report_id && !welfare_request_id) {
       return new Response(JSON.stringify({ error: "case_report_id or welfare_request_id is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,8 +70,8 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Only immigration-related cases go to the embassy automatically
-      if (report.case_type !== "immigration_agent") {
+      // Automatic sends only cover immigration cases; force=true (manual admin action) allows any case
+      if (report.case_type !== "immigration_agent" && force !== true) {
         return new Response(JSON.stringify({ skipped: true, reason: "Not an immigration case" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

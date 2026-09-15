@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateCaseReportPdf } from '@/lib/caseReportPdf';
 import { SendCaseToReported } from '@/components/common/SendCaseToReported';
 import { ResolveCaseDialog } from '@/components/common/ResolveCaseDialog';
-import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2, Send } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2, Send, Landmark, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface CaseReport {
@@ -56,6 +56,7 @@ export function AdminCaseReports() {
   const [sendCaseOpen, setSendCaseOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'closed'>('active');
+  const [sendingEmbassy, setSendingEmbassy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +75,20 @@ export function AdminCaseReports() {
     setSelected(null);
     setAdminNote('');
     load();
+  };
+
+  const sendToEmbassy = async (report: CaseReport) => {
+    if (!confirm(`Send a copy of this case report to the Nigerian Embassy (contact-us@nigeriaembassy.org.vn)?`)) return;
+    setSendingEmbassy(true);
+    const { data, error } = await supabase.functions.invoke('notify-embassy-case', {
+      body: { case_report_id: report.id, force: true },
+    });
+    setSendingEmbassy(false);
+    if (error || data?.error) {
+      toast({ title: 'Failed to send', description: data?.error || error?.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Sent to Embassy', description: 'A copy of this case report was emailed to the Nigerian Embassy.' });
   };
 
   const deleteCase = async (report: CaseReport) => {
@@ -293,6 +308,11 @@ export function AdminCaseReports() {
                 <Button size="sm" onClick={() => setSendCaseOpen(true)}
                   className="gap-1.5 bg-gold/15 text-amber-700 border border-gold/50 hover:bg-gold/25">
                   <Send className="h-3.5 w-3.5" /> Send to Reported Party
+                </Button>
+                <Button size="sm" onClick={() => sendToEmbassy(selected)} disabled={sendingEmbassy}
+                  className="gap-1.5 bg-blue-500/10 text-blue-700 border border-blue-300/40 hover:bg-blue-500/20">
+                  {sendingEmbassy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Landmark className="h-3.5 w-3.5" />}
+                  Send to Embassy
                 </Button>
                 <Button size="sm" onClick={async () => { await generateCaseReportPdf(selected); }}
                   className="gradient-primary text-primary-foreground gap-1.5">
