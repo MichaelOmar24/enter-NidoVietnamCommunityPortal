@@ -111,10 +111,22 @@ export async function generateRecommendationLetterPdf(
     });
   };
 
-  wrappedCentered('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', 9, [40, 40, 40], true);
-  y += 0.5;
-  wrappedCentered('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade,', 8.5, [130, 130, 130], false);
-  wrappedCentered('Dr. Michael Omar', 8.5, [130, 130, 130], false);
+  // Address — shrink font until it fits on a single line
+  const address = 'Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi';
+  let addrSize = 9;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(addrSize);
+  while (doc.getTextWidth(address) > textZoneWidth && addrSize > 6) {
+    addrSize -= 0.25;
+    doc.setFontSize(addrSize);
+  }
+  doc.setTextColor(40, 40, 40);
+  doc.text(address, centerX, y, { align: 'center' });
+  y += addrSize * 0.55 + 1;
+
+  // NIDO ASIA — two explicit lines so "Dr. Michael Omar" sits with "Ochade"
+  wrappedCentered('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms,', 8.5, [130, 130, 130], false);
+  wrappedCentered('Engr. Osekwe Ochade, Dr. Michael Omar', 8.5, [130, 130, 130], false);
   y += 7;
 
   // Right block — contact + date
