@@ -55,6 +55,7 @@ export function AdminCaseReports() {
   const [updating, setUpdating] = useState(false);
   const [sendCaseOpen, setSendCaseOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'closed'>('active');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,7 +96,15 @@ export function AdminCaseReports() {
     pending: reports.filter(r => r.status === 'pending').length,
     under_review: reports.filter(r => r.status === 'under_review').length,
     resolved: reports.filter(r => r.status === 'resolved').length,
+    closed: reports.filter(r => r.status === 'closed').length,
   };
+
+  // Active = pending + under review. Resolved and closed cases live in their own tabs.
+  const filteredReports = reports.filter(r =>
+    statusFilter === 'active'
+      ? ['pending', 'under_review'].includes(r.status)
+      : r.status === statusFilter
+  );
 
   return (
     <AdminLayout title="Case Reports">
@@ -113,16 +122,30 @@ export function AdminCaseReports() {
         ))}
       </div>
 
+      {/* Status tabs — Active is the default working list */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[
+          { key: 'active', label: `Active (${stats.pending + stats.under_review})` },
+          { key: 'resolved', label: `Resolved (${stats.resolved})` },
+          { key: 'closed', label: `Closed (${stats.closed})` },
+        ].map(t => (
+          <button key={t.key} onClick={() => setStatusFilter(t.key as 'active' | 'resolved' | 'closed')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${statusFilter === t.key ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Card key={i} className="animate-pulse h-28" />)}</div>
-      ) : reports.length === 0 ? (
+      ) : filteredReports.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <AlertTriangle className="h-16 w-16 mx-auto mb-3 opacity-30" />
-          <p>No case reports submitted yet.</p>
+          <p>{reports.length === 0 ? 'No case reports submitted yet.' : `No ${statusFilter} cases.`}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {reports.map(r => {
+          {filteredReports.map(r => {
             const s = STATUS_CONFIG[r.status] || STATUS_CONFIG.pending;
             const SIcon = s.icon;
             return (

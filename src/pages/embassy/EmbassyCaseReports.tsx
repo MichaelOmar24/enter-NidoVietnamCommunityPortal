@@ -52,7 +52,7 @@ export function EmbassyCaseReports() {
   const { toast } = useToast();
   const [reports, setReports] = useState<CaseReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'closed'>('active');
   const [selected, setSelected] = useState<CaseReport | null>(null);
   const [note, setNote] = useState('');
   const [sendCaseOpen, setSendCaseOpen] = useState(false);
@@ -84,7 +84,12 @@ export function EmbassyCaseReports() {
     load();
   };
 
-  const filtered = statusFilter === 'all' ? reports : reports.filter(r => r.status === statusFilter);
+  // Active = pending + under review. Resolved and closed cases live in their own tabs.
+  const filtered = reports.filter(r =>
+    statusFilter === 'active'
+      ? ['pending', 'under_review'].includes(r.status)
+      : r.status === statusFilter
+  );
   const stats = {
     total: reports.length,
     pending: reports.filter(r => r.status === 'pending').length,
@@ -111,16 +116,14 @@ export function EmbassyCaseReports() {
         ))}
       </div>
 
-      {/* Status filter */}
+      {/* Status filter — Active is the default working list */}
       <div className="flex gap-2 mb-5 flex-wrap">
         {[
-          { key: 'all', label: 'All Cases' },
-          { key: 'pending', label: 'Pending' },
-          { key: 'under_review', label: 'Under Review' },
-          { key: 'resolved', label: 'Resolved' },
-          { key: 'closed', label: 'Closed' },
+          { key: 'active', label: `Active (${stats.pending + stats.under_review})` },
+          { key: 'resolved', label: `Resolved (${stats.resolved})` },
+          { key: 'closed', label: `Closed (${stats.closed})` },
         ].map(t => (
-          <button key={t.key} onClick={() => setStatusFilter(t.key)}
+          <button key={t.key} onClick={() => setStatusFilter(t.key as 'active' | 'resolved' | 'closed')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${statusFilter === t.key ? 'bg-gold/20 border-gold/40 text-gold' : 'border-embassy-border text-embassy-muted hover:text-embassy-foreground hover:bg-embassy-card'}`}>
             {t.label}
           </button>
@@ -133,7 +136,7 @@ export function EmbassyCaseReports() {
       ) : filtered.length === 0 ? (
         <div className="embassy-chart-card text-center py-20 text-gray-600">
           <Scale className="h-16 w-16 mx-auto mb-3 opacity-30" />
-          <p>No case reports {statusFilter !== 'all' ? `with status "${STATUS_CONFIG[statusFilter]?.label}"` : 'submitted yet'}.</p>
+          <p>{reports.length === 0 ? 'No case reports submitted yet.' : `No ${statusFilter} cases.`}</p>
         </div>
       ) : (
         <div className="space-y-3">
