@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, ShieldCheck, HeartHandshake, Heart, Banknote, Megaphone } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, ShieldCheck, HeartHandshake, Heart, Banknote, Megaphone, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -168,73 +168,100 @@ export function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="lg:hidden bg-card border-t border-border shadow-card animate-fade-in-up">
+        <div className="lg:hidden bg-card border-t border-border shadow-card animate-fade-in-up max-h-[calc(100vh-120px)] overflow-y-auto">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "px-4 py-3 rounded-md text-sm font-medium transition-smooth",
-                  location.pathname === link.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:text-primary hover:bg-primary/10"
+            {user ? (
+              <>
+                {/* Functional menus first for logged-in users */}
+                <div>
+                  <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">My Account</p>
+                  {[
+                    { label: 'Dashboard', Icon: LayoutDashboard, action: () => { navigate('/dashboard'); setMobileOpen(false); } },
+                    { label: 'My Profile', Icon: User, action: () => { navigate('/profile'); setMobileOpen(false); } },
+                    { label: 'Welfare Support', Icon: HeartHandshake, action: () => { navigate('/welfare'); setMobileOpen(false); } },
+                    { label: 'Spouse & Family', Icon: Heart, action: () => { setSpouseDialogOpen(true); setMobileOpen(false); } },
+                    { label: 'Report a Case / Dispute', Icon: AlertTriangle, action: () => { navigate('/report-case'); setMobileOpen(false); } },
+                  ].map(({ label, Icon, action }) => (
+                    <button
+                      key={label}
+                      onClick={action}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-foreground/80 hover:text-primary hover:bg-primary/10 transition-smooth"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {roleLinks.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Role</p>
+                    {roleLinks.map(({ label, href, Icon }) => (
+                      <button
+                        key={label}
+                        onClick={() => { navigate(href); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-smooth"
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 )}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {user && (
-              <div className="mt-2 pt-2 border-t border-border">
-                <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">My Account</p>
-                {[
-                  { label: 'Dashboard', Icon: LayoutDashboard, action: () => { navigate('/dashboard'); setMobileOpen(false); } },
-                  { label: 'My Profile', Icon: User, action: () => { navigate('/profile'); setMobileOpen(false); } },
-                  { label: 'Welfare Support', Icon: HeartHandshake, action: () => { navigate('/welfare'); setMobileOpen(false); } },
-                  { label: 'Spouse & Family', Icon: Heart, action: () => { setSpouseDialogOpen(true); setMobileOpen(false); } },
-                ].map(({ label, Icon, action }) => (
-                  <button
-                    key={label}
-                    onClick={action}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-foreground/80 hover:text-primary hover:bg-primary/10 transition-smooth"
+
+                {/* Public site links secondary when logged in */}
+                <div className="mt-2 pt-2 border-t border-border">
+                  <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Website</p>
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "block px-4 py-2.5 rounded-md text-sm font-medium transition-smooth",
+                        location.pathname === link.href
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground/60 hover:text-primary hover:bg-primary/10"
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-border">
+                  <Button variant="outline" className="w-full text-destructive border-destructive/50 hover:bg-destructive/10" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "px-4 py-3 rounded-md text-sm font-medium transition-smooth",
+                      location.pathname === link.href
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground/70 hover:text-primary hover:bg-primary/10"
+                    )}
                   >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </button>
+                    {link.label}
+                  </Link>
                 ))}
-              </div>
-            )}
-            {user && roleLinks.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-border">
-                <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Role</p>
-                {roleLinks.map(({ label, href, Icon }) => (
-                  <button
-                    key={label}
-                    onClick={() => { navigate(href); setMobileOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-smooth"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2 mt-2 pt-2 border-t border-border">
-              {user ? (
-                <Button variant="outline" className="flex-1 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
-                </Button>
-              ) : (                <>
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border">
                   <Button variant="outline" className="flex-1" onClick={() => { navigate('/login'); setMobileOpen(false); }}>
                     Sign In
                   </Button>
                   <Button className="flex-1 gradient-primary text-primary-foreground" onClick={() => { navigate('/register'); setMobileOpen(false); }}>
                     Join NIDO
                   </Button>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
