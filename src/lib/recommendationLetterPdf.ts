@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 
 const NIDO_LOGO_URL = 'https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png';
 const SEAL_URL = 'https://cdn.enter.pro/visual_resources/100149613/c753d9244c3043b1b94d68d17a964c99/c5221e63.png';
-const SIGNATURE_URL = 'https://cdn.enter.pro/visual_resources/100149613/c753d9244c3043b1b94d68d17a964c99/5709b7de.jpg';
+const SIGNATURE_URL = 'https://cdn.enter.pro/visual_resources/100149613/c753d9244c3043b1b94d68d17a964c99/74d1707e.png';
 
 interface LoadedImage {
   dataUrl: string;
@@ -113,7 +113,8 @@ export async function generateRecommendationLetterPdf(
 
   wrappedCentered('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', 9, [40, 40, 40], true);
   y += 0.5;
-  wrappedCentered('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade, Dr. Michael Omar', 8.5, [130, 130, 130], false);
+  wrappedCentered('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade,', 8.5, [130, 130, 130], false);
+  wrappedCentered('Dr. Michael Omar', 8.5, [130, 130, 130], false);
   y += 7;
 
   // Right block — contact + date
@@ -166,9 +167,9 @@ export async function generateRecommendationLetterPdf(
   doc.text('Sincerely,', margin, y);
   y += 10;
 
-  // Pen signature — enlarged for visibility, placed above the signer block
+  // Pen signature — enlarged high-resolution image above the signer block
   if (signature) {
-    const h = 22;
+    const h = 30;
     const w = (signature.width / signature.height) * h;
     try { doc.addImage(signature.dataUrl, signature.format, margin, y, w, h); } catch { /* skip */ }
   }
@@ -178,7 +179,7 @@ export async function generateRecommendationLetterPdf(
     const w = (seal.width / seal.height) * h;
     try { doc.addImage(seal.dataUrl, seal.format, (pageWidth - w) / 2, y - 4, w, h); } catch { /* skip */ }
   }
-  y += 30;
+  y += 38;
 
   // Signer block
   doc.setFont('helvetica', 'bold');
