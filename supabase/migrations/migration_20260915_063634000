@@ -1,0 +1,36 @@
+-- Recommendation letter requests (ETC, passport renewal, visa, etc.)
+CREATE TABLE IF NOT EXISTS recommendation_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  purpose text NOT NULL DEFAULT 'etc' CHECK (purpose IN ('etc','passport_renewal','visa_application','bank_account','other')),
+  details text NOT NULL,
+  passport_number text,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','under_review','issued','rejected')),
+  letter_content text,
+  admin_notes text,
+  reviewed_by uuid REFERENCES profiles(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE recommendation_requests ENABLE ROW LEVEL SECURITY;
+
+-- Registered members: create and view their own requests
+CREATE POLICY "members_insert_own_recommendation_requests"
+  ON recommendation_requests FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "members_view_own_recommendation_requests"
+  ON recommendation_requests FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+-- Admins: full management (review, edit letter, issue, reject)
+CREATE POLICY "admins_manage_recommendation_requests"
+  ON recommendation_requests FOR ALL TO authenticated
+  USING (public.is_current_user_admin())
+  WITH CHECK (public.is_current_user_admin());
+
+-- Embassy officials: view all requests (consular visibility)
+CREATE POLICY "embassy_staff_view_recommendation_requests"
+  ON recommendation_requests FOR SELECT TO authenticated
+  USING (public.is_current_user_embassy_staff());

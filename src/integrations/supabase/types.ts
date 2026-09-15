@@ -4549,6 +4549,61 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          details: string
+          id: string
+          letter_content: string | null
+          passport_number: string | null
+          purpose: string
+          reviewed_by: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          details: string
+          id?: string
+          letter_content?: string | null
+          passport_number?: string | null
+          purpose?: string
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          details?: string
+          id?: string
+          letter_content?: string | null
+          passport_number?: string | null
+          purpose?: string
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_requests_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       welfare_requests: {
         Row: {
           admin_notes: string | null
@@ -4687,7 +4742,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_08_29: {
+      messages_2026_09_13: {
         Row: {
           event: string | null
           extension: string
@@ -4720,7 +4775,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_08_30: {
+      messages_2026_09_14: {
         Row: {
           event: string | null
           extension: string
@@ -4753,7 +4808,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_08_31: {
+      messages_2026_09_15: {
         Row: {
           event: string | null
           extension: string
@@ -4786,7 +4841,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_01: {
+      messages_2026_09_16: {
         Row: {
           event: string | null
           extension: string
@@ -4819,73 +4874,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_02: {
-        Row: {
-          event: string | null
-          extension: string
-          id: string
-          inserted_at: string
-          payload: Json | null
-          private: boolean | null
-          topic: string
-          updated_at: string
-        }
-        Insert: {
-          event?: string | null
-          extension: string
-          id?: string
-          inserted_at?: string
-          payload?: Json | null
-          private?: boolean | null
-          topic: string
-          updated_at?: string
-        }
-        Update: {
-          event?: string | null
-          extension?: string
-          id?: string
-          inserted_at?: string
-          payload?: Json | null
-          private?: boolean | null
-          topic?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      messages_2026_09_03: {
-        Row: {
-          event: string | null
-          extension: string
-          id: string
-          inserted_at: string
-          payload: Json | null
-          private: boolean | null
-          topic: string
-          updated_at: string
-        }
-        Insert: {
-          event?: string | null
-          extension: string
-          id?: string
-          inserted_at?: string
-          payload?: Json | null
-          private?: boolean | null
-          topic: string
-          updated_at?: string
-        }
-        Update: {
-          event?: string | null
-          extension?: string
-          id?: string
-          inserted_at?: string
-          payload?: Json | null
-          private?: boolean | null
-          topic?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      messages_2026_09_04: {
+      messages_2026_09_17: {
         Row: {
           event: string | null
           extension: string

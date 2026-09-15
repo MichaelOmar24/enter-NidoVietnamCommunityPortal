@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, ShieldCheck, HeartHandshake, Heart, Banknote, Megaphone, AlertTriangle } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User, LayoutDashboard, Shield, ShieldCheck, HeartHandshake, Heart, Banknote, Megaphone, AlertTriangle, Stamp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -122,6 +122,10 @@ export function Navbar() {
                     <HeartHandshake className="h-4 w-4 mr-2" />
                     Welfare Support
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/recommendation')}>
+                    <Stamp className="h-4 w-4 mr-2" />
+                    Recommendation Letter
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSpouseDialogOpen(true)}>
                     <Heart className="h-4 w-4 mr-2 text-red-500" />
                     Spouse &amp; Family
@@ -179,6 +183,7 @@ export function Navbar() {
                     { label: 'Dashboard', Icon: LayoutDashboard, action: () => { navigate('/dashboard'); setMobileOpen(false); } },
                     { label: 'My Profile', Icon: User, action: () => { navigate('/profile'); setMobileOpen(false); } },
                     { label: 'Welfare Support', Icon: HeartHandshake, action: () => { navigate('/welfare'); setMobileOpen(false); } },
+                    { label: 'Recommendation Letter', Icon: Stamp, action: () => { navigate('/recommendation'); setMobileOpen(false); } },
                     { label: 'Spouse & Family', Icon: Heart, action: () => { setSpouseDialogOpen(true); setMobileOpen(false); } },
                     { label: 'Report a Case / Dispute', Icon: AlertTriangle, action: () => { navigate('/report-case'); setMobileOpen(false); } },
                   ].map(({ label, Icon, action }) => (
