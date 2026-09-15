@@ -288,7 +288,7 @@ export function AdminCaseReports() {
                 </Button>
               </div>
 
-              {/* Document & danger zone */}
+              {/* Document actions */}
               <div className="flex gap-2 flex-wrap pt-3 border-t border-border">
                 <Button size="sm" onClick={() => setSendCaseOpen(true)}
                   className="gap-1.5 bg-gold/15 text-amber-700 border border-gold/50 hover:bg-gold/25">
@@ -297,10 +297,6 @@ export function AdminCaseReports() {
                 <Button size="sm" onClick={async () => { await generateCaseReportPdf(selected); }}
                   className="gradient-primary text-primary-foreground gap-1.5">
                   <FileDown className="h-3.5 w-3.5" /> Download PDF Report
-                </Button>
-                <Button size="sm" onClick={() => deleteCase(selected)} disabled={updating}
-                  className="ml-auto gap-1.5 bg-destructive/10 text-destructive border border-destructive/40 hover:bg-destructive hover:text-destructive-foreground">
-                  <Trash2 className="h-3.5 w-3.5" /> Delete Case Permanently
                 </Button>
               </div>
             </div>
