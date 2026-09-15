@@ -74,18 +74,20 @@ export async function generateRecommendationLetterPdf(
   // ── Letterhead ──
   let y = 14;
 
-  // Seal — top-left
+  // Seal — top-left corner, kept clear of the centered header text
+  const TEXT_ZONE_START = margin + 34;
+  const centerX = (TEXT_ZONE_START + (pageWidth - margin)) / 2;
   if (seal) {
-    const h = 26;
+    const h = 20;
     const w = (seal.width / seal.height) * h;
-    try { doc.addImage(seal.dataUrl, seal.format, margin, y - 4, w, h); } catch { /* skip */ }
+    try { doc.addImage(seal.dataUrl, seal.format, 8, 6, w, h); } catch { /* skip */ }
   }
 
-  // NIDO logo — top-center
+  // NIDO logo — top-center (within the text zone, clear of the seal)
   if (logo) {
     const h = 16;
     const w = (logo.width / logo.height) * h;
-    try { doc.addImage(logo.dataUrl, logo.format, (pageWidth - w) / 2, y - 4, w, h); } catch { /* skip */ }
+    try { doc.addImage(logo.dataUrl, logo.format, centerX - w / 2, y - 4, w, h); } catch { /* skip */ }
   }
   y += 14;
 
@@ -93,19 +95,19 @@ export async function generateRecommendationLetterPdf(
   doc.setFontSize(10);
   doc.setTextColor(0, 100, 60);
   doc.setFont('helvetica', 'bold');
-  doc.text('https://www.nidovietnam.com', pageWidth / 2, y, { align: 'center' });
+  doc.text('https://www.nidovietnam.com', centerX, y, { align: 'center' });
   y += 5.5;
 
   // Address line
   doc.setFontSize(9);
   doc.setTextColor(40, 40, 40);
-  doc.text('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', pageWidth / 2, y, { align: 'center' });
+  doc.text('Nigerian Embassy Vietnam. Villa No. 44/1 pho 100000, Van Bao, Ngoc Khanh, Ba Dinh, Ha Noi', centerX, y, { align: 'center' });
   y += 4.5;
 
   // NIDO ASIA line
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(130, 130, 130);
-  doc.text('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade, Dr. Michael Omar', pageWidth / 2, y, { align: 'center' });
+  doc.text('NIDO ASIA: Prof. Emenike Ejiogu President, Exec. Directors, Engr. Henry Awoms, Engr. Osekwe Ochade, Dr. Michael Omar', centerX, y, { align: 'center' });
   y += 12;
 
   // Right block — contact + date
@@ -156,20 +158,21 @@ export async function generateRecommendationLetterPdf(
 
   y += 6;
   doc.text('Sincerely,', margin, y);
-  y += 8;
+  y += 10;
 
-  // Signature + stamp side by side
+  // Pen signature — enlarged for visibility, placed above the signer block
   if (signature) {
-    const h = 12;
+    const h = 22;
     const w = (signature.width / signature.height) * h;
     try { doc.addImage(signature.dataUrl, signature.format, margin, y, w, h); } catch { /* skip */ }
   }
+  // Official seal — centered on the page near the signature
   if (seal) {
-    const h = 22;
+    const h = 26;
     const w = (seal.width / seal.height) * h;
-    try { doc.addImage(seal.dataUrl, seal.format, margin + 34, y - 5, w, h); } catch { /* skip */ }
+    try { doc.addImage(seal.dataUrl, seal.format, (pageWidth - w) / 2, y - 4, w, h); } catch { /* skip */ }
   }
-  y += 26;
+  y += 30;
 
   // Signer block
   doc.setFont('helvetica', 'bold');
