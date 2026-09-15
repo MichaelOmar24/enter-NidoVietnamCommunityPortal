@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { error } = await supabase.from('case_reports').insert({
+    const { data: inserted, error } = await supabase.from('case_reports').insert({
       reporter_name: 'Anonymous',
       reporter_email: null,
       reporter_phone: null,
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       status: 'pending',
       is_anonymous: true,
       admin_notes: `Reference: ${refCode}`,
-    });
+    }).select('id').single();
 
     if (error) {
       console.error('Insert error:', error);
@@ -83,8 +83,28 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Immigration cases are automatically forwarded to the Nigerian Embassy
+    let embassyNotified = false;
+    if (case_type === 'immigration_agent' && inserted?.id) {
+      try {
+        const notifyRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-embassy-case`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ case_report_id: inserted.id }),
+        });
+        const notifyData = await notifyRes.json().catch(() => null);
+        embassyNotified = !!notifyData?.success;
+        if (!embassyNotified) console.error('Embassy notification failed:', notifyData);
+      } catch (notifyErr) {
+        console.error('Embassy notification error:', notifyErr);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, reference: refCode }),
+      JSON.stringify({ success: true, reference: refCode, embassyNotified }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

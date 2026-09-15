@@ -40,6 +40,7 @@ export function ReportCasePage() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [embassyNotified, setEmbassyNotified] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
 
   const [form, setForm] = useState({
@@ -104,7 +105,7 @@ export function ReportCasePage() {
     setSubmitting(true);
     const evidence_urls = evidenceFiles.filter(f => f.url).map(f => f.url);
 
-    const { error } = await supabase.from('case_reports').insert({
+    const { data: inserted, error } = await supabase.from('case_reports').insert({
       reporter_name: form.reporter_name,
       reporter_email: form.reporter_email,
       reporter_phone: form.reporter_phone || null,
@@ -118,13 +119,23 @@ export function ReportCasePage() {
       description: form.description,
       evidence_urls,
       status: 'pending',
-    });
+    }).select('id').single();
 
     setSubmitting(false);
     if (error) {
       toast({ title: 'Submission failed', description: 'Please try again', variant: 'destructive' });
       return;
     }
+
+    // Immigration cases are automatically forwarded to the Nigerian Embassy
+    let embassyNotified = false;
+    if (form.case_type === 'immigration_agent' && inserted?.id) {
+      const { data: notifyData } = await supabase.functions.invoke('notify-embassy-case', {
+        body: { case_report_id: inserted.id },
+      });
+      embassyNotified = !!notifyData?.success;
+    }
+    setEmbassyNotified(embassyNotified);
     setSubmitted(true);
   };
 
@@ -140,6 +151,11 @@ export function ReportCasePage() {
             <h2 className="text-2xl font-bold text-foreground mb-3">Report Submitted</h2>
             <p className="text-muted-foreground mb-6">
               Your case report has been received. The NIDO Vietnam leadership will review it confidentially and get back to you within 5 business days.
+              {embassyNotified && (
+                <span className="block mt-2 text-primary font-medium">
+                  Because this is an immigration-related case, a copy has also been forwarded to the Nigerian Embassy in Vietnam.
+                </span>
+              )}
             </p>
             <Badge className="bg-primary/10 text-primary border-primary/30 text-sm px-4 py-1.5">
               Case Reference: NIDO-{Date.now().toString(36).toUpperCase()}

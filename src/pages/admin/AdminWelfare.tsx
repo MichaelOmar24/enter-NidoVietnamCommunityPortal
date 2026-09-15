@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText, Trash2 } from 'lucide-react';
+import { generateWelfareRequestPdf } from '@/lib/welfarePdf';
+import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText, Trash2, FileDown, Send, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SUPPORT_TYPES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -57,6 +58,8 @@ export function AdminWelfare() {
   const [notes, setNotes] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [sendingEmbassy, setSendingEmbassy] = useState(false);
 
   useEffect(() => { load(); }, [filter, typeFilter]);
 
@@ -106,6 +109,45 @@ export function AdminWelfare() {
     toast({ title: 'Request deleted', description: 'The welfare request has been permanently removed.' });
     setSelected(null);
     load();
+  };
+
+  const downloadPdf = async (req: WelfareRequest) => {
+    setDownloading(true);
+    try {
+      await generateWelfareRequestPdf({
+        id: req.id,
+        support_type: req.support_type,
+        title: req.title,
+        description: req.description,
+        urgency: req.urgency,
+        status: req.status,
+        admin_notes: notes,
+        created_at: req.created_at,
+        memberName: `${req.profiles?.first_name || ''} ${req.profiles?.last_name || ''}`.trim() || 'Member',
+        memberEmail: req.profiles?.email,
+        memberCity: req.profiles?.vietnam_city,
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const sendToEmbassy = async (req: WelfareRequest) => {
+    if (!confirm(`Send a copy of this request to the Nigerian Embassy (contact-us@nigeriaembassy.org.vn)?`)) return;
+    setSendingEmbassy(true);
+    const { data, error } = await supabase.functions.invoke('notify-embassy-case', {
+      body: { welfare_request_id: req.id },
+    });
+    setSendingEmbassy(false);
+    if (error || data?.error) {
+      toast({ title: 'Failed to send', description: data?.error || error?.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.skipped) {
+      toast({ title: 'Not sent', description: 'Only immigration support requests are forwarded to the Embassy.' });
+      return;
+    }
+    toast({ title: 'Sent to Embassy', description: 'A copy of this request was emailed to the Nigerian Embassy.' });
   };
 
   // Stats
@@ -275,6 +317,20 @@ export function AdminWelfare() {
                   {saving ? 'Saving...' : 'Save Review'}
                 </Button>
                 <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 gap-1.5 text-primary border-primary/50 hover:bg-primary/10"
+                  onClick={() => downloadPdf(selected)} disabled={downloading || saving}>
+                  {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                  Download PDF
+                </Button>
+                {selected.support_type === 'immigration' && (
+                  <Button variant="outline" className="flex-1 gap-1.5 text-amber-700 border-amber-500/50 hover:bg-amber-500/10"
+                    onClick={() => sendToEmbassy(selected)} disabled={sendingEmbassy || saving}>
+                    {sendingEmbassy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Send to Embassy
+                  </Button>
+                )}
               </div>
               <Button
                 variant="outline"
