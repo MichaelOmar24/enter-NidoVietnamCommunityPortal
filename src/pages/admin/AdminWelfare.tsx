@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText } from 'lucide-react';
+import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SUPPORT_TYPES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -90,6 +90,20 @@ export function AdminWelfare() {
     }).eq('id', selected.id);
     toast({ title: 'Request updated', description: `Status changed to ${newStatus}` });
     setSaving(false);
+    setSelected(null);
+    load();
+  };
+
+  const deleteRequest = async (req: WelfareRequest) => {
+    if (!confirm(`Permanently delete the welfare request "${req.title}"?\n\nThis removes it from the system completely and cannot be undone.`)) return;
+    setSaving(true);
+    const { error } = await supabase.from('welfare_requests').delete().eq('id', req.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Request deleted', description: 'The welfare request has been permanently removed.' });
     setSelected(null);
     load();
   };
@@ -198,9 +212,16 @@ export function AdminWelfare() {
                       {format(parseISO(req.created_at), 'dd MMM yyyy')}
                     </td>
                     <td className="px-4 py-3">
-                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openRequest(req)}>
-                        <Eye className="h-3 w-3" /> Review
-                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openRequest(req)}>
+                          <Eye className="h-3 w-3" /> Review
+                        </Button>
+                        <Button size="sm" variant="outline" title="Delete request permanently"
+                          className="gap-1 text-xs h-7 text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => deleteRequest(req)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -213,20 +234,20 @@ export function AdminWelfare() {
       {/* Review Dialog */}
       {selected && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="bg-card rounded-2xl border border-border w-full max-w-lg shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-border flex items-start gap-3">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-border flex items-start gap-3 shrink-0">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: (SUPPORT_TYPES[selected.support_type]?.color || '#888') + '20' }}>
                 {(() => { const Icon = SUPPORT_TYPES[selected.support_type]?.icon || FileText; return <Icon className="h-5 w-5" style={{ color: SUPPORT_TYPES[selected.support_type]?.color || '#888' }} />; })()}
               </div>
-              <div>
-                <p className="font-bold text-foreground">{selected.title}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-foreground break-words">{selected.title}</p>
                 <p className="text-xs text-muted-foreground">{selected.profiles?.first_name} {selected.profiles?.last_name} · {selected.profiles?.email}</p>
               </div>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Request Details</p>
-                <p className="text-sm text-foreground leading-relaxed bg-muted/30 rounded-lg p-3">{selected.description}</p>
+                <p className="text-sm text-foreground leading-relaxed bg-muted/30 rounded-lg p-3 whitespace-pre-line break-words max-h-64 overflow-y-auto">{selected.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div><p className="text-muted-foreground">Type</p><p className="font-medium text-foreground capitalize">{selected.support_type.replace('_', ' ')}</p></div>
@@ -247,12 +268,22 @@ export function AdminWelfare() {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Admin Notes / Response</p>
                 <Textarea placeholder="Add notes or response for the member..." value={notes} onChange={e => setNotes(e.target.value)} className="min-h-[80px]" />
               </div>
+            </div>
+            <div className="p-5 border-t border-border shrink-0 space-y-3">
               <div className="flex gap-3">
                 <Button className="flex-1 gradient-primary text-primary-foreground" onClick={saveReview} disabled={saving}>
                   {saving ? 'Saving...' : 'Save Review'}
                 </Button>
                 <Button variant="outline" onClick={() => setSelected(null)}>Cancel</Button>
               </div>
+              <Button
+                variant="outline"
+                className="w-full gap-1.5 text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => deleteRequest(selected)}
+                disabled={saving}
+              >
+                <Trash2 className="h-4 w-4" /> Delete Request Permanently
+              </Button>
             </div>
           </div>
         </div>
