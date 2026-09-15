@@ -185,6 +185,26 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user && (
+              <div className="mt-2 pt-2 border-t border-border">
+                <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">My Account</p>
+                {[
+                  { label: 'Dashboard', Icon: LayoutDashboard, action: () => { navigate('/dashboard'); setMobileOpen(false); } },
+                  { label: 'My Profile', Icon: User, action: () => { navigate('/profile'); setMobileOpen(false); } },
+                  { label: 'Welfare Support', Icon: HeartHandshake, action: () => { navigate('/welfare'); setMobileOpen(false); } },
+                  { label: 'Spouse & Family', Icon: Heart, action: () => { setSpouseDialogOpen(true); setMobileOpen(false); } },
+                ].map(({ label, Icon, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-foreground/80 hover:text-primary hover:bg-primary/10 transition-smooth"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {user && roleLinks.length > 0 && (
               <div className="mt-2 pt-2 border-t border-border">
                 <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Role</p>
@@ -202,14 +222,9 @@ export function Navbar() {
             )}
             <div className="flex gap-2 mt-2 pt-2 border-t border-border">
               {user ? (
-                <>
-                  <Button className="flex-1" onClick={() => { navigate('/dashboard'); setMobileOpen(false); }}>
-                    Dashboard
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
-                </>
+                <Button variant="outline" className="flex-1 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                </Button>
               ) : (                <>
                   <Button variant="outline" className="flex-1" onClick={() => { navigate('/login'); setMobileOpen(false); }}>
                     Sign In
