@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const CASE_LABELS: Record<string, string> = {
-  dispute: 'General Dispute', misconduct: 'Misconduct', fraud: 'Fraud / Financial Scam',
+  dispute: 'General Dispute', employer_dispute: 'Employer Dispute', immigration_agent: 'Immigration / Visa Agent Issue', misconduct: 'Misconduct', fraud: 'Fraud / Financial Scam',
   harassment: 'Harassment / Bullying', impersonation: 'Impersonation', other: 'Other',
 };
 

@@ -5,7 +5,7 @@ import type { CaseReportData } from './caseReportPdf';
 const NIDO_LOGO_URL = 'https://cdn.enter.pro/resources/uid_100149613/84eb6f6a-107f-47.png';
 
 const CASE_LABELS: Record<string, string> = {
-  dispute: 'General Dispute', misconduct: 'Misconduct', fraud: 'Fraud / Financial Scam',
+  dispute: 'General Dispute', employer_dispute: 'Employer Dispute', immigration_agent: 'Immigration / Visa Agent Issue', misconduct: 'Misconduct', fraud: 'Fraud / Financial Scam',
   harassment: 'Harassment / Bullying', impersonation: 'Impersonation', other: 'Other',
 };
 

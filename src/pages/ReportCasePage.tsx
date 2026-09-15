@@ -19,6 +19,8 @@ import {
 
 const CASE_TYPES = [
   { value: 'dispute', label: 'General Dispute' },
+  { value: 'employer_dispute', label: 'Employer Dispute (unpaid wages, unfair dismissal, workplace issues)' },
+  { value: 'immigration_agent', label: 'Immigration / Visa Agent Issue' },
   { value: 'misconduct', label: 'Misconduct' },
   { value: 'fraud', label: 'Fraud / Financial Scam' },
   { value: 'harassment', label: 'Harassment / Bullying' },
@@ -172,10 +174,14 @@ export function ReportCasePage() {
 
       {/* Disclaimer */}
       <div className="bg-amber-500/5 border-b border-amber-400/20 py-3 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-4xl space-y-1.5">
           <p className="text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
             <Shield className="h-4 w-4 shrink-0" />
             All reports are strictly confidential and will only be seen by NIDO leadership. False reports may result in membership consequences.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Need financial or emergency assistance instead?{' '}
+            <Link to="/welfare" className="text-primary font-semibold hover:underline">Request welfare support</Link> — case reports are for disputes and complaints against a person or organization.
           </p>
         </div>
       </div>

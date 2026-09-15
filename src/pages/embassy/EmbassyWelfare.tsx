@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { EmbassyLayout } from '@/components/layout/EmbassyLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Heart, Home, AlertTriangle, Briefcase, Globe, Clock, CheckCircle, XCircle, RefreshCw, Calendar, MapPin } from 'lucide-react';
+import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Calendar, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -9,8 +9,11 @@ const SUPPORT_TYPES: Record<string, { label: string; icon: React.ElementType; co
   medical: { label: 'Medical', icon: Heart, color: '#ef4444' },
   housing: { label: 'Housing', icon: Home, color: '#f59e0b' },
   accident: { label: 'Accident', icon: AlertTriangle, color: '#f97316' },
-  employer_resolution: { label: 'Employer Resolution', icon: Briefcase, color: '#8b5cf6' },
-  immigration: { label: 'Immigration', icon: Globe, color: '#3b82f6' },
+  financial_hardship: { label: 'Financial Hardship', icon: Banknote, color: '#00b359' },
+  emergency_relief: { label: 'Emergency Relief', icon: LifeBuoy, color: '#06b6d4' },
+  // Legacy types (now handled by the Consular Desk case reports — kept so older records still display)
+  employer_resolution: { label: 'Employer Resolution (legacy)', icon: Briefcase, color: '#8b5cf6' },
+  immigration: { label: 'Immigration (legacy)', icon: Globe, color: '#3b82f6' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {

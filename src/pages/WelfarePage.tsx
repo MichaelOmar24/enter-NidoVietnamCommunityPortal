@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
@@ -11,18 +12,31 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Heart, Home, AlertTriangle, Briefcase, Globe,
+  Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy,
   Plus, Clock, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, FileText
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
+// Welfare Support = requesting AID from NIDO (no opposing party involved).
+// Disputes against an employer, agent or any person belong in Report a Case.
 const SUPPORT_TYPES = [
   { value: 'medical', label: 'Medical Support', icon: Heart, color: '#ef4444', desc: 'Health emergencies, hospital bills, medical treatment assistance' },
   { value: 'housing', label: 'Housing Support', icon: Home, color: '#f59e0b', desc: 'Accommodation issues, eviction, emergency housing needs' },
   { value: 'accident', label: 'Accident Support', icon: AlertTriangle, color: '#f97316', desc: 'Road accidents, workplace accidents, injury compensation' },
-  { value: 'employer_resolution', label: 'Employer Resolution', icon: Briefcase, color: '#8b5cf6', desc: 'Workplace disputes, unfair dismissal, wage theft, harassment' },
-  { value: 'immigration', label: 'Immigration Support', icon: Globe, color: '#3b82f6', desc: 'Visa issues, permit renewals, deportation threats, legal advice' },
+  { value: 'financial_hardship', label: 'Financial Hardship', icon: Banknote, color: '#00b359', desc: 'Urgent financial assistance, welfare relief, community support fund' },
+  { value: 'emergency_relief', label: 'Emergency Relief', icon: LifeBuoy, color: '#06b6d4', desc: 'Urgent humanitarian assistance, crisis situations, evacuation support' },
 ];
+
+// Legacy types kept for displaying older requests (now handled by Report a Case)
+const LEGACY_TYPES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  employer_resolution: { label: 'Employer Resolution', icon: Briefcase, color: '#8b5cf6' },
+  immigration: { label: 'Immigration Support', icon: Globe, color: '#3b82f6' },
+};
+
+const ALL_TYPES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  ...Object.fromEntries(SUPPORT_TYPES.map(t => [t.value, { label: t.label, icon: t.icon, color: t.color }])),
+  ...LEGACY_TYPES,
+};
 
 const URGENCY_LEVELS = [
   { value: 'low', label: 'Low', color: 'text-gray-500' },
@@ -111,6 +125,19 @@ export function WelfarePage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Welfare Support</h1>
             <p className="text-muted-foreground mt-2">NIDO Vietnam provides support to members in need. All requests are reviewed by our welfare committee.</p>
+          </div>
+
+          {/* Distinction notice */}
+          <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">Requesting aid, or reporting a problem with someone?</p>
+              <p className="text-muted-foreground mt-0.5">
+                Welfare Support is for <strong className="text-foreground">aid and assistance</strong> (medical, housing, accident, financial hardship, emergency relief).
+                If you have a <strong className="text-foreground">dispute with an employer, immigration agent, or any person</strong>, please{' '}
+                <Link to="/report-case" className="text-primary font-semibold hover:underline">report a case instead</Link> — it goes to our case desk for resolution.
+              </p>
+            </div>
           </div>
 
           {/* Membership status check */}
@@ -220,7 +247,7 @@ export function WelfarePage() {
             ) : (
               <div className="space-y-3">
                 {requests.map(req => {
-                  const typeInfo = SUPPORT_TYPES.find(t => t.value === req.support_type);
+                  const typeInfo = ALL_TYPES[req.support_type];
                   const statusInfo = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
                   const StatusIcon = statusInfo.icon;
                   const TypeIcon = typeInfo?.icon || FileText;

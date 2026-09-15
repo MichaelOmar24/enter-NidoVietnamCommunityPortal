@@ -7,15 +7,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, Home, AlertTriangle, Briefcase, Globe, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText } from 'lucide-react';
+import { Heart, Home, AlertTriangle, Briefcase, Globe, Banknote, LifeBuoy, Clock, CheckCircle, XCircle, RefreshCw, Eye, BarChart3, FileText } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const SUPPORT_TYPES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   medical: { label: 'Medical', icon: Heart, color: '#ef4444' },
   housing: { label: 'Housing', icon: Home, color: '#f59e0b' },
   accident: { label: 'Accident', icon: AlertTriangle, color: '#f97316' },
-  employer_resolution: { label: 'Employer', icon: Briefcase, color: '#8b5cf6' },
-  immigration: { label: 'Immigration', icon: Globe, color: '#3b82f6' },
+  financial_hardship: { label: 'Financial Hardship', icon: Banknote, color: '#00b359' },
+  emergency_relief: { label: 'Emergency Relief', icon: LifeBuoy, color: '#06b6d4' },
+  // Legacy types (now handled by Report a Case — kept so older records still display)
+  employer_resolution: { label: 'Employer (legacy — see Case Reports)', icon: Briefcase, color: '#8b5cf6' },
+  immigration: { label: 'Immigration (legacy — see Case Reports)', icon: Globe, color: '#3b82f6' },
 };
 
 const STATUS_OPTIONS = [
