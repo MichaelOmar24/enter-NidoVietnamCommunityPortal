@@ -129,28 +129,28 @@ Same floating entry point and design language as today, minus all AI framing:
 
 ## Implementation checklist
 
-- [ ] `src/lib/faq.ts` created with `FaqItem`/`FaqCategory` types, `FAQ_CATEGORIES`, the 16 migrated items, exported contact constants, and `filterFaq`.
-- [ ] `filterFaq('')` and `filterFaq('   ')` return all items; `filterFaq('passport')` returns only passport/document items.
-- [ ] `AIChatWidget.tsx` renamed to `FAQWidget.tsx` and rewritten to export `FAQWidget` with the search + accordion + contact-CTA panel.
-- [ ] No `Bot`/`User`/`Send` icons, no message composer, no "AI Assistant" wording anywhere in the widget; `HelpCircle`/`Search`/`Phone`/`Mail` used instead.
-- [ ] Widget contains no `fetch`, `supabase.functions.invoke`, or AI endpoint call — only local state.
-- [ ] Analytics calls are `faq_opened` and `faq_question_opened`; `ai_chat_opened` / `ai_message_sent` no longer referenced in `src/`.
-- [ ] `faq_opened` and `faq_question_opened` registered via `register_analytics_event`.
-- [ ] `src/App.tsx` imports and renders `FAQWidget`; no `AIChatWidget` reference remains.
-- [ ] `supabase/functions/nido-ai-chat/` deleted.
-- [ ] `@microsoft/fetch-event-source` removed from `package.json`.
+- [x] `src/lib/faq.ts` created with `FaqItem`/`FaqCategory` types, `FAQ_CATEGORIES`, the 16 migrated items, exported contact constants, and `filterFaq`.
+- [x] `filterFaq('')` and `filterFaq('   ')` return all items; `filterFaq('passport')` returns only passport/document items.
+- [x] `AIChatWidget.tsx` renamed to `FAQWidget.tsx` and rewritten to export `FAQWidget` with the search + accordion + contact-CTA panel.
+- [x] No `Bot`/`User`/`Send` icons, no message composer, no "AI Assistant" wording anywhere in the widget; `HelpCircle`/`Search`/`Phone`/`Mail` used instead.
+- [x] Widget contains no `fetch`, `supabase.functions.invoke`, or AI endpoint call — only local state.
+- [x] Analytics calls are `faq_opened` and `faq_question_opened`; `ai_chat_opened` / `ai_message_sent` no longer referenced in `src/`.
+- [x] `faq_opened` and `faq_question_opened` registered via `register_analytics_event`.
+- [x] `src/App.tsx` imports and renders `FAQWidget`; no `AIChatWidget` reference remains.
+- [x] `supabase/functions/nido-ai-chat/` deleted.
+- [x] `@microsoft/fetch-event-source` removed from `package.json`.
 
 ## Verification checklist
 
-- [ ] `pnpm lint` passes.
-- [ ] `pnpm exec tsc --noEmit` passes.
-- [ ] `pnpm run build` succeeds.
-- [ ] Repo grep for `AIChatWidget|nido-ai-chat|ai_message_sent|ai_chat_opened|api/v1/ai|fetch-event-source` returns nothing in `src` and `supabase`.
-- [ ] Preview: panel opens, 16 questions across 5 categories render, one-at-a-time expansion works.
-- [ ] Preview: search "passport" filters correctly; "zzzz" shows the empty state with contact links; whitespace-only query shows everything.
-- [ ] Preview: all migrated answers still carry the original embassy/NIDO phone numbers and emails.
-- [ ] `website_screenshot` at `mobile_390` and `desktop_1280` shows no overflow and a scrollable panel body.
-- [ ] `read_network_requests` after opening/searching/expanding shows no AI chat endpoint traffic.
+- [x] `pnpm lint` passes (0 errors; 7 pre-existing `exhaustive-deps` warnings in unrelated pages).
+- [x] `pnpm exec tsc --noEmit` passes.
+- [x] `pnpm run build` succeeds.
+- [x] Repo grep for `AIChatWidget|nido-ai-chat|ai_message_sent|ai_chat_opened|api/v1/ai|fetch-event-source` returns nothing in `src` and `supabase`.
+- [x] `filterFaq` checked by running `src/lib/faq.ts` under Node: `''`/`'   '` → 16, `'passport'` → passport-renewal, biometric-enrollment, nin, pai, visa-entry, `'nin'` → nin first, `'zzzz'` → 0, `'housing'` → housing.
+- [ ] Preview: panel opens, 16 questions across 5 categories render, one-at-a-time expansion works — **not verified visually**: the preview URL was unreachable during this turn (`live-preview` navigation timed out), so panel interaction, the empty state, mobile overflow and AI-endpoint traffic were not observed in a browser.
+- [ ] `website_screenshot` at `mobile_390` and `desktop_1280` — **not verified**, same preview-unreachable cause.
+- [ ] `read_network_requests` after opening/searching/expanding — **not verified** for the same reason; statically, the widget performs no network calls (no `fetch`/`invoke` in the file).
+
 
 ## Notes / limitations
 
