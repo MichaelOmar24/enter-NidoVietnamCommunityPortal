@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertTriangle, User, Upload, X, FileText, CheckCircle,
-  Phone, Mail, Shield, Paperclip
+  Phone, Mail, Shield, Paperclip, Search
 } from 'lucide-react';
 
 const CASE_TYPES = [
@@ -222,6 +222,31 @@ export function ReportCasePage() {
               className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm font-medium hover:bg-green-500/20 transition-colors"
             >
               <Shield className="h-4 w-4" /> Report Anonymously
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Missing person banner */}
+      <div className="bg-card border-b border-border py-4 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Search className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">Looking for someone who has gone missing or been detained?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Requests to locate or verify information about a person are not disputes — use the Missing Person Request form instead.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/report-missing-person"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+            >
+              <Search className="h-4 w-4" /> Missing Person Request
             </Link>
           </div>
         </div>

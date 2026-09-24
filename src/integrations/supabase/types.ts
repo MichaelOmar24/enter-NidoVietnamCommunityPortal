@@ -4304,6 +4304,136 @@ export type Database = {
           },
         ]
       }
+      missing_person_requests: {
+        Row: {
+          admin_notes: string | null
+          assistance_requested: string
+          circumstances: string
+          consent_to_share: boolean
+          created_at: string
+          custody_details: string | null
+          embassy_forwarded_at: string | null
+          evidence_urls: string[] | null
+          id: string
+          incident_date: string | null
+          last_contact_date: string | null
+          last_contact_details: string | null
+          missing_age: number | null
+          missing_aliases: string | null
+          missing_date_of_birth: string | null
+          missing_email: string | null
+          missing_employer: string | null
+          missing_full_name: string
+          missing_gender: string | null
+          missing_last_known_address: string | null
+          missing_nigerian_state_of_origin: string | null
+          missing_passport_number: string | null
+          missing_phone: string | null
+          missing_vietnam_city: string | null
+          prior_actions: string | null
+          request_type: string
+          requester_country: string
+          requester_email: string
+          requester_location: string
+          requester_name: string
+          requester_phone: string | null
+          requester_relationship: string
+          requester_user_id: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assistance_requested?: string
+          circumstances: string
+          consent_to_share?: boolean
+          created_at?: string
+          custody_details?: string | null
+          embassy_forwarded_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          incident_date?: string | null
+          last_contact_date?: string | null
+          last_contact_details?: string | null
+          missing_age?: number | null
+          missing_aliases?: string | null
+          missing_date_of_birth?: string | null
+          missing_email?: string | null
+          missing_employer?: string | null
+          missing_full_name: string
+          missing_gender?: string | null
+          missing_last_known_address?: string | null
+          missing_nigerian_state_of_origin?: string | null
+          missing_passport_number?: string | null
+          missing_phone?: string | null
+          missing_vietnam_city?: string | null
+          prior_actions?: string | null
+          request_type: string
+          requester_country?: string
+          requester_email: string
+          requester_location: string
+          requester_name: string
+          requester_phone?: string | null
+          requester_relationship?: string
+          requester_user_id?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assistance_requested?: string
+          circumstances?: string
+          consent_to_share?: boolean
+          created_at?: string
+          custody_details?: string | null
+          embassy_forwarded_at?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          incident_date?: string | null
+          last_contact_date?: string | null
+          last_contact_details?: string | null
+          missing_age?: number | null
+          missing_aliases?: string | null
+          missing_date_of_birth?: string | null
+          missing_email?: string | null
+          missing_employer?: string | null
+          missing_full_name?: string
+          missing_gender?: string | null
+          missing_last_known_address?: string | null
+          missing_nigerian_state_of_origin?: string | null
+          missing_passport_number?: string | null
+          missing_phone?: string | null
+          missing_vietnam_city?: string | null
+          prior_actions?: string | null
+          request_type?: string
+          requester_country?: string
+          requester_email?: string
+          requester_location?: string
+          requester_name?: string
+          requester_phone?: string | null
+          requester_relationship?: string
+          requester_user_id?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missing_person_requests_requester_user_id_fkey"
+            columns: ["requester_user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missing_person_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passports: {
         Row: {
           admin_notes: string | null
@@ -4742,7 +4872,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_13: {
+      messages_2026_09_19: {
         Row: {
           event: string | null
           extension: string
@@ -4775,7 +4905,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_14: {
+      messages_2026_09_20: {
         Row: {
           event: string | null
           extension: string
@@ -4808,7 +4938,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_15: {
+      messages_2026_09_21: {
         Row: {
           event: string | null
           extension: string
@@ -4841,7 +4971,7 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_16: {
+      messages_2026_09_22: {
         Row: {
           event: string | null
           extension: string
@@ -4874,7 +5004,73 @@ export type Database = {
         }
         Relationships: []
       }
-      messages_2026_09_17: {
+      messages_2026_09_23: {
+        Row: {
+          event: string | null
+          extension: string
+          id: string
+          inserted_at: string
+          payload: Json | null
+          private: boolean | null
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          event?: string | null
+          extension: string
+          id?: string
+          inserted_at?: string
+          payload?: Json | null
+          private?: boolean | null
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          event?: string | null
+          extension?: string
+          id?: string
+          inserted_at?: string
+          payload?: Json | null
+          private?: boolean | null
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages_2026_09_24: {
+        Row: {
+          event: string | null
+          extension: string
+          id: string
+          inserted_at: string
+          payload: Json | null
+          private: boolean | null
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          event?: string | null
+          extension: string
+          id?: string
+          inserted_at?: string
+          payload?: Json | null
+          private?: boolean | null
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          event?: string | null
+          extension?: string
+          id?: string
+          inserted_at?: string
+          payload?: Json | null
+          private?: boolean | null
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages_2026_09_25: {
         Row: {
           event: string | null
           extension: string

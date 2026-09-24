@@ -11,8 +11,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText,
-  Phone, Mail, User, Lock, Scale, RefreshCw, FileDown, Send, Landmark, Loader2
+  Phone, Mail, User, Lock, Scale, RefreshCw, FileDown, Send, Landmark, Loader2, Search
 } from 'lucide-react';
+import { MissingPersonRequestsPanel } from '@/components/common/MissingPersonRequestsPanel';
 import { format, parseISO } from 'date-fns';
 
 interface CaseReport {
@@ -53,6 +54,7 @@ export function EmbassyCaseReports() {
   const [reports, setReports] = useState<CaseReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'closed'>('active');
+  const [section, setSection] = useState<'cases' | 'missing'>('cases');
   const [selected, setSelected] = useState<CaseReport | null>(null);
   const [note, setNote] = useState('');
   const [sendCaseOpen, setSendCaseOpen] = useState(false);
@@ -115,6 +117,28 @@ export function EmbassyCaseReports() {
 
   return (
     <EmbassyLayout title="Consular Desk" subtitle="All reported cases from members and anonymous reporters — full case control">
+      {/* Module tabs: case reports vs missing person requests */}
+      <div className="flex gap-2 mb-5 border-b border-border pb-3 flex-wrap">
+        {[
+          { key: 'cases', label: 'Case Reports' },
+          { key: 'missing', label: 'Missing Persons' },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setSection(t.key as 'cases' | 'missing')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+              section === t.key ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'missing' ? (
+        <MissingPersonRequestsPanel />
+      ) : (
+        <>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
@@ -329,6 +353,8 @@ export function EmbassyCaseReports() {
         onClose={() => setResolveOpen(false)}
         onResolved={() => { setSelected(null); setNote(''); load(); }}
       />
+        </>
+      )}
     </EmbassyLayout>
   );
 }

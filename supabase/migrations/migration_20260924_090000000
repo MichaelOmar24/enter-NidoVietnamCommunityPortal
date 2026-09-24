@@ -1,0 +1,72 @@
+-- Missing / Detained Person information requests
+-- Separate module from case_reports: different purpose and field set, no impact on existing case data.
+CREATE TABLE IF NOT EXISTS missing_person_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Requester (usually family in Nigeria, sometimes a member in Vietnam)
+  requester_user_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  requester_name text NOT NULL,
+  requester_email text NOT NULL,
+  requester_phone text,
+  requester_relationship text NOT NULL DEFAULT 'relative',
+  requester_country text NOT NULL DEFAULT 'Nigeria',
+  requester_location text NOT NULL,
+  -- Missing person
+  missing_full_name text NOT NULL,
+  missing_aliases text,
+  missing_gender text CHECK (missing_gender IN ('male', 'female', 'other')),
+  missing_date_of_birth date,
+  missing_age integer,
+  missing_nigerian_state_of_origin text,
+  missing_passport_number text,
+  missing_phone text,
+  missing_email text,
+  -- Last known information in Vietnam
+  missing_last_known_address text,
+  missing_vietnam_city text,
+  missing_employer text,
+  last_contact_date date,
+  last_contact_details text,
+  -- What happened
+  request_type text NOT NULL CHECK (request_type IN (
+    'disappeared', 'lost_contact', 'detained_or_arrested',
+    'taken_to_prison', 'believed_in_custody', 'whereabouts_verification'
+  )),
+  incident_date date,
+  custody_details text,
+  circumstances text NOT NULL,
+  prior_actions text,
+  -- Requested help
+  assistance_requested text NOT NULL DEFAULT 'verify_only' CHECK (assistance_requested IN ('verify_only', 'follow_up_embassy', 'both')),
+  consent_to_share boolean NOT NULL DEFAULT false,
+  evidence_urls text[] DEFAULT '{}',
+  -- Workflow
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN (
+    'pending', 'under_review', 'verifying', 'forwarded_to_embassy', 'information_provided', 'closed'
+  )),
+  admin_notes text,
+  embassy_forwarded_at timestamptz,
+  reviewed_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS missing_person_requests_requester_idx ON missing_person_requests(requester_user_id);
+CREATE INDEX IF NOT EXISTS missing_person_requests_status_idx ON missing_person_requests(status);
+CREATE INDEX IF NOT EXISTS missing_person_requests_created_idx ON missing_person_requests(created_at DESC);
+
+ALTER TABLE missing_person_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members can file missing person requests" ON missing_person_requests
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = requester_user_id);
+
+CREATE POLICY "Members can view own missing person requests" ON missing_person_requests
+  FOR SELECT TO authenticated USING (auth.uid() = requester_user_id);
+
+CREATE POLICY "Admins manage missing person requests" ON missing_person_requests
+  FOR ALL TO authenticated USING (public.is_current_user_admin()) WITH CHECK (public.is_current_user_admin());
+
+CREATE POLICY "Embassy staff view missing person requests" ON missing_person_requests
+  FOR SELECT TO authenticated USING (public.is_current_user_embassy_staff());
+
+CREATE POLICY "Embassy staff update missing person requests" ON missing_person_requests
+  FOR UPDATE TO authenticated USING (public.is_current_user_embassy_staff()) WITH CHECK (public.is_current_user_embassy_staff());

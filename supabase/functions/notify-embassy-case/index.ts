@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { case_report_id, welfare_request_id, force } = await req.json();
-    if (!case_report_id && !welfare_request_id) {
-      return new Response(JSON.stringify({ error: "case_report_id or welfare_request_id is required" }), {
+    const { case_report_id, welfare_request_id, missing_person_request_id, force } = await req.json();
+    if (!case_report_id && !welfare_request_id && !missing_person_request_id) {
+      return new Response(JSON.stringify({ error: "case_report_id, welfare_request_id or missing_person_request_id is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
             <p style="color: #6b7280; font-size: 12px;">This case is recorded in the NIDO Vietnam case management system. NIDO Vietnam remains available to coordinate with the Embassy on this matter.<br/>info@nidovietnam.com · +84326189705</p>
           </div>
         </div>`;
-    } else {
+    } else if (welfare_request_id) {
       const { data: wr, error } = await supabase
         .from("welfare_requests")
         .select("*, profiles!welfare_requests_user_id_fkey(first_name, last_name, email, phone, vietnam_city)")
@@ -147,6 +147,64 @@ Deno.serve(async (req) => {
             <p style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">${esc(wr.description)}</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
             <p style="color: #6b7280; font-size: 12px;">This request is recorded in the NIDO Vietnam welfare system. NIDO Vietnam remains available to coordinate with the Embassy on this matter.<br/>info@nidovietnam.com · +84326189705</p>
+          </div>
+        </div>`;
+    } else {
+      const { data: mp, error } = await supabase
+        .from("missing_person_requests")
+        .select("*")
+        .eq("id", missing_person_request_id)
+        .maybeSingle();
+      if (error || !mp) {
+        return new Response(JSON.stringify({ error: "Missing person request not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Consent governs automatic sharing; force=true (explicit admin action) overrides it
+      if (mp.consent_to_share !== true && force !== true) {
+        return new Response(JSON.stringify({ skipped: true, reason: "Requester has not consented to sharing with the Embassy" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const mpEvidence = (mp.evidence_urls || []).length > 0
+        ? `<p style="margin:12px 0 4px;font-weight:600;">Supporting documents:</p><ol style="margin:0;padding-left:18px;">${(mp.evidence_urls as string[]).map((u) => `<li style="margin-bottom:2px;"><a href="${esc(u)}" style="color:#1a56db;word-break:break-all;">${esc(u)}</a></li>`).join("")}</ol>`
+        : "";
+
+      subject = `Missing / Detained Nigerian Citizen — ${mp.missing_full_name}`;
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1a1a1a;">
+          <div style="background: #008751; padding: 20px 28px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">NIDO Vietnam</h1>
+            <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0; font-size: 12px;">Request for Information — Missing / Detained Nigerian Citizen</p>
+          </div>
+          <div style="background: #ffffff; padding: 28px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; font-size: 14px; line-height: 1.7;">
+            <p>Dear Consular Team,</p>
+            <p>NIDO Vietnam has received a request from a family member / friend concerning a Nigerian citizen in Vietnam. At the requester's instruction, we are forwarding the details for the Embassy's awareness and consular follow-up.</p>
+            <table style="border-collapse: collapse; margin: 12px 0; width: 100%;">
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Person concerned</td><td style="font-weight: 600;">${esc(mp.missing_full_name)}${mp.missing_aliases ? ` (also known as ${esc(mp.missing_aliases)})` : ""}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Situation</td><td>${esc(String(mp.request_type).split("_").join(" "))}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Gender / Age</td><td>${esc(mp.missing_gender || "—")} · ${esc(mp.missing_age ?? "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Date of birth</td><td>${esc(mp.missing_date_of_birth || "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">State of origin</td><td>${esc(mp.missing_nigerian_state_of_origin || "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Passport number</td><td>${esc(mp.missing_passport_number || "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Last known address (Vietnam)</td><td>${esc(mp.missing_last_known_address || "—")}${mp.missing_vietnam_city ? ` · ${esc(mp.missing_vietnam_city)}` : ""}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Employer / institution</td><td>${esc(mp.missing_employer || "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Last contact</td><td>${esc(mp.last_contact_date || "—")}${mp.last_contact_details ? ` — ${esc(mp.last_contact_details)}` : ""}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Date last seen / heard from</td><td>${esc(mp.incident_date || "—")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Requested by</td><td>${esc(mp.requester_name)} (${esc(mp.requester_relationship)}) — ${esc(mp.requester_email)}${mp.requester_phone ? ` — ${esc(mp.requester_phone)}` : ""} · ${esc(mp.requester_location)}, ${esc(mp.requester_country)}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Assistance requested</td><td>${esc(String(mp.assistance_requested).split("_").join(" "))}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Consent to share</td><td>${mp.consent_to_share ? "Yes" : "No (forwarded on NIDO's authority)"}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Date filed</td><td>${new Date(mp.created_at).toLocaleString("en-GB")}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #6b7280; vertical-align: top;">Reference</td><td style="font-family: monospace; font-size: 12px;">${esc(mp.id)}</td></tr>
+            </table>
+            ${mp.custody_details ? `<p style="font-weight:600;margin:12px 0 4px;">Detention / custody details:</p><p style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">${esc(mp.custody_details)}</p>` : ""}
+            <p style="font-weight: 600; margin: 12px 0 4px;">Account of the situation:</p>
+            <p style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">${esc(mp.circumstances)}</p>
+            ${mp.prior_actions ? `<p style="font-weight:600;margin:12px 0 4px;">Steps already taken:</p><p style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">${esc(mp.prior_actions)}</p>` : ""}
+            ${mpEvidence}
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+            <p style="color: #6b7280; font-size: 12px;">NIDO Vietnam has verified the information available to the community and remains available to coordinate with the Embassy on this matter.<br/>info@nidovietnam.com · +84326189705</p>
           </div>
         </div>`;
     }

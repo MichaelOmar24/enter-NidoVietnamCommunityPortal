@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { generateCaseReportPdf } from '@/lib/caseReportPdf';
 import { SendCaseToReported } from '@/components/common/SendCaseToReported';
 import { ResolveCaseDialog } from '@/components/common/ResolveCaseDialog';
-import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2, Send, Landmark, Loader2 } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, XCircle, Eye, FileText, Phone, Mail, User, Lock, FileDown, Trash2, Send, Landmark, Loader2, Search } from 'lucide-react';
+import { MissingPersonRequestsPanel } from '@/components/common/MissingPersonRequestsPanel';
 import { format, parseISO } from 'date-fns';
 
 interface CaseReport {
@@ -57,6 +58,7 @@ export function AdminCaseReports() {
   const [resolveOpen, setResolveOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'resolved' | 'closed'>('active');
   const [sendingEmbassy, setSendingEmbassy] = useState(false);
+  const [section, setSection] = useState<'cases' | 'missing'>('cases');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,6 +125,28 @@ export function AdminCaseReports() {
 
   return (
     <AdminLayout title="Case Reports">
+      {/* Module tabs: disputes/complaints vs missing person requests */}
+      <div className="flex gap-2 mb-5 border-b border-border pb-3 flex-wrap">
+        {[
+          { key: 'cases', label: 'Case Reports' },
+          { key: 'missing', label: 'Missing Persons' },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setSection(t.key as 'cases' | 'missing')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+              section === t.key ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'missing' ? (
+        <MissingPersonRequestsPanel canForward canDelete />
+      ) : (
+        <>
       <div className="grid grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total Reports', value: stats.total, color: 'text-foreground' },
@@ -338,6 +362,8 @@ export function AdminCaseReports() {
         onClose={() => setResolveOpen(false)}
         onResolved={() => { setSelected(null); setAdminNote(''); load(); }}
       />
+        </>
+      )}
     </AdminLayout>
   );
 }

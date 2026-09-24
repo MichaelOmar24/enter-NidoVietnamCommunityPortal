@@ -90,34 +90,33 @@ Extend the existing `supabase/functions/notify-embassy-case/index.ts` (reuses it
 
 ## Implementation checklist
 
-- [ ] Migration applies: `missing_person_requests` created with all columns, CHECK constraints, indexes, RLS enabled, and the four policy groups (own insert/select, admin all, embassy select/update).
-- [ ] Migration file committed to `supabase/migrations/` with the same SQL.
-- [ ] Regenerated `src/integrations/supabase/types.ts` includes `missing_person_requests` (verified, not hand-edited).
-- [ ] `src/lib/missingPerson.ts` exports the interface, option lists, `STATUS_CONFIG`, `requestTypeLabel`, `formatReference`.
-- [ ] `/report-missing-person` route added behind `ProtectedRoute` and renders `RequestMissingPersonPage`.
-- [ ] Form validates required fields, requires consent for `follow_up_embassy`/`both`, and shows custody fields only for the four detention/custody request types.
-- [ ] Successful submit inserts with `requester_user_id = profile.id`, `status = 'pending'`, uploads land under `missing-person/` in the `uploads` bucket, and the success screen shows the reference code.
-- [ ] Member's own list shows status badges and never renders `admin_notes`.
-- [ ] `MissingPersonRequestsPanel` renders in both consoles with the correct `canForward`/`canDelete` props and a working review dialog.
-- [ ] `notify-embassy-case` accepts `missing_person_request_id`, requires `consent_to_share` (or `force`), and its existing `case_report_id` / `welfare_request_id` paths are unchanged.
-- [ ] Forward action sets `status = 'forwarded_to_embassy'` and `embassy_forwarded_at`.
-- [ ] Navbar (desktop dropdown + mobile list), Footer and the `/report-case` banner all link to the new page.
-- [ ] `missing_person_request_submitted` registered and tracked on submit.
+- [x] Migration applies: `missing_person_requests` created with all columns, CHECK constraints, indexes, RLS enabled (`relrowsecurity = true`), and the five policies (own insert/select, admin all, embassy select/update).
+- [x] Migration file committed to `supabase/migrations/migration_20260924_090000000` with the same SQL.
+- [x] Regenerated `src/integrations/supabase/types.ts` includes `missing_person_requests` (verified, not hand-edited).
+- [x] `src/lib/missingPerson.ts` exports the interface, option lists, `STATUS_CONFIG`, `requestTypeLabel`, `formatReference`.
+- [x] `/report-missing-person` route added behind `ProtectedRoute` and renders `RequestMissingPersonPage`.
+- [x] Form validates required fields, requires consent for `follow_up_embassy`/`both`, and shows custody fields only for the three detention/custody request types.
+- [x] Submit inserts with `requester_user_id = profile.id`, `status = 'pending'`, uploads land under `missing-person/` in the `uploads` bucket, and the success screen shows the reference code.
+- [x] Member's own list selects only id/name/type/status/dates — `admin_notes` is never fetched, so it cannot be shown to the requester.
+- [x] `MissingPersonRequestsPanel` renders in both consoles: admin gets `canForward canDelete`, consular desk gets neither.
+- [x] `notify-embassy-case` accepts `missing_person_request_id`, requires `consent_to_share` (or `force`), and its existing `case_report_id` / `welfare_request_id` paths are unchanged.
+- [x] Forward action sets `status = 'forwarded_to_embassy'` and `embassy_forwarded_at` in code.
+- [x] Navbar (desktop dropdown + mobile list), Footer and the `/report-case` banner all link to the new page.
+- [x] `missing_person_request_submitted` registered and tracked on submit.
 
 ## Verification checklist
 
-- [ ] `pnpm lint` passes with 0 errors.
-- [ ] `pnpm exec tsc --noEmit` passes.
-- [ ] `pnpm run build` succeeds.
-- [ ] Read query confirms RLS is enabled on `missing_person_requests` and all four policy groups exist.
-- [ ] Signed-out `/report-missing-person` redirects to `/login`; signed-in member loads the form (positive + negative auth check).
-- [ ] Boundary: `follow_up_embassy` without consent is rejected; `verify_only` without consent is accepted.
-- [ ] Boundary: custody details hidden for `disappeared`/`lost_contact`, shown for `detained_or_arrested`/`taken_to_prison`/`believed_in_custody`.
-- [ ] Happy path insert verified with a read query showing `status = 'pending'` and the correct `requester_user_id`.
-- [ ] Admin console tab lists, reviews, updates status, forwards (email confirmed in function logs) and deletes.
-- [ ] Consular desk tab lists and updates status but exposes no forward/delete controls.
-- [ ] `/report-case` submission and immigration auto-forward still work (regression).
-- [ ] `website_screenshot` of `/report-missing-person` at `mobile_390` and `desktop_1280` shows no overflow and a usable multi-section form.
+- [x] `pnpm lint` passes with 0 errors (7 pre-existing `exhaustive-deps` warnings, unrelated files).
+- [x] `pnpm exec tsc --noEmit` passes.
+- [x] `pnpm run build` succeeds.
+- [x] Read query confirms RLS is enabled on `missing_person_requests` and all five policies exist with scoped `qual`/`with_check`.
+- [x] Anonymous `POST /rest/v1/missing_person_requests` is rejected: `42501 new row violates row-level security policy` (members-only enforced in the database, not just the UI).
+- [x] Backend branch: `{"missing_person_request_id": "<unknown uuid>"}` → `404 Missing person request not found` (new code path live, no email sent).
+- [x] Backend regression: `{}` → `400 case_report_id, welfare_request_id or missing_person_request_id is required`; bogus `case_report_id` → `404 Case report not found`.
+- [x] Latest preview console log shows `[vite] connected` with no user-code runtime errors.
+- [ ] Not verified live (no member/console session available in this environment): signed-out redirect, the filled form, the consent and custody boundary behaviour in the browser, a real member insert end-to-end, and the admin/embassy review + forward actions. Static evidence only: typecheck/build plus the RLS and function checks above.
+- [ ] `website_screenshot` of `/report-missing-person` was not taken — the route is auth-gated, so an unauthenticated capture would only render `/login`. Responsive layout is therefore unverified rather than confirmed.
+
 
 ## Notes / limitations
 

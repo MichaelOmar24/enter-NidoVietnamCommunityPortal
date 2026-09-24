@@ -28,6 +28,7 @@ import { AdminDonations } from "./pages/admin/AdminDonations";
 import { RecognitionsPage } from "./pages/RecognitionsPage";
 import { DonationsPage } from "./pages/DonationsPage";
 import { ReportCasePage } from "./pages/ReportCasePage";
+import { RequestMissingPersonPage } from "./pages/RequestMissingPersonPage";
 import { AnonymousReportPage } from "./pages/AnonymousReportPage";
 import { AdminCaseReports } from "./pages/admin/AdminCaseReports";
 import { AdminInbox } from "./pages/admin/AdminInbox";
@@ -198,6 +199,11 @@ export const routers = [
      path: "/report-case",
      name: "report-case",
      element: <ProtectedRoute><ReportCasePage /></ProtectedRoute>
+  },
+  {
+     path: "/report-missing-person",
+     name: "report-missing-person",
+     element: <ProtectedRoute><RequestMissingPersonPage /></ProtectedRoute>
   },
   {
      path: "/recommendation",

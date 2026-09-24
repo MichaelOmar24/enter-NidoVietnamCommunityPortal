@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Facebook, MessageCircle, Phone, Mail, MapPin, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Facebook, MessageCircle, Phone, Mail, MapPin, ExternalLink, AlertTriangle, Search } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export function Footer() {
@@ -69,6 +69,12 @@ export function Footer() {
                 <Link to="/report-case" className="hover:text-destructive transition-smooth flex items-center gap-1.5 group text-sidebar-foreground/50">
                   <AlertTriangle className="h-3 w-3 text-destructive/60 group-hover:text-destructive transition-smooth" />
                   Report a Case / Dispute
+                </Link>
+              </li>
+              <li>
+                <Link to="/report-missing-person" className="hover:text-primary transition-smooth flex items-center gap-1.5 group text-sidebar-foreground/50">
+                  <Search className="h-3 w-3 text-primary/60 group-hover:text-primary transition-smooth" />
+                  Missing Person Request
                 </Link>
               </li>
             </ul>
