@@ -19,7 +19,7 @@ export const NIDO_CONTACTS = {
   hotline: '+84326189705',
   hotlineLabel: 'Dr. Michael Omar — NIDO Vietnam President',
   email: 'info@nidovietnam.com',
-  website: 'nidovietnam.com',
+  website: 'www.nidovietnam.com',
 };
 
 export const EMBASSY_CONTACTS = {
@@ -250,7 +250,7 @@ Hotline: +84326189705
 (Dr. Michael Omar — NIDO Vietnam President)
 
 Email: info@nidovietnam.com
-Website: nidovietnam.com
+Website: www.nidovietnam.com
 
 Feel free to reach out for membership, events, or assistance!`,
     keywords: ['nido contact', 'hotline', 'reach nido', 'president', 'michael omar', 'dr omar'],
